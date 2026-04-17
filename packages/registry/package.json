@@ -1,0 +1,7 @@
+{
+  "name": "@carto-ecp/registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": ["eic-entsoe.csv", "eic-rte-overlay.json"]
+}
