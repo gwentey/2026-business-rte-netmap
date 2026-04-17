@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build artefacts
+dist/
+build/
+.next/
+.turbo/
+.cache/
+coverage/
+*.tsbuildinfo
+
+# Runtime storage (zips archivés)
+storage/
+
+# Local databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+prisma/*.db
+
+# Logs
+*.log
+logs/
+.npm
+.pnpm-debug.log*
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Claude Code local session artefacts
+.claude/.events.log
+.claude/.session-start-*
+
+# Sensitive ECP backup files (contiennent clés privées / certificats)
+# Ne JAMAIS committer — voir design §11 et document fonctionnel §8bis.2
+tests/fixtures/**/local_key_store.csv
+tests/fixtures/**/registration_store.csv
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
