@@ -1,0 +1,116 @@
+// This is your Prisma schema file, see https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Snapshot {
+  id                  String   @id @default(uuid())
+  label               String
+  envName             String
+  componentType       String   // 'ENDPOINT' | 'COMPONENT_DIRECTORY'
+  sourceComponentCode String
+  cdCode              String?
+  organization        String?
+  uploadedAt          DateTime @default(now())
+  zipPath             String
+  warningsJson        String   @default("[]")
+
+  components        Component[]
+  messagePaths      MessagePath[]
+  messagingStats    MessagingStatistic[]
+  appProperties     AppProperty[]
+
+  @@index([envName])
+  @@index([uploadedAt])
+}
+
+model Component {
+  id                 String  @id @default(uuid())
+  snapshotId         String
+  snapshot           Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  eic                String
+  type               String  // BROKER | ENDPOINT | COMPONENT_DIRECTORY
+  organization       String
+  personName         String?
+  email              String?
+  phone              String?
+  homeCdCode         String?
+  networksCsv        String  // CSV-joined list of networks
+  creationTs         DateTime?
+  modificationTs     DateTime?
+  displayName        String
+  country            String?
+  lat                Float
+  lng                Float
+  isDefaultPosition  Boolean @default(false)
+  process            String?
+  sourceType         String  // 'XML_CD' | 'LOCAL_CSV'
+
+  urls ComponentUrl[]
+
+  @@unique([snapshotId, eic])
+  @@index([snapshotId])
+}
+
+model ComponentUrl {
+  id          String   @id @default(uuid())
+  componentId String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  network     String
+  url         String
+
+  @@index([componentId])
+}
+
+model MessagePath {
+  id                     String   @id @default(uuid())
+  snapshotId             String
+  snapshot               Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  receiverEic            String
+  senderEicOrWildcard    String   // "*" ou EIC
+  messageType            String   // "*" ou libre
+  transportPattern       String   // 'DIRECT' | 'INDIRECT'
+  intermediateBrokerEic  String?
+  validFrom              DateTime?
+  validTo                DateTime?
+  process                String   // ProcessKey incluant 'UNKNOWN'
+  direction              String   // 'IN' | 'OUT'
+  source                 String   // 'XML_CD_PATHS' | 'LOCAL_CSV_PATHS'
+  isExpired              Boolean  @default(false)
+
+  @@index([snapshotId])
+  @@index([snapshotId, receiverEic])
+}
+
+model MessagingStatistic {
+  id                   String   @id @default(uuid())
+  snapshotId           String
+  snapshot             Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  sourceEndpointCode   String
+  remoteComponentCode  String
+  connectionStatus     String?
+  lastMessageUp        DateTime?
+  lastMessageDown      DateTime?
+  sumMessagesUp        Int       @default(0)
+  sumMessagesDown      Int       @default(0)
+  deleted              Boolean   @default(false)
+
+  @@index([snapshotId])
+  @@index([snapshotId, remoteComponentCode])
+}
+
+model AppProperty {
+  id         String   @id @default(uuid())
+  snapshotId String
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  key        String
+  value      String
+
+  @@index([snapshotId])
+}
