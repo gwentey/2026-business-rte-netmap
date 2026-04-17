@@ -2,8 +2,9 @@
 
 |  |  |
 | :---- | :---- |
-| **Version** | 1.0 |
+| **Version** | 1.1 |
 | **Date** | 2026-04-18 |
+| **Changelog v1.1** | Support dual Endpoint/CD : un zip uploadé peut être un backup Endpoint **ou** un backup Component Directory RTE. Le parser XML MADES est identique pour les deux. Les 5 tables CD-spécifiques sont reconnues mais ignorées au slice #1 (reportées au slice #2). Mise à jour §2, §3, §6, §9, §12, §13. |
 | **Auteur brainstorming** | Anthony Rodrigues (AR46850T) — DPCM/IMGH, assisté par Claude |
 | **Document source** | `carto-ecp-document-fonctionnel-v1.2.md` (17 avril 2026) |
 | **Cible** | Spec d'entrée pour le skill `superpowers:writing-plans` |
@@ -31,9 +32,16 @@ Les décisions suivantes ont été actées lors du brainstorming et **ne sont pa
 dans le plan d'implémentation :
 
 - **Approche** : vertical slice upload → parser → carte, sans auth.
-- **Données de test** : backup réel `17V000000498771C_2026-04-17T21_27_17Z/` présent
-  dans `tests/fixtures/`. Le parser sera développé et testé contre ce backup, pas
-  contre des fixtures synthétiques.
+- **Données de test** : deux backups réels présents dans `tests/fixtures/` :
+  - `17V000000498771C_2026-04-17T21_27_17Z/` — backup **Endpoint** ECP-INTERNET-2
+    (8 CSV observés, dont 2 sensibles exclus du git).
+  - `17V000002014106G_2026-04-17T22_11_50Z/` — backup **Component Directory**
+    RTE (10 CSV observés, dont 2 sensibles exclus du git). Confirmé à
+    l'analyse : le CD utilise le **même format XML MADES embarqué** que
+    l'Endpoint (namespace `http://mades.entsoe.eu/componentDirectory`). Le
+    parser XML est donc identique pour les 2 types.
+  Le développement et les tests s'appuient sur ces 2 backups réels, pas sur
+  des fixtures synthétiques.
 - **Registry de référence** : `X_eicCodes.csv` ENTSO-E officiel (~14 929 codes,
   présent dans `tests/fixtures/`), complété par un overlay RTE-custom JSON qui sera
   préchargé avec les ~10 orgas clés (RTE, SwissGrid, Terna, REE, Elia, TenneT,
@@ -57,8 +65,10 @@ dans le plan d'implémentation :
 
 | Ref fonctionnel | Description |
 | :---- | :---- |
-| F1 simplifié | Upload d'un seul zip Endpoint (pas le paquet complet 7 zips), avec label + envName libre |
-| Parsing complet | `application_property.csv`, `component_directory.csv` (avec XML MADES embarqué), `messaging_statistics.csv`, `message_path.csv` |
+| F1 simplifié | Upload d'un seul zip, qui peut être un **backup Endpoint** ou un **backup Component Directory**. Le type est détecté automatiquement à partir de `application_property.csv`. Label + envName libre |
+| Parsing commun aux 2 types | `application_property.csv`, `component_directory.csv` (XML MADES embarqué dans les deux) |
+| Parsing Endpoint-only | `messaging_statistics.csv`, `message_path.csv` |
+| Parsing CD-only | `message_path.csv` (présent mais souvent vide côté CD — lu si non vide) |
 | Persistance | SQLite via Prisma, archivage du zip tel quel dans `storage/snapshots/{uuid}.zip` |
 | F2 | Carte Leaflet (fond OSM) avec nœuds positionnés (RTE au centre, externes géolocalisés) et liens colorés par process |
 | F3 minimal | Panneau latéral affichant les infos d'un nœud ou d'un edge au clic |
@@ -70,7 +80,14 @@ dans le plan d'implémentation :
 - F4 recherche, F5 filtres, F6 toggles couches
 - F7 export CSV, F8 historique complet (renommage, suppression, activation)
 - F9 analyse d'impact BA, F10 vue par process en 1 clic
-- Upload multi-zips (CD + 6 Endpoints + config `.properties`)
+- Upload multi-zips en une opération (CD + 6 Endpoints + config `.properties` bundle)
+- Exploitation des 5 tables CD-spécifiques (`component_statistics`,
+  `registration_requests`, `synchronized_directories`, `pending_edit_directories`,
+  `pending_removal_directories`). Reconnues à l'extraction mais **ignorées
+  silencieusement** au slice #1. `synchronized_directories` sera la source des
+  liens CD↔CD à un slice ultérieur.
+- Corrélation explicite entre un Snapshot Endpoint et son Snapshot CD parent
+  (vue fédérée cross-snapshots).
 - Admin page (rechargement registry à chaud, liste des messageTypes UNKNOWN,
   re-classification)
 - Auth JWT + rôles (`exploitant`, `techlead`, `reader`)
@@ -240,11 +257,19 @@ ZipExtractor → CsvReader → XmlMadesParser → NetworkModelBuilder → Snapsh
   + `component_directory.csv`. Sinon `UploadValidationException` (code
   `MISSING_REQUIRED_CSV`).
 - **Refus DoS** : toute entrée > 50 MB dans le zip bloque l'import.
-- **Whitelist** des noms de fichiers chargés en mémoire : 6 CSV sur les 8 du
-  §8bis.2. Les 2 fichiers sensibles (`local_key_store.csv`,
-  `registration_store.csv`) sont **explicitement exclus de l'extraction mémoire**,
-  même s'ils restent présents dans le zip archivé sur disque (pour un
-  éventuel re-parsing futur). Tout autre fichier du zip est ignoré silencieusement.
+- **Whitelist de noms de fichiers chargés en mémoire** (union Endpoint ∪ CD) :
+  - **Utilisés slice #1** : `application_property.csv`,
+    `component_directory.csv`, `message_path.csv`, `messaging_statistics.csv`,
+    `message_type.csv`, `message_upload_route.csv`.
+  - **Reconnus mais ignorés slice #1** (réservés slices ultérieurs) :
+    `component_statistics.csv`, `synchronized_directories.csv`,
+    `pending_edit_directories.csv`, `pending_removal_directories.csv`.
+  - **Explicitement exclus de l'extraction mémoire** (sensibles) :
+    `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv`.
+    Ils restent présents dans le zip archivé sur disque pour un éventuel
+    re-parsing futur, mais ne sont **jamais** chargés en mémoire ni persistés
+    en base.
+  Tout autre fichier du zip est ignoré silencieusement.
 
 ### 6.3 CsvReader
 
@@ -285,6 +310,19 @@ ZipExtractor → CsvReader → XmlMadesParser → NetworkModelBuilder → Snapsh
   wildcard `*` dans la logique métier).
 
 ### 6.5 NetworkModelBuilder
+
+**Détection du type de backup** (avant tout) : le builder commence par
+inspecter `appProperties` :
+
+- Si `ecp.componentCode` correspond à un EIC présent dans le XML sous
+  `<componentDirectory>` → `componentType = 'COMPONENT_DIRECTORY'`.
+- Sinon → `componentType = 'ENDPOINT'`. Le code du CD primaire est alors lu
+  via `ecp.directory.client.synchronization.homeComponentDirectoryPrimaryCode`.
+
+Ce flag est stocké sur le `Snapshot` et conditionne :
+- L'interprétation des `messagingStats` (présents côté Endpoint, vides ou
+  absents côté CD → warning si absents mais non bloquant).
+- La sémantique de direction IN/OUT (relative au composant source du backup).
 
 - **Entrée** : `{ appProperties, madesTree, messagingStats, localMessagePaths }`.
 - **Sortie** : `NetworkSnapshot`  :
@@ -459,7 +497,9 @@ Les regex sont compilées une fois au boot.
 POST   /api/snapshots
   Content-Type: multipart/form-data
   Fields: zip (File, required), label (string, required), envName (string, required)
-  201 → { id, label, envName, sourceEndpointCode, cdCode, uploadedAt, warnings[] }
+  201 → { id, label, envName, componentType, sourceComponentCode, cdCode,
+         uploadedAt, warnings[] }
+         # componentType ∈ { 'ENDPOINT', 'COMPONENT_DIRECTORY' } détecté auto
   400 → INVALID_UPLOAD, MISSING_REQUIRED_CSV, UNKNOWN_MADES_NAMESPACE
   413 → PAYLOAD_TOO_LARGE
 
@@ -533,8 +573,11 @@ Dans `GraphService` :
 ## 9. Modèle de données Prisma
 
 ```
-Snapshot (id, label, envName, sourceEndpointCode, cdCode, organization,
-          uploadedAt, zipPath, warningsJson)
+Snapshot (id, label, envName, componentType, sourceComponentCode, cdCode,
+          organization, uploadedAt, zipPath, warningsJson)
+          # componentType: 'ENDPOINT' | 'COMPONENT_DIRECTORY'
+          # sourceComponentCode: EIC du composant source du backup
+          # cdCode: EIC du CD (self pour un backup CD, primary pour un Endpoint)
 
 Component (id, snapshotId, eic, type, organization, personName, email, phone,
            homeCdCode, networksCsv, creationTs, modificationTs,
@@ -718,13 +761,13 @@ Panneau détail : 400 px, collapse → 0.
 - Chargement du CSV ENTSO-E réel → compteur attendu.
 - Lookup inexistant → fallback correct.
 
-### 12.3 Test intégration phare
+### 12.3 Tests intégration phares
 
-`full-ingestion.spec.ts` :
+**`full-ingestion-endpoint.spec.ts`** :
 
 ```
 Arrange:
-  - Zip reconstruit à la volée depuis les 8 CSV de tests/fixtures/17V.../.
+  - Zip reconstruit depuis tests/fixtures/17V000000498771C_.../ (non sensibles).
   - Registry bootstrap avec overlay complet.
   - Prisma SQLite file temp.
 
@@ -733,13 +776,36 @@ Act:
 
 Assert:
   - 201
-  - sourceEndpointCode === 'ECP-INTERNET-2'
-  - cdCode === '17V000002014106G'
-  - Component/MessagePath counts > 0
-  - Aucune table Certificate/KeyStore/Registration persistée
+  - componentType === 'ENDPOINT'
+  - sourceComponentCode === 'ECP-INTERNET-2' (via ecp.projectName)
+  - cdCode === '17V000002014106G' (via homeComponentDirectoryPrimaryCode)
+  - Component / MessagePath counts > 0
+  - Aucune table KeyStore / RegistrationStore persistée
   - GET /api/snapshots/:id/graph retourne nodes + edges
   - Chaque node a lat/lng valide
   - Chaque edge.process est un ProcessKey valide
+```
+
+**`full-ingestion-cd.spec.ts`** :
+
+```
+Arrange:
+  - Zip reconstruit depuis tests/fixtures/17V000002014106G_.../ (non sensibles).
+  - Registry bootstrap avec overlay complet.
+  - Prisma SQLite file temp.
+
+Act:
+  POST /api/snapshots avec le zip CD.
+
+Assert:
+  - 201
+  - componentType === 'COMPONENT_DIRECTORY'
+  - sourceComponentCode === cdCode === '17V000002014106G'
+  - Component count > 0 (CD voit tous les composants enregistrés)
+  - MessagePath count === 0 ou cohérent avec le contenu du CD (souvent vide)
+  - Aucune table KeyStore / RegistrationRequests / RegistrationStore persistée
+  - Les 5 tables CD-spécifiques ne font rien planter même si présentes dans le zip
+  - GET /api/snapshots/:id/graph retourne nodes avec ≥ 1 nœud de type RTE_CD
 ```
 
 ### 12.4 Fixtures synthétiques
@@ -775,10 +841,9 @@ Ces points sont identifiés mais **non traités** par le slice #1 :
 
 - Nomenclature Endpoints `PCN-1` vs `PCN-EP-1` (§13.2 doc fonctionnel). À
   trancher quand un backup PCN sera disponible.
-- Vrais EIC codes des 6 Endpoints RTE : seul `ECP-INTERNET-2` est connu
-  (`17V000000498771C`). Les 5 autres restent à récupérer.
-- Format du backup CD (§8bis.6) : reste à valider dès récupération d'un
-  backup CD RTE.
+- Vrais EIC codes des 6 Endpoints RTE : `ECP-INTERNET-2` (`17V000000498771C`) et
+  le CD (`17V000002014106G`) sont connus. Les 5 autres Endpoints restent à
+  récupérer.
 - Acronyme "DBAG" et matrice PICASSO.
 - Liste définitive des clés `.properties` à blacklister (équipe sécurité).
 - Rechargement à chaud du registry (admin page).
@@ -794,11 +859,13 @@ Le slice #1 est considéré terminé lorsque :
 - `pnpm dev` lance api + web en local, interface accessible sur `localhost:5173`.
 - `pnpm test` passe à vert (unit + intégration) avec couverture ingestion/registry ≥ 90 %.
 - `pnpm test:e2e` passe les 3 smoke tests Playwright.
-- Le backup `17V000000498771C_2026-04-17T21_27_17Z` uploadé via l'UI produit
-  un snapshot visible sur la carte, avec au moins les nœuds RTE et les
-  partenaires externes géolocalisés, et les edges colorés par process.
-- Les fichiers sensibles (`local_key_store.csv`, `registration_store.csv`) ne
-  sont jamais persistés.
+- Le backup Endpoint `17V000000498771C_2026-04-17T21_27_17Z` **et** le backup CD
+  `17V000002014106G_2026-04-17T22_11_50Z` uploadés via l'UI produisent chacun un
+  snapshot visible sur la carte, avec au moins les nœuds RTE et les partenaires
+  externes géolocalisés, et (pour l'Endpoint) les edges colorés par process.
+- Le `componentType` est correctement détecté pour chacun.
+- Les fichiers sensibles (`local_key_store.csv`, `registration_store.csv`,
+  `registration_requests.csv`) ne sont jamais persistés.
 - Le README du repo explique comment lancer le dev et charger un backup.
 
 ## 15. Prochaine étape

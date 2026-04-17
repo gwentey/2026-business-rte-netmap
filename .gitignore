@@ -43,10 +43,11 @@ Thumbs.db
 .claude/.events.log
 .claude/.session-start-*
 
-# Sensitive ECP backup files (contiennent clés privées / certificats)
+# Sensitive ECP backup files (clés privées / certificats / inventaire interne)
 # Ne JAMAIS committer — voir design §11 et document fonctionnel §8bis.2
 tests/fixtures/**/local_key_store.csv
 tests/fixtures/**/registration_store.csv
+tests/fixtures/**/registration_requests.csv
 
 # Playwright
 test-results/
