@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InvalidUploadException } from '../common/errors/ingestion-errors.js';
 import { CsvReaderService } from './csv-reader.service.js';
 import { NetworkModelBuilderService } from './network-model-builder.service.js';
 import { SnapshotPersisterService } from './snapshot-persister.service.js';
@@ -30,7 +31,10 @@ export class IngestionService {
       extracted.files.get('component_directory.csv')!,
     );
     if (componentDirectoryRows.length === 0) {
-      throw new Error('component_directory.csv contient aucune ligne de data');
+      throw new InvalidUploadException(
+        'component_directory.csv ne contient aucune ligne de données',
+        { fileName: 'component_directory.csv' },
+      );
     }
     const xmlBlob = componentDirectoryRows[0]!.directoryContent;
     const madesTree = this.xmlParser.parse(xmlBlob);
