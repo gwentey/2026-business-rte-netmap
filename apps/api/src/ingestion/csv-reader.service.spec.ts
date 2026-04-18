@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Warning } from '@carto-ecp/shared';
 import { CsvReaderService } from './csv-reader.service.js';
 
 describe('CsvReaderService', () => {
@@ -12,7 +13,7 @@ describe('CsvReaderService', () => {
           'NULL_VALUE_PLACEHOLDER;"2025-03-12T15:34:48.560980651";"ecp.componentCode";"2025-03-12T15:34:48.576688688";"17V000000498771C"',
         ].join('\n'),
       );
-      const rows = service.readApplicationProperties(csv);
+      const rows = service.readApplicationProperties(csv, []);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.changedBy).toBeNull();
       expect(rows[0]!.key).toBe('ecp.componentCode');
@@ -27,7 +28,7 @@ describe('CsvReaderService', () => {
           'too;few;cols',
         ].join('\n'),
       );
-      const rows = service.readApplicationProperties(csv);
+      const rows = service.readApplicationProperties(csv, []);
       expect(rows).toEqual([]);
     });
   });
@@ -40,7 +41,7 @@ describe('CsvReaderService', () => {
           '"*";true;NULL_VALUE_PLACEHOLDER;NULL_VALUE_PLACEHOLDER;BUSINESS;"*";"17V000000498771C";false;ACTIVE;DIRECT;"2025-01-01T00:00:00.000000000";"2026-01-01T00:00:00.000000000"',
         ].join('\n'),
       );
-      const rows = service.readMessagePaths(csv);
+      const rows = service.readMessagePaths(csv, []);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.allowedSenders).toBe('*');
       expect(rows[0]!.applied).toBe(true);
@@ -59,7 +60,7 @@ describe('CsvReaderService', () => {
           'CONNECTED;false;"2026-04-17T10:00:00.000000000";"2026-04-17T10:05:00.000000000";ID1;"17V000002014106G";42;17',
         ].join('\n'),
       );
-      const rows = service.readMessagingStatistics(csv);
+      const rows = service.readMessagingStatistics(csv, []);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.connectionStatus).toBe('CONNECTED');
       expect(rows[0]!.sumMessagesDown).toBe(42);
@@ -76,9 +77,23 @@ describe('CsvReaderService', () => {
           '"<xml/>";ID1;SIG;V1',
         ].join('\n'),
       );
-      const rows = service.readComponentDirectory(csv);
+      const rows = service.readComponentDirectory(csv, []);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.directoryContent).toBe('<xml/>');
+    });
+  });
+
+  describe('CSV_PARSE_ERROR warning', () => {
+    it('pushes CSV_PARSE_ERROR warning when CSV is malformed', () => {
+      const malformed = Buffer.from('header1;header2\nonly-one-col\n');
+      const warnings: Warning[] = [];
+      const rows = service.readMessagePaths(malformed, warnings);
+      expect(rows).toEqual([]);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]).toMatchObject({
+        code: 'CSV_PARSE_ERROR',
+        context: { fileName: 'message_path.csv' },
+      });
     });
   });
 });

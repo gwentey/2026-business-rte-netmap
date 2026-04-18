@@ -122,7 +122,6 @@ describe('SnapshotPersisterService', () => {
     const service = new SnapshotPersisterService(prismaMock as unknown as PrismaService);
     const snap = buildMinimalNetworkSnapshot();
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- access to private logger for spy
     const warnSpy = vi.spyOn((service as any).logger, 'warn').mockImplementation(() => {});
     unlinkMock.mockRejectedValueOnce(new Error('cleanup boom'));
 
