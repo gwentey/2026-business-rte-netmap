@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { resolve } from 'node:path';
 import { Test } from '@nestjs/testing';
 import { RegistryService } from './registry.service.js';
 
@@ -87,6 +88,39 @@ describe('RegistryService', () => {
     it('returns hex color for each process', () => {
       expect(service.processColor('VP')).toBe('#ec4899');
       expect(service.processColor('MIXTE')).toBe('#4b5563');
+    });
+  });
+
+  describe('registry path resolution', () => {
+    const ORIGINAL_ENV = process.env.REGISTRY_PATH;
+    const ORIGINAL_CWD = process.cwd();
+
+    afterEach(() => {
+      if (ORIGINAL_ENV === undefined) {
+        delete process.env.REGISTRY_PATH;
+      } else {
+        process.env.REGISTRY_PATH = ORIGINAL_ENV;
+      }
+      process.chdir(ORIGINAL_CWD);
+    });
+
+    it('loads the registry from REGISTRY_PATH env var when set', async () => {
+      process.env.REGISTRY_PATH = resolve(ORIGINAL_CWD, '../../packages/registry');
+      const moduleRef = await Test.createTestingModule({
+        providers: [RegistryService],
+      }).compile();
+      const svc = moduleRef.get(RegistryService);
+      await svc.onModuleInit();
+      expect(svc.entsoeSize()).toBeGreaterThan(14000);
+    });
+
+    it('throws ENOENT when REGISTRY_PATH points to a nonexistent directory', async () => {
+      process.env.REGISTRY_PATH = '/tmp/nonexistent-registry-xyz-abc';
+      const moduleRef = await Test.createTestingModule({
+        providers: [RegistryService],
+      }).compile();
+      const svc = moduleRef.get(RegistryService);
+      await expect(svc.onModuleInit()).rejects.toThrow(/ENOENT/);
     });
   });
 });

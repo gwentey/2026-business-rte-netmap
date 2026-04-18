@@ -51,11 +51,11 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
           </ul>
         </div>
       )}
-      {node.isDefaultPosition && (
+      {node.isDefaultPosition ? (
         <p className="rounded bg-yellow-50 p-2 text-xs text-yellow-800">
           Position par défaut (EIC non géolocalisé dans le registry)
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

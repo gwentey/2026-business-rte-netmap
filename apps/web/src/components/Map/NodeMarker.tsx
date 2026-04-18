@@ -39,12 +39,12 @@ export function NodeMarker({ node, selected, onSelect }: Props): JSX.Element {
           <strong>{node.displayName}</strong>
           <br />
           {node.eic} {node.country ? `— ${node.country}` : ''}
-          {node.isDefaultPosition && (
+          {node.isDefaultPosition ? (
             <>
               <br />
               <em>Position par défaut</em>
             </>
-          )}
+          ) : null}
         </div>
       </Tooltip>
     </CircleMarker>

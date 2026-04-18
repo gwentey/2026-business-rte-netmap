@@ -101,20 +101,20 @@ export function UploadPage(): JSX.Element {
 
       <button
         type="button"
-        onClick={submit}
+        onClick={() => { void submit(); }}
         disabled={loading}
         className="rounded bg-rte px-4 py-2 font-medium text-white disabled:opacity-50"
       >
         {loading ? 'Envoi en cours…' : 'Envoyer'}
       </button>
 
-      {error && (
+      {error ? (
         <p className="mt-4 rounded bg-red-100 p-3 text-sm text-red-700" role="alert">
           {error}
         </p>
-      )}
+      ) : null}
 
-      {result && (
+      {result ? (
         <div className="mt-6 rounded border border-gray-200 p-4">
           <p className="mb-2 text-sm text-gray-700">
             Snapshot créé : <strong>{result.label}</strong> — {result.componentType} —{' '}
@@ -134,13 +134,13 @@ export function UploadPage(): JSX.Element {
           )}
           <button
             type="button"
-            onClick={openMap}
+            onClick={() => { void openMap(); }}
             className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white"
           >
             Voir sur la carte →
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

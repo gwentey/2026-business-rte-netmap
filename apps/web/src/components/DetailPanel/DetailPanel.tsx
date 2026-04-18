@@ -24,8 +24,8 @@ export function DetailPanel(): JSX.Element | null {
       >
         × Fermer
       </button>
-      {node && <NodeDetails node={node} />}
-      {edge && <EdgeDetails edge={edge} />}
+      {node ? <NodeDetails node={node} /> : null}
+      {edge ? <EdgeDetails edge={edge} /> : null}
     </aside>
   );
 }

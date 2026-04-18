@@ -22,12 +22,12 @@ export function EdgeDetails({ edge }: { edge: GraphEdge }): JSX.Element {
           <dt className="text-gray-500">Transport</dt>
           <dd className="col-span-2">{edge.transportPatterns.join(', ')}</dd>
         </div>
-        {edge.intermediateBrokerEic && (
+        {edge.intermediateBrokerEic ? (
           <div className="grid grid-cols-3 gap-2 py-1">
             <dt className="text-gray-500">Broker</dt>
             <dd className="col-span-2 font-mono">{edge.intermediateBrokerEic}</dd>
           </div>
-        )}
+        ) : null}
         <div className="grid grid-cols-3 gap-2 py-1">
           <dt className="text-gray-500">Statut</dt>
           <dd className="col-span-2">{edge.activity.connectionStatus ?? '—'}</dd>

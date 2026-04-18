@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src test",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
@@ -36,6 +36,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@nestjs/cli": "^10.4.5",
     "@nestjs/testing": "^10.4.4",
     "@swc/core": "^1.15.26",
@@ -45,9 +46,12 @@
     "@types/node": "^20.14.9",
     "@types/supertest": "^6.0.2",
     "@types/uuid": "^10.0.0",
+    "eslint": "^9.39.4",
+    "globals": "^15.15.0",
     "prisma": "^5.20.0",
     "supertest": "^7.0.0",
     "typescript": "^5.5.4",
+    "typescript-eslint": "^8.58.2",
     "unplugin-swc": "^1.5.9",
     "vitest": "^2.1.2"
   }
