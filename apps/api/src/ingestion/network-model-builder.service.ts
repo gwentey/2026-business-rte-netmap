@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ComponentType, Warning } from '@carto-ecp/shared';
 import { RegistryService } from '../registry/registry.service.js';
+import { InvalidUploadException } from '../common/errors/ingestion-errors.js';
 import type {
   AppPropertyRow,
   ComponentRecord,
@@ -29,6 +30,12 @@ export class NetworkModelBuilderService {
     const appsMap = new Map(input.appProperties.map((r) => [r.key, r.value] as const));
 
     const sourceCode = appsMap.get('ecp.componentCode') ?? '';
+    if (!sourceCode) {
+      throw new InvalidUploadException(
+        'application_property.csv ne contient pas ecp.componentCode',
+        { availableKeys: input.appProperties.map((p) => p.key) },
+      );
+    }
     const organization = appsMap.get('ecp.company.organization') ?? '';
     const networks = (appsMap.get('ecp.networks') ?? '').split(',').filter(Boolean);
     const cdFromAppProps =
@@ -48,9 +55,11 @@ export class NetworkModelBuilderService {
       ...input.madesTree.componentDirectories,
     ];
 
-    const rteEicSet = new Set(
-      allMades.filter((c) => c.organization === 'RTE' && c.code.startsWith('17V')).map((c) => c.code),
-    );
+    const overlay = this.registry.getOverlay();
+    const rteEicSet = new Set<string>([
+      ...overlay.rteEndpoints.map((e) => e.eic),
+      overlay.rteComponentDirectory.eic,
+    ]);
 
     const components: ComponentRecord[] = allMades.map((raw) => {
       const loc = this.registry.resolveComponent(raw.code, raw.organization);

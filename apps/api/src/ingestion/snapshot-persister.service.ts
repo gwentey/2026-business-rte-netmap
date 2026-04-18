@@ -1,6 +1,6 @@
 import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { IngestionResult, NetworkSnapshot } from './types.js';
@@ -9,6 +9,8 @@ const STORAGE_DIR = join(process.cwd(), 'storage', 'snapshots');
 
 @Injectable()
 export class SnapshotPersisterService {
+  private readonly logger = new Logger(SnapshotPersisterService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async persist(
@@ -109,7 +111,9 @@ export class SnapshotPersisterService {
         }
       });
     } catch (err) {
-      await unlink(zipPath).catch(() => undefined);
+      await unlink(zipPath).catch((e: Error) => {
+        this.logger.warn(`Failed to cleanup orphaned zip ${zipPath}: ${e.message}`);
+      });
       throw err;
     }
 

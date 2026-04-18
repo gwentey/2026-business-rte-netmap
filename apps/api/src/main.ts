@@ -8,7 +8,19 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(Logger));
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:', 'https://*.tile.openstreetmap.org', 'https://*.openstreetmap.org'],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          connectSrc: ["'self'"],
+        },
+      },
+    }),
+  );
   app.enableCors({
     origin: ['http://localhost:5173'],
     credentials: false,

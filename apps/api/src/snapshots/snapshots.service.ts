@@ -7,6 +7,15 @@ import { SnapshotNotFoundException } from '../common/errors/ingestion-errors.js'
 export class SnapshotsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private safeParseWarnings(json: string): Warning[] {
+    try {
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? (parsed as Warning[]) : [];
+    } catch {
+      return [];
+    }
+  }
+
   async list(envName?: string): Promise<SnapshotSummary[]> {
     const rows = await this.prisma.snapshot.findMany({
       where: envName ? { envName } : undefined,
@@ -20,7 +29,7 @@ export class SnapshotsService {
       sourceComponentCode: r.sourceComponentCode,
       cdCode: r.cdCode,
       uploadedAt: r.uploadedAt.toISOString(),
-      warningCount: (JSON.parse(r.warningsJson) as Warning[]).length,
+      warningCount: this.safeParseWarnings(r.warningsJson).length,
     }));
   }
 
@@ -32,7 +41,7 @@ export class SnapshotsService {
       },
     });
     if (!row) throw new SnapshotNotFoundException(id);
-    const warnings = JSON.parse(row.warningsJson) as Warning[];
+    const warnings = this.safeParseWarnings(row.warningsJson);
     return {
       id: row.id,
       label: row.label,

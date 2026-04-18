@@ -19,7 +19,10 @@ describe('Full ingestion — Endpoint', () => {
     app.setGlobalPrefix('api');
     await app.init();
     prisma = app.get(PrismaService);
-    await prisma.snapshot.deleteMany({});
+    // Clean up any stale snapshots from this test's scope only
+    await prisma.snapshot.deleteMany({
+      where: { sourceComponentCode: '17V000000498771C' },
+    });
   });
 
   afterAll(async () => {
