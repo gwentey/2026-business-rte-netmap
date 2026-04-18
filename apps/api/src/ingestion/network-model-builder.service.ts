@@ -55,11 +55,7 @@ export class NetworkModelBuilderService {
       ...input.madesTree.componentDirectories,
     ];
 
-    const overlay = this.registry.getOverlay();
-    const rteEicSet = new Set<string>([
-      ...overlay.rteEndpoints.map((e) => e.eic),
-      overlay.rteComponentDirectory.eic,
-    ]);
+    const rteEicSet = this.registry.getRteEicSet();
 
     const components: ComponentRecord[] = allMades.map((raw) => {
       const loc = this.registry.resolveComponent(raw.code, raw.organization);

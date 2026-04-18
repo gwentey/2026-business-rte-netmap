@@ -52,8 +52,16 @@ export type GraphBounds = {
   west: number;
 };
 
+export type MapConfig = {
+  rteClusterLat: number;
+  rteClusterLng: number;
+  rteClusterOffsetDeg: number;
+  rteClusterProximityDeg: number;
+};
+
 export type GraphResponse = {
   bounds: GraphBounds;
   nodes: GraphNode[];
   edges: GraphEdge[];
+  mapConfig: MapConfig;
 };

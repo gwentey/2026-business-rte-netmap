@@ -91,6 +91,25 @@ describe('RegistryService', () => {
     });
   });
 
+  describe('getMapConfig (P3-4)', () => {
+    it('returns the 4 map config fields with expected values', () => {
+      const cfg = service.getMapConfig();
+      expect(cfg.rteClusterLat).toBeCloseTo(48.8918);
+      expect(cfg.rteClusterLng).toBeCloseTo(2.2378);
+      expect(cfg.rteClusterOffsetDeg).toBeCloseTo(0.6);
+      expect(cfg.rteClusterProximityDeg).toBeCloseTo(0.01);
+    });
+  });
+
+  describe('getRteEicSet', () => {
+    it('returns a Set containing all rteEndpoints EICs plus the rteComponentDirectory EIC', () => {
+      const set = service.getRteEicSet();
+      expect(set).toBeInstanceOf(Set);
+      expect(set.has('17V000000498771C')).toBe(true);
+      expect(set.has('17V000002014106G')).toBe(true);
+    });
+  });
+
   describe('registry path resolution', () => {
     const ORIGINAL_ENV = process.env.REGISTRY_PATH;
     const ORIGINAL_CWD = process.cwd();

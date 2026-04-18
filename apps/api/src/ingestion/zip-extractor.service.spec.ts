@@ -68,4 +68,19 @@ describe('ZipExtractorService', () => {
     });
     expect(() => service.extract(buffer)).toThrowError(PayloadTooLargeException);
   });
+
+  describe('whitelist cleanup (P3-7)', () => {
+    it('does not load message_type.csv even if present in the zip', () => {
+      const zip = new AdmZip();
+      zip.addFile('application_property.csv', Buffer.from('key;value\n'));
+      zip.addFile('component_directory.csv', Buffer.from('component_directory_id;name;country;componentType;componentCode;environmentName;organization;ecp.domain;ecp.componentCode;mades.id;mades.endpointUrl;mades.endpointVersion;mades.implementation;mades.implementationVersion;directoryContent\nid1;n;FR;ENDPOINT;c;E;RTE;d;ECP;mid;mUrl;mV;mI;mIV;<xml/>\n'));
+      zip.addFile('message_type.csv', Buffer.from('col1;col2\nA;B\n'));
+      zip.addFile('message_upload_route.csv', Buffer.from('col1;col2\nA;B\n'));
+      const buffer = zip.toBuffer();
+
+      const result = service.extract(buffer);
+      expect(result.files.has('message_type.csv')).toBe(false);
+      expect(result.files.has('message_upload_route.csv')).toBe(false);
+    });
+  });
 });

@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | web/map             |
-| Version       | 0.1.1               |
+| Version       | 0.2.0               |
 | Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 1 remédiation |
+| Source        | Rétro-ingénierie + Phase 1 + Phase 3 remédiation |
 
 ---
 
@@ -27,7 +27,7 @@ MapPage (pages/MapPage.tsx)
 **Flux de données** :
 
 1. `useAppStore` fournit le `GraphResponse` brut (nodes, edges, bounds) chargé depuis `GET /api/snapshots/:id/graph`.
-2. `useMapData` transforme ce graphe : détection du groupe de coordonnées Paris, application des offsets radiaux sur les nœuds superposés.
+2. `useMapData` transforme ce graphe : détection du groupe de coordonnées Paris, application des offsets radiaux sur les nœuds superposés. Depuis **Phase 3 (P3-4)**, les constantes `PARIS_LAT`, `PARIS_LNG`, `OFFSET_DEG` et le seuil de proximité proviennent de `graph.mapConfig` (plus de valeurs hardcodées).
 3. `NetworkMap` reçoit les nodes/edges transformés et rend un `MapContainer` Leaflet avec `TileLayer` OSM.
 4. Pour chaque edge, `EdgePath` crée une couche Leaflet native via `L.curve` (impérative via `useEffect`/`useRef`).
 5. Pour chaque node, `NodeMarker` rend un `<CircleMarker>` react-leaflet déclaratif.
@@ -69,7 +69,7 @@ Ce module est purement frontend. Il consomme les données via l'API REST ; il ne
 
 - **Approche hybride déclarative/impérative Leaflet** : `NodeMarker` utilise les composants déclaratifs react-leaflet (`CircleMarker`), tandis que `EdgePath` adopte une approche impérative pure (`useEffect` + `useRef` + `curve.addTo(map)` / `map.removeLayer`) car `leaflet-curve` n'a pas de wrapper react-leaflet.
 
-- **Hook de transformation (useMapData)** : séparation nette entre la logique de transformation spatiale (offset radial) et le composant de rendu (`NetworkMap`). Le hook retourne des données dérivées mémoïsées via `useMemo`.
+- **Hook de transformation (useMapData)** : séparation nette entre la logique de transformation spatiale (offset radial) et le composant de rendu (`NetworkMap`). Le hook retourne des données dérivées mémoïsées via `useMemo`. Depuis **Phase 3 (P3-4)**, le hook reçoit `mapConfig` depuis le `GraphResponse` — les constantes `PARIS_LAT`, `PARIS_LNG`, `OFFSET_DEG` et le seuil de proximité ne sont plus hardcodées dans ce fichier.
 
 - **Map EIC pour lookup O(1)** : dans `NetworkMap`, les nœuds sont indexés dans une `Map<string, GraphNode>` (par EIC) via `useMemo` pour permettre un accès rapide depuis `EdgePath` lors du calcul des coordonnées d'extrémité.
 
@@ -85,10 +85,10 @@ Ce module est purement frontend. Il consomme les données via l'API REST ; il ne
 
 | Constante | Valeur | Fichier | Rôle |
 |-----------|--------|---------|------|
-| `PARIS_LAT` | `48.8918` | `useMapData.ts` | Latitude de référence du groupe RTE (La Défense) |
-| `PARIS_LNG` | `2.2378` | `useMapData.ts` | Longitude de référence du groupe RTE (La Défense) |
-| `OFFSET_DEG` | `0.6` | `useMapData.ts` | Rayon du cercle de dispersion radiale en degrés (~66 km) |
-| Seuil de proximité | `0.01°` | `useMapData.ts` | Distance maximale pour appartenir au groupe Paris |
+| `parisLat` | `48.8918` | `graph.mapConfig` (overlay JSON) | Latitude de référence du groupe RTE (La Défense) — **[P3-4]** externalisé depuis l'overlay |
+| `parisLng` | `2.2378` | `graph.mapConfig` (overlay JSON) | Longitude de référence du groupe RTE (La Défense) — **[P3-4]** externalisé |
+| `offsetDeg` | `0.6` | `graph.mapConfig` (overlay JSON) | Rayon du cercle de dispersion radiale en degrés (~66 km) — **[P3-4]** externalisé |
+| `proximityThresholdDeg` | `0.01` | `graph.mapConfig` (overlay JSON) | Distance maximale pour appartenir au groupe Paris — **[P3-4]** externalisé |
 | Zoom initial | `4` | `NetworkMap.tsx` | Zoom Leaflet à l'ouverture (vue Europe) |
 | Centre fallback | `[50, 5]` | `NetworkMap.tsx` | Centre carte si pas de bounds (Europe centrale) |
 | Bezier offset | `0.15` | `EdgePath.tsx` | Facteur de déflexion du point de contrôle quadratique |

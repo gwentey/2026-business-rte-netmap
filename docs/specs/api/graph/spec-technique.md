@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | api/graph           |
-| Version       | 0.2.0               |
+| Version       | 0.3.0               |
 | Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 2 remédiation |
+| Source        | Rétro-ingénierie + Phase 2 + Phase 3 remédiation |
 
 ## Architecture du module
 
@@ -24,6 +24,7 @@ Le module `graph` est un module NestJS autonome composé de trois éléments :
     unitairement sans DI Prisma.
 
   Méthodes privées :
+  - `parseThreshold()` : **[P3-2]** lit `process.env['ISRECENT_THRESHOLD_MS']` (défaut : `86400000`) dans le constructeur.
   - `toNode(component)` : mappe un `Component` Prisma en `GraphNode` DTO.
   - `kindOf(component)` : détermine le `NodeKind` depuis `component.type` et
     `component.organization`.
@@ -74,6 +75,7 @@ Aucune écriture en base dans ce module.
   bounds: { north: number; south: number; east: number; west: number };
   nodes: GraphNode[];
   edges: GraphEdge[];
+  mapConfig: MapConfig;  // [P3-4] parisLat, parisLng, offsetDeg, proximityThresholdDeg
 }
 ```
 
@@ -135,9 +137,9 @@ Aucune écriture en base dans ce module.
    b. id = sha1("fromEic|toEic|process").slice(0,16)
    c. Chercher stat = statsMap("fromEic::toEic") ?? statsMap("toEic::fromEic")
    d. isRecent = stat.lastMessageUp != null
-                 && uploadedAt - lastMessageUp < 86400000ms
+                 && uploadedAt - lastMessageUp < isRecentThreshold  // [P3-2] configurable via ISRECENT_THRESHOLD_MS (défaut: 86400000ms)
                  && uploadedAt - lastMessageUp >= 0
-5. Retourner { bounds: computeBounds(nodes), nodes, edges }
+5. Retourner { bounds: computeBounds(nodes), nodes, edges, mapConfig: this.registry.getMapConfig() }
 ```
 
 **`kindOf(component)` :**
@@ -185,4 +187,6 @@ else :
 | | `isRecent = true` si `lastMessageUp < 24h` du snapshot | Existant |
 | | `computeBounds` avec padding 2° | Existant |
 | `apps/api/test/full-graph-endpoint.spec.ts` | **[P2-3]** Test d'intégration contre les fixtures réelles (Endpoint + CD) : HTTP 200, présence `nodes` et `edges`, cohérence `bounds` (lat/lng finis), HTTP 404 sur snapshot inexistant | Ajouté Phase 2 |
+| `apps/api/src/graph/graph.service.spec.ts` | **[P3-2]** `ISRECENT_THRESHOLD_MS` env var : test avec seuil à 0ms → `isRecent = false` même pour un message très récent | Ajouté Phase 3 |
+| | **[P3-4]** `mapConfig` inclus dans le retour de `buildGraph` | Ajouté Phase 3 |
 | Tests E2E Playwright | Affichage carte (smoke test) — couverture indirecte | Existant (partiel) |

@@ -1,10 +1,6 @@
 import { useMemo } from 'react';
 import type { GraphNode, GraphResponse } from '@carto-ecp/shared';
 
-const PARIS_LAT = 48.8918;
-const PARIS_LNG = 2.2378;
-const OFFSET_DEG = 0.6;
-
 export function useMapData(graph: GraphResponse | null): {
   nodes: GraphNode[];
   edges: GraphResponse['edges'];
@@ -12,16 +8,20 @@ export function useMapData(graph: GraphResponse | null): {
 } {
   return useMemo(() => {
     if (!graph) return { nodes: [], edges: [], bounds: null };
+    const { rteClusterLat, rteClusterLng, rteClusterOffsetDeg, rteClusterProximityDeg } =
+      graph.mapConfig;
     const parisGroup = graph.nodes.filter(
-      (n) => Math.abs(n.lat - PARIS_LAT) < 0.01 && Math.abs(n.lng - PARIS_LNG) < 0.01,
+      (n) =>
+        Math.abs(n.lat - rteClusterLat) < rteClusterProximityDeg &&
+        Math.abs(n.lng - rteClusterLng) < rteClusterProximityDeg,
     );
     const offsetMap = new Map<string, { lat: number; lng: number }>();
     if (parisGroup.length > 1) {
       parisGroup.forEach((node, idx) => {
         const angle = (2 * Math.PI * idx) / parisGroup.length;
         offsetMap.set(node.eic, {
-          lat: PARIS_LAT + OFFSET_DEG * Math.cos(angle),
-          lng: PARIS_LNG + OFFSET_DEG * Math.sin(angle),
+          lat: rteClusterLat + rteClusterOffsetDeg * Math.cos(angle),
+          lng: rteClusterLng + rteClusterOffsetDeg * Math.sin(angle),
         });
       });
     }

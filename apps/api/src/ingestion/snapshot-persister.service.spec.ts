@@ -133,4 +133,29 @@ describe('SnapshotPersisterService', () => {
       expect.stringContaining('Failed to cleanup orphaned zip'),
     );
   });
+
+  it('strips sensitive files from the persisted zip (P3-1)', async () => {
+    const prismaMock = makePrismaMock('resolve');
+    const service = new SnapshotPersisterService(prismaMock as unknown as PrismaService);
+    const snap = buildMinimalNetworkSnapshot();
+
+    const AdmZip = (await import('adm-zip')).default;
+    const srcZip = new AdmZip();
+    srcZip.addFile('application_property.csv', Buffer.from('key;value\n'));
+    srcZip.addFile('local_key_store.csv', Buffer.from('SECRET_PRIVATE_KEY\n'));
+    srcZip.addFile('registration_store.csv', Buffer.from('SECRET_REG\n'));
+    srcZip.addFile('registration_requests.csv', Buffer.from('SECRET_REQ\n'));
+    const srcBuffer = srcZip.toBuffer();
+
+    await service.persist(snap, srcBuffer, 'label-p31');
+
+    expect(writeFileMock).toHaveBeenCalledTimes(1);
+    const writtenBuffer = writeFileMock.mock.calls[0]![1] as Buffer;
+    const writtenZip = new AdmZip(writtenBuffer);
+    const entries = writtenZip.getEntries().map((e) => e.entryName);
+    expect(entries).toContain('application_property.csv');
+    expect(entries).not.toContain('local_key_store.csv');
+    expect(entries).not.toContain('registration_store.csv');
+    expect(entries).not.toContain('registration_requests.csv');
+  });
 });

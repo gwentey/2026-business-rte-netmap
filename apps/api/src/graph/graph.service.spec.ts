@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegistryService } from '../registry/registry.service.js';
@@ -124,6 +124,18 @@ describe('GraphService', () => {
     expect(graph.edges[0]!.activity.isRecent).toBe(true);
   });
 
+  it('mapConfig (P3-4) — buildGraph includes mapConfig with correct types', () => {
+    const snap = { id: 's1', uploadedAt: new Date() } as Snapshot;
+    const graph = service.buildGraph(snap, [], [], []);
+    expect(graph.mapConfig).toBeDefined();
+    expect(typeof graph.mapConfig.rteClusterLat).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterLng).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterOffsetDeg).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterProximityDeg).toBe('number');
+    expect(graph.mapConfig.rteClusterLat).toBeCloseTo(48.8918);
+    expect(graph.mapConfig.rteClusterLng).toBeCloseTo(2.2378);
+  });
+
   it('computes bounds from component positions with padding', () => {
     const snap = { id: 's1', uploadedAt: new Date() } as Snapshot;
     const components = [
@@ -135,5 +147,59 @@ describe('GraphService', () => {
     expect(graph.bounds.south).toBeLessThanOrEqual(41.9);
     expect(graph.bounds.east).toBeGreaterThanOrEqual(12.5);
     expect(graph.bounds.west).toBeLessThanOrEqual(2.2);
+  });
+
+  describe('ISRECENT_THRESHOLD_MS env var (P3-2)', () => {
+    const ORIGINAL_ENV = process.env.ISRECENT_THRESHOLD_MS;
+
+    afterEach(() => {
+      if (ORIGINAL_ENV === undefined) {
+        delete process.env.ISRECENT_THRESHOLD_MS;
+      } else {
+        process.env.ISRECENT_THRESHOLD_MS = ORIGINAL_ENV;
+      }
+    });
+
+    it('uses a custom threshold when ISRECENT_THRESHOLD_MS is set to 1h', async () => {
+      process.env.ISRECENT_THRESHOLD_MS = String(60 * 60 * 1000);
+      vi.resetModules();
+      const { GraphService: FreshGraphService } = await import('./graph.service.js');
+      const mockPrisma = {} as never;
+      const mockRegistry = {
+        getMapConfig: () => ({ rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01 }),
+      } as never;
+      const freshService = new FreshGraphService(mockPrisma, mockRegistry);
+      const snapshot = {
+        uploadedAt: new Date('2026-04-18T10:00:00Z'),
+      } as Parameters<typeof freshService.buildGraph>[0];
+      const components: Parameters<typeof freshService.buildGraph>[1] = [
+        { eic: 'A', type: 'ENDPOINT', organization: 'RTE', displayName: 'A',
+          country: 'FR', lat: 48.0, lng: 2.0, isDefaultPosition: false,
+          networksCsv: '', process: null, sourceType: 'XML_CD',
+          personName: null, email: null, phone: null,
+          homeCdCode: 'X', creationTs: new Date(0), modificationTs: new Date(0),
+          snapshotId: 'x', id: 1, urls: [] } as unknown as Parameters<typeof freshService.buildGraph>[1][number],
+        { eic: 'B', type: 'ENDPOINT', organization: 'RTE', displayName: 'B',
+          country: 'FR', lat: 48.1, lng: 2.1, isDefaultPosition: false,
+          networksCsv: '', process: null, sourceType: 'XML_CD',
+          personName: null, email: null, phone: null,
+          homeCdCode: 'X', creationTs: new Date(0), modificationTs: new Date(0),
+          snapshotId: 'x', id: 2, urls: [] } as unknown as Parameters<typeof freshService.buildGraph>[1][number],
+      ];
+      const paths: Parameters<typeof freshService.buildGraph>[2] = [
+        { senderEicOrWildcard: 'A', receiverEic: 'B', direction: 'OUT',
+          messageType: 'TP-X', process: 'TP', transportPattern: 'DIRECT',
+          intermediateBrokerEic: null, validFrom: new Date(0), validTo: null,
+          snapshotId: 'x', id: 1, source: 'LOCAL_CSV_PATHS', isExpired: false } as unknown as Parameters<typeof freshService.buildGraph>[2][number],
+      ];
+      const stats: Parameters<typeof freshService.buildGraph>[3] = [
+        { sourceEndpointCode: 'A', remoteComponentCode: 'B',
+          connectionStatus: 'OK', lastMessageUp: new Date('2026-04-18T08:00:00Z'),
+          lastMessageDown: null, sumMessagesUp: 0, sumMessagesDown: 0,
+          deleted: false, snapshotId: 'x', id: 1 } as unknown as Parameters<typeof freshService.buildGraph>[3][number],
+      ];
+      const graph = freshService.buildGraph(snapshot, components, paths, stats);
+      expect(graph.edges[0]!.activity.isRecent).toBe(false);
+    });
   });
 });

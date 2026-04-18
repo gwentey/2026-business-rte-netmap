@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | api/ingestion       |
-| Version       | 0.2.0               |
+| Version       | 0.3.0               |
 | Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 1 + Phase 2 remédiation |
+| Source        | Rétro-ingénierie + Phase 1 + Phase 2 + Phase 3 remédiation |
 
 ---
 
@@ -38,7 +38,8 @@ IngestionService.ingest(IngestionInput)
   │       └─ Calcul isExpired (validTo vs Date.now())
   │
   └─ 6. SnapshotPersisterService.persist(snapshot, zipBuffer, label)
-          ├─ Écriture zip sur disque (storage/snapshots/{uuid}.zip)
+          ├─ Re-packaging zip (retrait fichiers sensibles) [P3-1]
+          ├─ Écriture zip assaini sur disque (storage/snapshots/{uuid}.zip)
           └─ Transaction Prisma : Snapshot + Components + ComponentUrls
                                   + MessagePaths + MessagingStatistics
                                   + AppProperties (filtrées)
@@ -109,6 +110,7 @@ Réponse 201 : `IngestionResult` = `{ snapshotId, componentType, sourceComponent
 - **Whitelist de fichiers** : constantes exportées depuis `types.ts` (`REQUIRED_CSV_FILES`, `USABLE_CSV_FILES`, `IGNORED_CSV_FILES`, `SENSITIVE_CSV_FILES`) — la liste est la source de vérité unique utilisée par `ZipExtractorService`.
 - **Typed row parsing** : `CsvReaderService` expose des méthodes spécialisées par CSV retournant des types structurés (`AppPropertyRow`, `MessagePathRow`, etc.), avec des helpers privés `str()`, `bool()`, `num()`, `date()` qui normalisent les valeurs nulles et invalides. Depuis **Phase 2 (P2-8)**, la méthode interne `readRaw(fileName, files)` retourne `{ rows, parseError }` au lieu de lever une exception — les 4 méthodes publiques acceptent un paramètre `warnings: Warning[]` et appellent `pushCsvWarning` si `parseError` est non nul. `IngestionService` collecte les warnings CSV via un tableau `extractionWarnings` fusionné dans `networkSnapshot.warnings` avant persistance.
 - **Enum validation à la lecture** : les valeurs textuelles à domaine fini (`messagePathType`, `transportPattern`) sont validées lors du parsing CSV et nullifiées si hors domaine, plutôt qu'en post-traitement.
+- **Re-packaging zip sans sensibles [P3-1]** : avant écriture sur disque, `repackageWithoutSensitive(buffer)` reconstruit le zip en omettant `SENSITIVE_CSV_FILES`. Le zip persisté dans `storage/snapshots/` ne contient plus de clés privées ni d'inventaires ECP.
 - **Transaction compensatoire** : si la transaction Prisma échoue après écriture du zip, le zip est supprimé via `unlink()` avec log d'avertissement en cas d'échec du nettoyage.
 - **isArray forcé sur fast-xml-parser** : les éléments XML pouvant être singletons ou tableaux (`broker`, `endpoint`, `componentDirectory`, `network`, `url`, `certificate`, `path`) sont systématiquement forcés en tableau via le callback `isArray`.
 
@@ -135,7 +137,7 @@ Réponse 201 : `IngestionResult` = `{ snapshotId, componentType, sourceComponent
 | Constante | Contenu |
 |-----------|---------|
 | `REQUIRED_CSV_FILES` | `application_property.csv`, `component_directory.csv` |
-| `USABLE_CSV_FILES` | Les 2 requis + `message_path.csv`, `messaging_statistics.csv`, `message_type.csv`, `message_upload_route.csv` |
+| `USABLE_CSV_FILES` | Les 2 requis + `message_path.csv`, `messaging_statistics.csv` — **[P3-7]** `message_type.csv` et `message_upload_route.csv` retirés (aucun service lecteur associé) |
 | `IGNORED_CSV_FILES` | `component_statistics.csv`, `synchronized_directories.csv`, `pending_edit_directories.csv`, `pending_removal_directories.csv` |
 | `SENSITIVE_CSV_FILES` | `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv` |
 
@@ -169,6 +171,8 @@ Toutes les erreurs incluent un champ `timestamp` ISO dans le corps de réponse.
 | `apps/api/test/full-ingestion-cd.spec.ts` | Test d'intégration end-to-end contre le backup réel RTE CD | Existant |
 | `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | **[P2-2]** Cas nominal (zip écrit + transaction Prisma OK), échec transaction (zip supprimé), échec cleanup (log warning émis) | Ajouté Phase 2 |
 | `apps/api/src/ingestion/csv-reader.service.spec.ts` | **[P2-8]** Cas `CSV_PARSE_ERROR` : parsing d'un CSV optionnel mal formé → warning structuré retourné, pas d'exception levée | Ajouté Phase 2 |
+| `apps/api/src/ingestion/zip-extractor.service.spec.ts` | **[P3-7]** Whitelist cleanup : `message_type.csv` et `message_upload_route.csv` ne sont plus extraits du zip | Ajouté Phase 3 |
+| `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | **[P3-1]** `repackageWithoutSensitive` : zip archivé ne contient plus les 3 fichiers sensibles (`local_key_store.csv`, `registration_store.csv`, `registration_requests.csv`) | Ajouté Phase 3 |
 
 ### Particularités des tests d'intégration
 
