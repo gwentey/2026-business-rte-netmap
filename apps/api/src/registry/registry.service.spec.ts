@@ -91,6 +91,15 @@ describe('RegistryService', () => {
     });
   });
 
+  describe('getRteEicSet', () => {
+    it('returns a Set containing all rteEndpoints EICs plus the rteComponentDirectory EIC', () => {
+      const set = service.getRteEicSet();
+      expect(set).toBeInstanceOf(Set);
+      expect(set.has('17V000000498771C')).toBe(true);
+      expect(set.has('17V000002014106G')).toBe(true);
+    });
+  });
+
   describe('registry path resolution', () => {
     const ORIGINAL_ENV = process.env.REGISTRY_PATH;
     const ORIGINAL_CWD = process.cwd();

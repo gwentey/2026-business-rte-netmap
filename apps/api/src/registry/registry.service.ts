@@ -15,6 +15,7 @@ export class RegistryService implements OnModuleInit {
   private eicIndex = new Map<string, EntsoeEntry>();
   private overlay!: RteOverlay;
   private patternRegexes: { regex: RegExp; process: ProcessKey }[] = [];
+  private rteEicSet!: Set<string>;
   private registryRoot!: string;
 
   async onModuleInit(): Promise<void> {
@@ -23,6 +24,10 @@ export class RegistryService implements OnModuleInit {
       : resolve(process.cwd(), '../../packages/registry');
     this.logger.log(`Registry root: ${this.registryRoot}`);
     await Promise.all([this.loadEntsoeIndex(), this.loadOverlay()]);
+    this.rteEicSet = new Set<string>([
+      ...this.overlay.rteEndpoints.map((e) => e.eic),
+      this.overlay.rteComponentDirectory.eic,
+    ]);
     this.logger.log(
       `Registry loaded: ${this.eicIndex.size} ENTSO-E entries, overlay ${this.overlay.version}`,
     );
@@ -107,6 +112,10 @@ export class RegistryService implements OnModuleInit {
 
   processColor(process: ProcessKey): string {
     return this.overlay.processColors[process];
+  }
+
+  getRteEicSet(): Set<string> {
+    return this.rteEicSet;
   }
 
   getOverlay(): RteOverlay {
