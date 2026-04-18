@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RegistryModule } from './registry/registry.module.js';
+import { IngestionModule } from './ingestion/ingestion.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { RegistryModule } from './registry/registry.module.js';
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
     RegistryModule,
+    IngestionModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
