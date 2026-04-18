@@ -29,16 +29,16 @@ Ces actions doivent être terminées avant tout travail sur le Dockerfile, la CI
 
 Ces actions renforcent la fiabilité avant les prochains slices fonctionnels.
 
-| #   | Action                                                                                                                    | Feature              | Effort | Prérequis | Réf. dette |
-|-----|---------------------------------------------------------------------------------------------------------------------------|----------------------|--------|-----------|------------|
-| P2-1 | Ajouter des tests unitaires Vitest pour `SnapshotsController` et `SnapshotsService` : cas de rejet upload (MIME invalide, magic bytes, label vide), list avec filtre envName, detail avec 404. | api/snapshots | M | P1-1 | M4, m3 |
-| P2-2 | Ajouter un test unitaire pour `SnapshotPersisterService` : cas nominal, échec transaction (zip nettoyé), échec cleanup (log warning). | api/ingestion | M | Aucun | m1 |
-| P2-3 | Ajouter un test d'intégration pour `GET /api/snapshots/:id/graph` : vérifier le mapping Prisma → GraphResponse sur un snapshot réel (réutiliser les fixtures existantes). | api/graph | S | Aucun | m2 |
-| P2-4 | Ajouter des tests unitaires React (Vitest + @testing-library/react) pour `UploadPage` : soumission formulaire, état loading, affichage erreur API, affichage warnings. | web/upload | M | P1-1 | M4 |
-| P2-5 | Ajouter des tests unitaires React pour `NodeDetails` et `EdgeDetails` (composants de présentation purs) : rendu des champs null, formatage dates, badge isDefaultPosition. | web/detail-panel | S | P1-1 | M4 |
-| P2-6 | Ajouter des tests unitaires React pour `SnapshotSelector` : liste vide → lien upload, liste non vide → select avec valeur active, onChange déclenche setActiveSnapshot. | web/snapshot-selector | S | P1-1 | M4 |
-| P2-7 | Corriger la gestion du cas `activeSnapshotId` persisté invalide dans `loadSnapshots` : si l'id persisté n'est pas dans la liste retournée, basculer automatiquement sur `list[0]` au lieu de laisser `getGraph` échouer silencieusement. | web/snapshot-selector | XS | Aucun | m4 |
-| P2-8 | Exposer un warning structuré `CSV_PARSE_ERROR` quand un CSV optionnel ne peut pas être parsé, au lieu du seul `logger.warn` serveur. | api/ingestion | S | Aucun | m7 |
+| #   | Action                                                                                                                    | Feature              | Effort | Prérequis | Réf. dette | Statut |
+|-----|---------------------------------------------------------------------------------------------------------------------------|----------------------|--------|-----------|------------|--------|
+| P2-1 | Ajouter des tests unitaires Vitest pour `SnapshotsController` et `SnapshotsService` : cas de rejet upload (MIME invalide, magic bytes, label vide), list avec filtre envName, detail avec 404. | api/snapshots | M | P1-1 | M4, m3 | **Livré — PR #2** |
+| P2-2 | Ajouter un test unitaire pour `SnapshotPersisterService` : cas nominal, échec transaction (zip nettoyé), échec cleanup (log warning). | api/ingestion | M | Aucun | m1 | **Livré — PR #2** |
+| P2-3 | Ajouter un test d'intégration pour `GET /api/snapshots/:id/graph` : vérifier le mapping Prisma → GraphResponse sur un snapshot réel (réutiliser les fixtures existantes). | api/graph | S | Aucun | m2 | **Livré — PR #2** |
+| P2-4 | Ajouter des tests unitaires React (Vitest + @testing-library/react) pour `UploadPage` : soumission formulaire, état loading, affichage erreur API, affichage warnings. | web/upload | M | P1-1 | M4 | **Livré — PR #2** |
+| P2-5 | Ajouter des tests unitaires React pour `NodeDetails` et `EdgeDetails` (composants de présentation purs) : rendu des champs null, formatage dates, badge isDefaultPosition. | web/detail-panel | S | P1-1 | M4 | **Livré — PR #2** |
+| P2-6 | Ajouter des tests unitaires React pour `SnapshotSelector` : liste vide → lien upload, liste non vide → select avec valeur active, onChange déclenche setActiveSnapshot. | web/snapshot-selector | S | P1-1 | M4 | **Livré — PR #2** |
+| P2-7 | Corriger la gestion du cas `activeSnapshotId` persisté invalide dans `loadSnapshots` : si l'id persisté n'est pas dans la liste retournée, basculer automatiquement sur `list[0]` au lieu de laisser `getGraph` échouer silencieusement. | web/snapshot-selector | XS | Aucun | m4 | **Livré — PR #2** |
+| P2-8 | Exposer un warning structuré `CSV_PARSE_ERROR` quand un CSV optionnel ne peut pas être parsé, au lieu du seul `logger.warn` serveur. | api/ingestion | S | Aucun | m7 | **Livré — PR #2** |
 
 ---
 

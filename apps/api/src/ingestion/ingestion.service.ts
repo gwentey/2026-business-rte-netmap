@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InvalidUploadException } from '../common/errors/ingestion-errors.js';
+import type { Warning } from '@carto-ecp/shared';
 import { CsvReaderService } from './csv-reader.service.js';
 import { NetworkModelBuilderService } from './network-model-builder.service.js';
 import { SnapshotPersisterService } from './snapshot-persister.service.js';
@@ -24,11 +25,15 @@ export class IngestionService {
     this.logger.log(`ingestion.started (${input.zipBuffer.length} bytes)`);
 
     const extracted = this.zipExtractor.extract(input.zipBuffer);
+    const extractionWarnings: Warning[] = [];
+
     const appProperties = this.csvReader.readApplicationProperties(
       extracted.files.get('application_property.csv')!,
+      extractionWarnings,
     );
     const componentDirectoryRows = this.csvReader.readComponentDirectory(
       extracted.files.get('component_directory.csv')!,
+      extractionWarnings,
     );
     if (componentDirectoryRows.length === 0) {
       throw new InvalidUploadException(
@@ -42,8 +47,12 @@ export class IngestionService {
     const messagePathsBuf = extracted.files.get('message_path.csv');
     const statsBuf = extracted.files.get('messaging_statistics.csv');
 
-    const localMessagePaths = messagePathsBuf ? this.csvReader.readMessagePaths(messagePathsBuf) : [];
-    const messagingStats = statsBuf ? this.csvReader.readMessagingStatistics(statsBuf) : [];
+    const localMessagePaths = messagePathsBuf
+      ? this.csvReader.readMessagePaths(messagePathsBuf, extractionWarnings)
+      : [];
+    const messagingStats = statsBuf
+      ? this.csvReader.readMessagingStatistics(statsBuf, extractionWarnings)
+      : [];
 
     const networkSnapshot = this.builder.build({
       appProperties,
@@ -52,6 +61,7 @@ export class IngestionService {
       localMessagePaths,
       envName: input.envName,
     });
+    networkSnapshot.warnings.push(...extractionWarnings);
 
     const result = await this.persister.persist(networkSnapshot, input.zipBuffer, input.label);
     const duration = Date.now() - startedAt;

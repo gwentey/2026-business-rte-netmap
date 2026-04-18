@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | api/ingestion       |
-| Version       | 0.1.1               |
+| Version       | 0.2.0               |
 | Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 1 remédiation |
+| Source        | Rétro-ingénierie + Phase 1 + Phase 2 remédiation |
 
 ---
 
@@ -107,7 +107,7 @@ Réponse 201 : `IngestionResult` = `{ snapshotId, componentType, sourceComponent
 - **Pipeline pattern stateless** : chaque service reçoit une entrée pure et retourne une sortie pure. Pas d'état partagé entre les étapes. L'orchestrateur (`IngestionService`) est le seul à détenir la séquence.
 - **Fail-fast sur erreurs bloquantes, tolérance sur erreurs non bloquantes** : la hiérarchie `IngestionError` (sous-classes typées par code) est levée immédiatement pour les erreurs structurelles. Les anomalies métier (EIC inconnu, messageType non classé) produisent des warnings accumulés dans un tableau. Depuis **Phase 1 (P1-4)**, le cas `component_directory.csv` vide lève une `InvalidUploadException` (HTTP 400 / `INVALID_UPLOAD`) au lieu d'une `Error` native (qui produisait un HTTP 500 opaque).
 - **Whitelist de fichiers** : constantes exportées depuis `types.ts` (`REQUIRED_CSV_FILES`, `USABLE_CSV_FILES`, `IGNORED_CSV_FILES`, `SENSITIVE_CSV_FILES`) — la liste est la source de vérité unique utilisée par `ZipExtractorService`.
-- **Typed row parsing** : `CsvReaderService` expose des méthodes spécialisées par CSV retournant des types structurés (`AppPropertyRow`, `MessagePathRow`, etc.), avec des helpers privés `str()`, `bool()`, `num()`, `date()` qui normalisent les valeurs nulles et invalides.
+- **Typed row parsing** : `CsvReaderService` expose des méthodes spécialisées par CSV retournant des types structurés (`AppPropertyRow`, `MessagePathRow`, etc.), avec des helpers privés `str()`, `bool()`, `num()`, `date()` qui normalisent les valeurs nulles et invalides. Depuis **Phase 2 (P2-8)**, la méthode interne `readRaw(fileName, files)` retourne `{ rows, parseError }` au lieu de lever une exception — les 4 méthodes publiques acceptent un paramètre `warnings: Warning[]` et appellent `pushCsvWarning` si `parseError` est non nul. `IngestionService` collecte les warnings CSV via un tableau `extractionWarnings` fusionné dans `networkSnapshot.warnings` avant persistance.
 - **Enum validation à la lecture** : les valeurs textuelles à domaine fini (`messagePathType`, `transportPattern`) sont validées lors du parsing CSV et nullifiées si hors domaine, plutôt qu'en post-traitement.
 - **Transaction compensatoire** : si la transaction Prisma échoue après écriture du zip, le zip est supprimé via `unlink()` avec log d'avertissement en cas d'échec du nettoyage.
 - **isArray forcé sur fast-xml-parser** : les éléments XML pouvant être singletons ou tableaux (`broker`, `endpoint`, `componentDirectory`, `network`, `url`, `certificate`, `path`) sont systématiquement forcés en tableau via le callback `isArray`.
@@ -167,7 +167,8 @@ Toutes les erreurs incluent un champ `timestamp` ISO dans le corps de réponse.
 | `apps/api/src/ingestion/network-model-builder.service.spec.ts` | 6 cas : détection type, enrichissement RTE, direction IN/OUT, classification, warnings, isExpired | Existant |
 | `apps/api/test/full-ingestion-endpoint.spec.ts` | Test d'intégration end-to-end contre le backup réel ECP-INTERNET-2 (Endpoint) | Existant |
 | `apps/api/test/full-ingestion-cd.spec.ts` | Test d'intégration end-to-end contre le backup réel RTE CD | Existant |
-| `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | — | Absent |
+| `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | **[P2-2]** Cas nominal (zip écrit + transaction Prisma OK), échec transaction (zip supprimé), échec cleanup (log warning émis) | Ajouté Phase 2 |
+| `apps/api/src/ingestion/csv-reader.service.spec.ts` | **[P2-8]** Cas `CSV_PARSE_ERROR` : parsing d'un CSV optionnel mal formé → warning structuré retourné, pas d'exception levée | Ajouté Phase 2 |
 
 ### Particularités des tests d'intégration
 

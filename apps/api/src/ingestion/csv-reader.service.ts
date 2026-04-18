@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { parse as parseCsv } from 'csv-parse/sync';
 import { normalizeNull } from '../common/null-value-normalizer.js';
 import { parseEcpDate } from '../common/date-parser.js';
+import type { Warning } from '@carto-ecp/shared';
 import type {
   AppPropertyRow,
   ComponentDirectoryRow,
@@ -15,9 +16,12 @@ type RawRow = Record<string, string>;
 export class CsvReaderService {
   private readonly logger = new Logger(CsvReaderService.name);
 
-  private readRaw(buffer: Buffer): RawRow[] {
+  private readRaw(
+    buffer: Buffer,
+    fileName: string,
+  ): { rows: RawRow[]; parseError: string | null } {
     try {
-      return parseCsv(buffer.toString('utf-8'), {
+      const rows = parseCsv(buffer.toString('utf-8'), {
         columns: true,
         delimiter: ';',
         skip_empty_lines: true,
@@ -26,10 +30,24 @@ export class CsvReaderService {
         relax_quotes: true,
         relax_column_count: false,
       }) as RawRow[];
+      return { rows, parseError: null };
     } catch (err) {
-      this.logger.warn(`CSV parse error: ${(err as Error).message}`);
-      return [];
+      const message = (err as Error).message;
+      this.logger.warn(`CSV parse error (${fileName}): ${message}`);
+      return { rows: [], parseError: message };
     }
+  }
+
+  private pushCsvWarning(
+    warnings: Warning[],
+    fileName: string,
+    parseError: string,
+  ): void {
+    warnings.push({
+      code: 'CSV_PARSE_ERROR',
+      message: `${fileName} : ${parseError}`,
+      context: { fileName },
+    });
   }
 
   private str(row: RawRow, key: string): string | null {
@@ -59,8 +77,10 @@ export class CsvReaderService {
     return parseEcpDate(this.str(row, key));
   }
 
-  readApplicationProperties(buffer: Buffer): AppPropertyRow[] {
-    return this.readRaw(buffer).map((row) => ({
+  readApplicationProperties(buffer: Buffer, warnings: Warning[]): AppPropertyRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'application_property.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'application_property.csv', parseError);
+    return rows.map((row) => ({
       key: this.str(row, 'key') ?? '',
       value: this.str(row, 'value'),
       changedBy: this.str(row, 'changedBy'),
@@ -69,8 +89,10 @@ export class CsvReaderService {
     }));
   }
 
-  readComponentDirectory(buffer: Buffer): ComponentDirectoryRow[] {
-    return this.readRaw(buffer).map((row) => ({
+  readComponentDirectory(buffer: Buffer, warnings: Warning[]): ComponentDirectoryRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'component_directory.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'component_directory.csv', parseError);
+    return rows.map((row) => ({
       directoryContent: this.str(row, 'directoryContent') ?? '',
       id: this.str(row, 'id') ?? '',
       signature: this.str(row, 'signature'),
@@ -78,8 +100,10 @@ export class CsvReaderService {
     }));
   }
 
-  readMessagePaths(buffer: Buffer): MessagePathRow[] {
-    return this.readRaw(buffer).map((row) => {
+  readMessagePaths(buffer: Buffer, warnings: Warning[]): MessagePathRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'message_path.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'message_path.csv', parseError);
+    return rows.map((row) => {
       const mpt = this.str(row, 'messagePathType');
       const tp = this.str(row, 'transportPattern');
       return {
@@ -100,8 +124,10 @@ export class CsvReaderService {
     });
   }
 
-  readMessagingStatistics(buffer: Buffer): MessagingStatisticRow[] {
-    return this.readRaw(buffer).map((row) => ({
+  readMessagingStatistics(buffer: Buffer, warnings: Warning[]): MessagingStatisticRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'messaging_statistics.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'messaging_statistics.csv', parseError);
+    return rows.map((row) => ({
       connectionStatus: this.str(row, 'connectionStatus'),
       deleted: this.bool(row, 'deleted'),
       lastMessageDown: this.date(row, 'lastMessageDown'),
