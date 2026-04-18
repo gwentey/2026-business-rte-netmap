@@ -124,6 +124,6 @@ export class XmlMadesParserService {
 
   private extractNamespace(xml: string): string | null {
     const m = xml.match(/xmlns(?::[^=]+)?="([^"]+)"/);
-    return m ? m[1] : null;
+    return m?.[1] ?? null;
   }
 }

@@ -82,6 +82,7 @@ export class RegistryService implements OnModuleInit {
     }
 
     const def = this.overlay.countryGeocode['DEFAULT'];
+    if (!def) throw new Error('Registry overlay missing countryGeocode.DEFAULT');
     return {
       displayName: entsoe?.displayName ?? organization ?? eic,
       country: entsoe?.country ?? null,

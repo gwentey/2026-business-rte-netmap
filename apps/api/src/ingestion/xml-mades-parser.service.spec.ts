@@ -72,27 +72,27 @@ describe('XmlMadesParserService', () => {
 
   it('splits INDIRECT:{broker} path correctly', () => {
     const tree = service.parse(VALID_XML);
-    const path = tree.endpoints[0].paths[0];
+    const path = tree.endpoints[0]!.paths[0]!;
     expect(path.transportPattern).toBe('INDIRECT');
     expect(path.brokerCode).toBe('17VRTE-BROKER-01');
   });
 
   it('sets brokerCode = null for DIRECT path', () => {
     const tree = service.parse(VALID_XML);
-    const directPath = tree.endpoints[0].paths[1];
+    const directPath = tree.endpoints[0]!.paths[1]!;
     expect(directPath.transportPattern).toBe('DIRECT');
     expect(directPath.brokerCode).toBeNull();
   });
 
   it('treats missing validTo as null (perpetual)', () => {
     const tree = service.parse(VALID_XML);
-    const perpetual = tree.endpoints[0].paths[1];
+    const perpetual = tree.endpoints[0]!.paths[1]!;
     expect(perpetual.validTo).toBeNull();
   });
 
   it('treats empty senderComponent as null (equivalent to wildcard)', () => {
     const tree = service.parse(VALID_XML);
-    expect(tree.endpoints[0].paths[0].senderComponent).toBeNull();
+    expect(tree.endpoints[0]!.paths[0]!.senderComponent).toBeNull();
   });
 
   it('throws UnknownMadesNamespaceException for wrong namespace', () => {

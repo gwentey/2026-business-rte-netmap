@@ -14,10 +14,10 @@ describe('CsvReaderService', () => {
       );
       const rows = service.readApplicationProperties(csv);
       expect(rows).toHaveLength(1);
-      expect(rows[0].changedBy).toBeNull();
-      expect(rows[0].key).toBe('ecp.componentCode');
-      expect(rows[0].value).toBe('17V000000498771C');
-      expect(rows[0].createdDate).toBeInstanceOf(Date);
+      expect(rows[0]!.changedBy).toBeNull();
+      expect(rows[0]!.key).toBe('ecp.componentCode');
+      expect(rows[0]!.value).toBe('17V000000498771C');
+      expect(rows[0]!.createdDate).toBeInstanceOf(Date);
     });
 
     it('ignores malformed rows (records warning internally, does not throw)', () => {
@@ -42,12 +42,12 @@ describe('CsvReaderService', () => {
       );
       const rows = service.readMessagePaths(csv);
       expect(rows).toHaveLength(1);
-      expect(rows[0].allowedSenders).toBe('*');
-      expect(rows[0].applied).toBe(true);
-      expect(rows[0].transportPattern).toBe('DIRECT');
-      expect(rows[0].intermediateBrokerCode).toBeNull();
-      expect(rows[0].validFrom).toBeInstanceOf(Date);
-      expect(rows[0].validTo).toBeInstanceOf(Date);
+      expect(rows[0]!.allowedSenders).toBe('*');
+      expect(rows[0]!.applied).toBe(true);
+      expect(rows[0]!.transportPattern).toBe('DIRECT');
+      expect(rows[0]!.intermediateBrokerCode).toBeNull();
+      expect(rows[0]!.validFrom).toBeInstanceOf(Date);
+      expect(rows[0]!.validTo).toBeInstanceOf(Date);
     });
   });
 
@@ -61,10 +61,10 @@ describe('CsvReaderService', () => {
       );
       const rows = service.readMessagingStatistics(csv);
       expect(rows).toHaveLength(1);
-      expect(rows[0].connectionStatus).toBe('CONNECTED');
-      expect(rows[0].sumMessagesDown).toBe(42);
-      expect(rows[0].sumMessagesUp).toBe(17);
-      expect(rows[0].deleted).toBe(false);
+      expect(rows[0]!.connectionStatus).toBe('CONNECTED');
+      expect(rows[0]!.sumMessagesDown).toBe(42);
+      expect(rows[0]!.sumMessagesUp).toBe(17);
+      expect(rows[0]!.deleted).toBe(false);
     });
   });
 
@@ -78,7 +78,7 @@ describe('CsvReaderService', () => {
       );
       const rows = service.readComponentDirectory(csv);
       expect(rows).toHaveLength(1);
-      expect(rows[0].directoryContent).toBe('<xml/>');
+      expect(rows[0]!.directoryContent).toBe('<xml/>');
     });
   });
 });

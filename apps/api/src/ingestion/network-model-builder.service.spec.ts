@@ -177,7 +177,7 @@ describe('NetworkModelBuilderService', () => {
 
   it('tags a MessagePath as expired when validTo < current time', () => {
     const tree = madesTreeStub();
-    tree.endpoints[0].paths = [
+    tree.endpoints[0]!.paths = [
       { senderComponent: null, messageType: 'RSMD', transportPattern: 'DIRECT', brokerCode: null, validFrom: new Date('2020-01-01'), validTo: new Date('2021-01-01') },
     ];
     const snap = service.build({
@@ -187,6 +187,6 @@ describe('NetworkModelBuilderService', () => {
       localMessagePaths: [],
       envName: 'OPF',
     });
-    expect(snap.messagePaths[0].isExpired).toBe(true);
+    expect(snap.messagePaths[0]!.isExpired).toBe(true);
   });
 });
