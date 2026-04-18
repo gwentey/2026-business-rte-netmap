@@ -124,6 +124,18 @@ describe('GraphService', () => {
     expect(graph.edges[0]!.activity.isRecent).toBe(true);
   });
 
+  it('mapConfig (P3-4) — buildGraph includes mapConfig with correct types', () => {
+    const snap = { id: 's1', uploadedAt: new Date() } as Snapshot;
+    const graph = service.buildGraph(snap, [], [], []);
+    expect(graph.mapConfig).toBeDefined();
+    expect(typeof graph.mapConfig.rteClusterLat).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterLng).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterOffsetDeg).toBe('number');
+    expect(typeof graph.mapConfig.rteClusterProximityDeg).toBe('number');
+    expect(graph.mapConfig.rteClusterLat).toBeCloseTo(48.8918);
+    expect(graph.mapConfig.rteClusterLng).toBeCloseTo(2.2378);
+  });
+
   it('computes bounds from component positions with padding', () => {
     const snap = { id: 's1', uploadedAt: new Date() } as Snapshot;
     const components = [
@@ -153,7 +165,9 @@ describe('GraphService', () => {
       vi.resetModules();
       const { GraphService: FreshGraphService } = await import('./graph.service.js');
       const mockPrisma = {} as never;
-      const mockRegistry = {} as never;
+      const mockRegistry = {
+        getMapConfig: () => ({ rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01 }),
+      } as never;
       const freshService = new FreshGraphService(mockPrisma, mockRegistry);
       const snapshot = {
         uploadedAt: new Date('2026-04-18T10:00:00Z'),

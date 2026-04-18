@@ -91,6 +91,16 @@ describe('RegistryService', () => {
     });
   });
 
+  describe('getMapConfig (P3-4)', () => {
+    it('returns the 4 map config fields with expected values', () => {
+      const cfg = service.getMapConfig();
+      expect(cfg.rteClusterLat).toBeCloseTo(48.8918);
+      expect(cfg.rteClusterLng).toBeCloseTo(2.2378);
+      expect(cfg.rteClusterOffsetDeg).toBeCloseTo(0.6);
+      expect(cfg.rteClusterProximityDeg).toBeCloseTo(0.01);
+    });
+  });
+
   describe('getRteEicSet', () => {
     it('returns a Set containing all rteEndpoints EICs plus the rteComponentDirectory EIC', () => {
       const set = service.getRteEicSet();

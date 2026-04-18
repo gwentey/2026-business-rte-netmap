@@ -165,5 +165,11 @@
     "VP":       "#ec4899",
     "MIXTE":    "#4b5563",
     "UNKNOWN":  "#9ca3af"
+  },
+  "mapConfig": {
+    "rteClusterLat": 48.8918,
+    "rteClusterLng": 2.2378,
+    "rteClusterOffsetDeg": 0.6,
+    "rteClusterProximityDeg": 0.01
   }
 }

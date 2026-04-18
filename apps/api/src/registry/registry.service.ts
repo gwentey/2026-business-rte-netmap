@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { parse as parseCsv } from 'csv-parse/sync';
-import type { ProcessKey } from '@carto-ecp/shared';
+import type { MapConfig, ProcessKey } from '@carto-ecp/shared';
 import type {
   EntsoeEntry,
   ResolvedLocation,
@@ -116,6 +116,10 @@ export class RegistryService implements OnModuleInit {
 
   getRteEicSet(): Set<string> {
     return this.rteEicSet;
+  }
+
+  getMapConfig(): MapConfig {
+    return this.overlay.mapConfig;
   }
 
   getOverlay(): RteOverlay {

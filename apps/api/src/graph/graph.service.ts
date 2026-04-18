@@ -137,7 +137,7 @@ export class GraphService {
       };
     });
 
-    return { bounds: this.computeBounds(nodes), nodes, edges };
+    return { bounds: this.computeBounds(nodes), nodes, edges, mapConfig: this.registry.getMapConfig() };
   }
 
   private toNode(
