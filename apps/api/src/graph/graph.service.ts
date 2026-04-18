@@ -1,5 +1,15 @@
 import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
+
+const DEFAULT_ISRECENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+function parseThreshold(): number {
+  const raw = process.env.ISRECENT_THRESHOLD_MS;
+  if (!raw) return DEFAULT_ISRECENT_THRESHOLD_MS;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) && n > 0 ? n : DEFAULT_ISRECENT_THRESHOLD_MS;
+}
+
 import type {
   GraphBounds,
   GraphEdge,
@@ -15,6 +25,8 @@ import { SnapshotNotFoundException } from '../common/errors/ingestion-errors.js'
 
 @Injectable()
 export class GraphService {
+  private readonly isRecentThreshold = parseThreshold();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: RegistryService,
@@ -102,7 +114,7 @@ export class GraphService {
       const snapshotTime = snapshot.uploadedAt.getTime();
       const isRecent =
         stat?.lastMessageUp != null &&
-        snapshotTime - stat.lastMessageUp.getTime() < 24 * 60 * 60 * 1000 &&
+        snapshotTime - stat.lastMessageUp.getTime() < this.isRecentThreshold &&
         snapshotTime - stat.lastMessageUp.getTime() >= 0;
 
       return {
