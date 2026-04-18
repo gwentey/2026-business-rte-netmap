@@ -1,0 +1,5 @@
+dist/
+*.tsbuildinfo
+# tsc -b emitted files for vite.config
+vite.config.js
+vite.config.d.ts
