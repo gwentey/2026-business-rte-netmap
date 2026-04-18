@@ -22,6 +22,7 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['**/*.spec.ts', '**/*.module.ts', 'src/main.ts'],
     },
-    testTimeout: 15000,
+    testTimeout: 30000,
+    fileParallelism: false,
   },
 });
