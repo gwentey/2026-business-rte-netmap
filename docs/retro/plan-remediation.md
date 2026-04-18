@@ -46,16 +46,16 @@ Ces actions renforcent la fiabilité avant les prochains slices fonctionnels.
 
 Ces actions améliorent la maintenabilité à long terme et préparent les slices suivants.
 
-| #   | Action                                                                                                                         | Feature          | Effort | Prérequis       | Réf. dette |
-|-----|--------------------------------------------------------------------------------------------------------------------------------|------------------|--------|-----------------|------------|
-| P3-1 | Re-packager le zip archivé en retirant les fichiers sensibles avant écriture sur disque (ou déplacer l'archivage après la transaction pour faciliter la compensation). | api/ingestion | M | P2-2 (tests persister) | m5 |
-| P3-2 | Rendre le seuil `isRecent` configurable : externaliser la valeur 24h dans l'overlay JSON ou dans une variable d'environnement `ISRECENT_THRESHOLD_MS`. | api/graph | S | Aucun | m8 |
-| P3-3 | Pré-calculer le `rteEicSet` dans `RegistryService.onModuleInit()` au lieu de le reconstruire à chaque appel de `build()`. | api/registry, api/ingestion | XS | Aucun | m12 |
-| P3-4 | Externaliser `PARIS_LAT`, `PARIS_LNG`, `OFFSET_DEG` et le seuil de proximité depuis l'overlay RTE JSON vers le frontend (via un endpoint `GET /api/registry/map-config` ou en les incluant dans `GraphResponse`). | web/map | M | Aucun | m13 |
-| P3-5 | Décider et documenter la stratégie de validation unifiée pour les futurs endpoints NestJS : adopter `nestjs-zod` pour unifier Zod + ValidationPipe, ou revenir à `class-validator` pour les nouveaux modules. | api/snapshots, api/* | S | Aucun | m11 |
-| P3-6 | Implémenter le rechargement à chaud du registry (hot reload) : endpoint `POST /api/registry/reload` avec guard admin, déclenche `onModuleInit()` sur `RegistryService`. | api/registry | L | Auth (hors scope slice #1) | m9 |
-| P3-7 | Nettoyer la whitelist `USABLE_CSV_FILES` : retirer `message_type.csv` et `message_upload_route.csv` ou implémenter les services lecteurs associés. | api/ingestion | XS | Aucun | m14 |
-| P3-8 | Remplacer `leaflet-curve` par une solution `<SVGOverlay>` react-leaflet avec `<path>` SVG natifs, ou surveiller la publication de types officiels. | web/map | L | Aucun | m10 |
+| #   | Action                                                                                                                         | Feature          | Effort | Prérequis       | Réf. dette | Statut |
+|-----|--------------------------------------------------------------------------------------------------------------------------------|------------------|--------|-----------------|------------|--------|
+| P3-1 | Re-packager le zip archivé en retirant les fichiers sensibles avant écriture sur disque. | api/ingestion | M | P2-2 (tests persister) | m5 | **Livré — PR #4** |
+| P3-2 | Rendre le seuil `isRecent` configurable via variable d'environnement `ISRECENT_THRESHOLD_MS`. | api/graph | S | Aucun | m8 | **Livré — PR #4** |
+| P3-3 | Pré-calculer le `rteEicSet` dans `RegistryService.onModuleInit()` au lieu de le reconstruire à chaque appel de `build()`. | api/registry, api/ingestion | XS | Aucun | m12 | **Livré — PR #4** |
+| P3-4 | Externaliser `PARIS_LAT`, `PARIS_LNG`, `OFFSET_DEG` et le seuil de proximité depuis l'overlay RTE JSON vers le frontend via `mapConfig` dans `GraphResponse`. | web/map | M | Aucun | m13 | **Livré — PR #4** |
+| P3-5 | Décider et documenter la stratégie de validation unifiée pour les futurs endpoints NestJS : ADR-022 — standardisation `nestjs-zod`. | api/snapshots, api/* | S | Aucun | m11 | **Livré — PR #4** (ADR-022 commit b6024f6) |
+| P3-6 | Implémenter le rechargement à chaud du registry (hot reload) : endpoint `POST /api/registry/reload` avec guard admin. | api/registry | L | Auth (hors scope slice #1) | m9 | **Déféré — dépend de l'auth (hors scope slice #1)** |
+| P3-7 | Nettoyer la whitelist `USABLE_CSV_FILES` : retirer `message_type.csv` et `message_upload_route.csv`. | api/ingestion | XS | Aucun | m14 | **Livré — PR #4** |
+| P3-8 | Remplacer `leaflet-curve` par une solution `<SVGOverlay>` react-leaflet avec `<path>` SVG natifs, ou surveiller la publication de types officiels. | web/map | L | Aucun | m10 | **À faire — spec séparée** |
 
 ---
 

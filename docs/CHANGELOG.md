@@ -30,3 +30,9 @@
 - `docs/adr/ADR-021-react-testing-stack.md` : nouvel ADR — stack de test React (@testing-library/react + happy-dom, imports explicites, afterEach cleanup)
 - `docs/retro/dette-technique.md` : items M4, m1, m2, m3, m4, m7 marqués RESOLU (Phase 2, PR #2)
 - `docs/retro/plan-remediation.md` : P2-1 à P2-8 marqués Livrés (PR #2)
+- `docs/specs/api/registry/spec-technique.md` v0.3.0 : nouveau getter `getRteEicSet()` + `getMapConfig()`, pré-calcul `rteEicSet` au boot (P3-3, P3-4) ; mise à jour section Tests (+2 cas)
+- `docs/specs/api/ingestion/spec-technique.md` v0.3.0 : `repackageWithoutSensitive` dans `SnapshotPersisterService` (P3-1) ; retrait de `message_type.csv` et `message_upload_route.csv` de `USABLE_CSV_FILES` (P3-7) ; mise à jour section Tests (+2 cas)
+- `docs/specs/api/graph/spec-technique.md` v0.3.0 : `ISRECENT_THRESHOLD_MS` env var (P3-2) ; champ `mapConfig` dans `GraphResponse` (P3-4) ; mise à jour section Tests (+2 cas)
+- `docs/specs/web/map/spec-technique.md` v0.2.0 : `useMapData` consomme `graph.mapConfig` — constantes `PARIS_LAT/PARIS_LNG/OFFSET_DEG` plus hardcodées (P3-4) ; mise à jour tableau Constantes notables
+- `docs/retro/dette-technique.md` : items m5, m8, m11, m12, m13, m14 marqués RESOLU (Phase 3, PR #4)
+- `docs/retro/plan-remediation.md` : P3-1, P3-2, P3-3, P3-4, P3-5, P3-7 marqués Livrés (PR #4) ; P3-6 Déféré (dépend auth) ; P3-8 À faire (spec séparée)
