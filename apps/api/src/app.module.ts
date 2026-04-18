@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { RegistryModule } from './registry/registry.module.js';
 import { IngestionModule } from './ingestion/ingestion.module.js';
 import { SnapshotsModule } from './snapshots/snapshots.module.js';
+import { GraphModule } from './graph/graph.module.js';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { SnapshotsModule } from './snapshots/snapshots.module.js';
     RegistryModule,
     IngestionModule,
     SnapshotsModule,
+    GraphModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
