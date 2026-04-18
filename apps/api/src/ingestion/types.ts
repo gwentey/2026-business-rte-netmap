@@ -10,8 +10,6 @@ export const USABLE_CSV_FILES = [
   'component_directory.csv',
   'message_path.csv',
   'messaging_statistics.csv',
-  'message_type.csv',
-  'message_upload_route.csv',
 ] as const;
 
 export const IGNORED_CSV_FILES = [
