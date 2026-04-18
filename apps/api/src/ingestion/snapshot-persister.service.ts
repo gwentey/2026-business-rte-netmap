@@ -2,10 +2,17 @@ import { mkdir, writeFile, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { v4 as uuid } from 'uuid';
+import AdmZip from 'adm-zip';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { IngestionResult, NetworkSnapshot } from './types.js';
 
 const STORAGE_DIR = join(process.cwd(), 'storage', 'snapshots');
+
+const SENSITIVE_FILES_TO_STRIP = new Set<string>([
+  'local_key_store.csv',
+  'registration_store.csv',
+  'registration_requests.csv',
+]);
 
 @Injectable()
 export class SnapshotPersisterService {
@@ -21,7 +28,8 @@ export class SnapshotPersisterService {
     const snapshotId = uuid();
     const zipPath = join(STORAGE_DIR, `${snapshotId}.zip`);
     await mkdir(dirname(zipPath), { recursive: true });
-    await writeFile(zipPath, zipBuffer);
+    const safeBuffer = this.repackageWithoutSensitive(zipBuffer);
+    await writeFile(zipPath, safeBuffer);
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -124,6 +132,23 @@ export class SnapshotPersisterService {
       cdCode: snapshot.meta.cdCode,
       warnings: snapshot.warnings,
     };
+  }
+
+  private repackageWithoutSensitive(buffer: Buffer): Buffer {
+    try {
+      const src = new AdmZip(buffer);
+      const dst = new AdmZip();
+      for (const entry of src.getEntries()) {
+        if (entry.isDirectory) continue;
+        const name = entry.entryName.split('/').pop() ?? entry.entryName;
+        if (SENSITIVE_FILES_TO_STRIP.has(name)) continue;
+        dst.addFile(entry.entryName, entry.getData());
+      }
+      return dst.toBuffer();
+    } catch (e) {
+      this.logger.warn(`repackageWithoutSensitive: could not parse zip, persisting original buffer (${(e as Error).message})`);
+      return buffer;
+    }
   }
 
   private filterSensitive(
