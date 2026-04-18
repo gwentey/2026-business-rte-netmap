@@ -55,7 +55,7 @@ Ces actions améliorent la maintenabilité à long terme et préparent les slice
 | P3-5 | Décider et documenter la stratégie de validation unifiée pour les futurs endpoints NestJS : ADR-022 — standardisation `nestjs-zod`. | api/snapshots, api/* | S | Aucun | m11 | **Livré — PR #4** (ADR-022 commit b6024f6) |
 | P3-6 | Implémenter le rechargement à chaud du registry (hot reload) : endpoint `POST /api/registry/reload` avec guard admin. | api/registry | L | Auth (hors scope slice #1) | m9 | **Déféré — dépend de l'auth (hors scope slice #1)** |
 | P3-7 | Nettoyer la whitelist `USABLE_CSV_FILES` : retirer `message_type.csv` et `message_upload_route.csv`. | api/ingestion | XS | Aucun | m14 | **Livré — PR #4** |
-| P3-8 | Remplacer `leaflet-curve` par une solution `<SVGOverlay>` react-leaflet avec `<path>` SVG natifs, ou surveiller la publication de types officiels. | web/map | L | Aucun | m10 | **À faire — spec séparée** |
+| P3-8 | Remplacer `leaflet-curve` par une solution `<SVGOverlay>` react-leaflet avec `<path>` SVG natifs, ou surveiller la publication de types officiels. | web/map | L | Aucun | m10 | **Livré — Phase 4, PR #5** (`<Polyline>` sampled bezier ; `leaflet-curve` supprimé) |
 
 ---
 

@@ -36,3 +36,7 @@
 - `docs/specs/web/map/spec-technique.md` v0.2.0 : `useMapData` consomme `graph.mapConfig` — constantes `PARIS_LAT/PARIS_LNG/OFFSET_DEG` plus hardcodées (P3-4) ; mise à jour tableau Constantes notables
 - `docs/retro/dette-technique.md` : items m5, m8, m11, m12, m13, m14 marqués RESOLU (Phase 3, PR #4)
 - `docs/retro/plan-remediation.md` : P3-1, P3-2, P3-3, P3-4, P3-5, P3-7 marqués Livrés (PR #4) ; P3-6 Déféré (dépend auth) ; P3-8 À faire (spec séparée)
+- `docs/specs/web/map/spec-technique.md` v0.3.0 : `EdgePath` réécrit `<Polyline>` sampled bezier, section Patterns mise à jour, `leaflet-curve` retiré, stub `env.d.ts` supprimé, 2 nouveaux tests Vitest (Phase 4, PR #5)
+- `docs/retro/dette-technique.md` : item m10 marqué RESOLU (Phase 4, PR #5)
+- `docs/retro/plan-remediation.md` : P3-8 marqué Livré (Phase 4, PR #5)
+- `docs/adr/RETRO-014-leaflet-curve-sans-wrapper-react-approche-imperative.md` : section "Évolution 2026-04-19" ajoutée
