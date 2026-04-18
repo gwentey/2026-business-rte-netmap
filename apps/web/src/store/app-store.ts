@@ -35,7 +35,11 @@ export const useAppStore = create<AppState>()(
           const list = await api.listSnapshots();
           set({ snapshots: list, loading: false });
           const id = get().activeSnapshotId;
-          if (!id && list.length > 0) {
+          const persistedStillValid = id !== null && list.some((s) => s.id === id);
+
+          if (persistedStillValid) {
+            await get().setActiveSnapshot(id);
+          } else if (list.length > 0) {
             await get().setActiveSnapshot(list[0]!.id);
           }
         } catch (err) {
