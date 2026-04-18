@@ -26,18 +26,18 @@ export function MapPage(): JSX.Element {
         <div className="flex items-center gap-4">
           <span className="font-bold text-rte">Carto ECP</span>
           <SnapshotSelector />
-          {active && (
+          {active ? (
             <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium">
               env {active.envName} — {active.componentType}
             </span>
-          )}
+          ) : null}
         </div>
         <Link to="/upload" className="text-sm text-gray-600 hover:text-gray-900">
           + Charger un snapshot
         </Link>
       </header>
 
-      {error && <div className="bg-red-100 px-4 py-2 text-sm text-red-700">{error}</div>}
+      {error ? <div className="bg-red-100 px-4 py-2 text-sm text-red-700">{error}</div> : null}
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">{loading ? <SkeletonMap /> : <NetworkMap />}</div>
@@ -54,11 +54,11 @@ export function MapPage(): JSX.Element {
             {process}
           </span>
         ))}
-        {graph && (
+        {graph ? (
           <span className="ml-auto">
             {graph.nodes.length} nœuds / {graph.edges.length} liens
           </span>
-        )}
+        ) : null}
       </footer>
     </div>
   );
