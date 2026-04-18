@@ -9,7 +9,7 @@ import type {
   RteOverlay,
 } from './types.js';
 
-const REGISTRY_PACKAGE_ROOT = resolve(__dirname, '../../../../packages/registry');
+const REGISTRY_PACKAGE_ROOT = resolve(process.cwd(), '../../packages/registry');
 
 @Injectable()
 export class RegistryService implements OnModuleInit {
