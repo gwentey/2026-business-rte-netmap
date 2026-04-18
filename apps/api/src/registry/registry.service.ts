@@ -9,16 +9,19 @@ import type {
   RteOverlay,
 } from './types.js';
 
-const REGISTRY_PACKAGE_ROOT = resolve(process.cwd(), '../../packages/registry');
-
 @Injectable()
 export class RegistryService implements OnModuleInit {
   private readonly logger = new Logger(RegistryService.name);
   private eicIndex = new Map<string, EntsoeEntry>();
   private overlay!: RteOverlay;
   private patternRegexes: { regex: RegExp; process: ProcessKey }[] = [];
+  private registryRoot!: string;
 
   async onModuleInit(): Promise<void> {
+    this.registryRoot = process.env.REGISTRY_PATH
+      ? resolve(process.env.REGISTRY_PATH)
+      : resolve(process.cwd(), '../../packages/registry');
+    this.logger.log(`Registry root: ${this.registryRoot}`);
     await Promise.all([this.loadEntsoeIndex(), this.loadOverlay()]);
     this.logger.log(
       `Registry loaded: ${this.eicIndex.size} ENTSO-E entries, overlay ${this.overlay.version}`,
@@ -111,7 +114,7 @@ export class RegistryService implements OnModuleInit {
   }
 
   private async loadEntsoeIndex(): Promise<void> {
-    const csvPath = resolve(REGISTRY_PACKAGE_ROOT, 'eic-entsoe.csv');
+    const csvPath = resolve(this.registryRoot, 'eic-entsoe.csv');
     const content = await readFile(csvPath, 'utf-8');
     const rows = parseCsv(content, {
       columns: true,
@@ -136,7 +139,7 @@ export class RegistryService implements OnModuleInit {
   }
 
   private async loadOverlay(): Promise<void> {
-    const jsonPath = resolve(REGISTRY_PACKAGE_ROOT, 'eic-rte-overlay.json');
+    const jsonPath = resolve(this.registryRoot, 'eic-rte-overlay.json');
     const content = await readFile(jsonPath, 'utf-8');
     this.overlay = JSON.parse(content) as RteOverlay;
     this.patternRegexes = this.overlay.messageTypeClassification.patterns.map((p) => ({
