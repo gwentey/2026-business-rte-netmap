@@ -5,9 +5,9 @@ type TabDef = { id: AdminTabId; label: string; enabled: boolean; tooltip: string
 const TABS: TabDef[] = [
   { id: 'imports', label: 'Imports', enabled: true, tooltip: '' },
   { id: 'components', label: 'Composants', enabled: true, tooltip: '' },
-  { id: 'entsoe', label: 'Annuaire ENTSO-E', enabled: false, tooltip: 'Disponible en slice 2e' },
-  { id: 'registry', label: 'Registry RTE', enabled: false, tooltip: 'Disponible en slice 2e' },
-  { id: 'danger', label: '⚠ Zone danger', enabled: false, tooltip: 'Disponible en slice 2e' },
+  { id: 'entsoe', label: 'Annuaire ENTSO-E', enabled: true, tooltip: '' },
+  { id: 'registry', label: 'Registry RTE', enabled: false, tooltip: 'Reporté' },
+  { id: 'danger', label: '⚠ Zone danger', enabled: true, tooltip: '' },
 ];
 
 type Props = {

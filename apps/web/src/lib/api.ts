@@ -5,6 +5,9 @@ import type {
   InspectResult,
   AdminComponentRow,
   OverrideUpsertInput,
+  EntsoeStatus,
+  PurgeResult,
+  ResetAllResult,
 } from '@carto-ecp/shared';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -81,6 +84,31 @@ export const api = {
 
   async deleteOverride(eic: string): Promise<void> {
     await request<void>(`/api/overrides/${encodeURIComponent(eic)}`, { method: 'DELETE' });
+  },
+
+  async getEntsoeStatus(): Promise<EntsoeStatus> {
+    return request<EntsoeStatus>('/api/entsoe/status');
+  },
+
+  async uploadEntsoe(file: File): Promise<{ count: number; refreshedAt: string }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<{ count: number; refreshedAt: string }>('/api/entsoe/upload', {
+      method: 'POST',
+      body: fd,
+    });
+  },
+
+  async purgeImportsAll(): Promise<PurgeResult> {
+    return request<PurgeResult>('/api/admin/purge-imports', { method: 'DELETE' });
+  },
+
+  async purgeOverridesAll(): Promise<PurgeResult> {
+    return request<PurgeResult>('/api/admin/purge-overrides', { method: 'DELETE' });
+  },
+
+  async purgeAll(): Promise<ResetAllResult> {
+    return request<ResetAllResult>('/api/admin/purge-all', { method: 'DELETE' });
   },
 
   async getGraph(env: string, refDate?: Date): Promise<GraphResponse> {
