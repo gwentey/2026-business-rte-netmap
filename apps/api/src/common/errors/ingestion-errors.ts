@@ -52,13 +52,13 @@ export class PayloadTooLargeException extends IngestionError {
   }
 }
 
-export class SnapshotNotFoundException extends IngestionError {
-  constructor(snapshotId: string) {
+export class ImportNotFoundException extends IngestionError {
+  constructor(id: string) {
     super(
-      'SNAPSHOT_NOT_FOUND',
-      `Snapshot ${snapshotId} introuvable`,
+      'IMPORT_NOT_FOUND',
+      `Import ${id} not found`,
       HttpStatus.NOT_FOUND,
-      { snapshotId },
+      { id },
     );
   }
 }

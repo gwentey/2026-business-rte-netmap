@@ -21,7 +21,7 @@ import type {
 import type { Component, MessagePath, MessagingStatistic, Snapshot } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegistryService } from '../registry/registry.service.js';
-import { SnapshotNotFoundException } from '../common/errors/ingestion-errors.js';
+import { ImportNotFoundException } from '../common/errors/ingestion-errors.js';
 
 @Injectable()
 export class GraphService {
@@ -34,7 +34,7 @@ export class GraphService {
 
   async getGraph(snapshotId: string): Promise<GraphResponse> {
     const snapshot = await this.prisma.snapshot.findUnique({ where: { id: snapshotId } });
-    if (!snapshot) throw new SnapshotNotFoundException(snapshotId);
+    if (!snapshot) throw new ImportNotFoundException(snapshotId);
 
     const [components, paths, stats] = await Promise.all([
       this.prisma.component.findMany({

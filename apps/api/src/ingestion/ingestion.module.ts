@@ -1,20 +1,25 @@
 import { Module } from '@nestjs/common';
-import { CsvReaderService } from './csv-reader.service.js';
-import { IngestionService } from './ingestion.service.js';
-import { NetworkModelBuilderService } from './network-model-builder.service.js';
-import { SnapshotPersisterService } from './snapshot-persister.service.js';
-import { XmlMadesParserService } from './xml-mades-parser.service.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
+import { RegistryModule } from '../registry/registry.module.js';
 import { ZipExtractorService } from './zip-extractor.service.js';
+import { CsvReaderService } from './csv-reader.service.js';
+import { XmlMadesParserService } from './xml-mades-parser.service.js';
+import { ImportBuilderService } from './import-builder.service.js';
+import { RawPersisterService } from './raw-persister.service.js';
+import { ImportsService } from './imports.service.js';
+import { ImportsController } from './imports.controller.js';
 
 @Module({
+  imports: [PrismaModule, RegistryModule],
+  controllers: [ImportsController],
   providers: [
     ZipExtractorService,
     CsvReaderService,
     XmlMadesParserService,
-    NetworkModelBuilderService,
-    SnapshotPersisterService,
-    IngestionService,
+    ImportBuilderService,
+    RawPersisterService,
+    ImportsService,
   ],
-  exports: [IngestionService],
+  exports: [ImportsService],
 })
 export class IngestionModule {}
