@@ -106,3 +106,39 @@ export type InspectResult = {
   } | null;
   warnings: Warning[];
 };
+
+export type AdminComponentRow = {
+  eic: string;
+  current: {
+    displayName: string;
+    type: string;
+    organization: string | null;
+    country: string | null;
+    lat: number;
+    lng: number;
+    isDefaultPosition: boolean;
+  };
+  override: {
+    displayName: string | null;
+    type: string | null;
+    organization: string | null;
+    country: string | null;
+    lat: number | null;
+    lng: number | null;
+    tagsCsv: string | null;
+    notes: string | null;
+    updatedAt: string;
+  } | null;
+  importsCount: number;
+};
+
+export type OverrideUpsertInput = {
+  displayName?: string | null;
+  type?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER' | 'BA' | null;
+  organization?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  tagsCsv?: string | null;
+  notes?: string | null;
+};

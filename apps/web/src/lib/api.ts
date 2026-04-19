@@ -1,4 +1,11 @@
-import type { GraphResponse, ImportDetail, ImportSummary, InspectResult } from '@carto-ecp/shared';
+import type {
+  GraphResponse,
+  ImportDetail,
+  ImportSummary,
+  InspectResult,
+  AdminComponentRow,
+  OverrideUpsertInput,
+} from '@carto-ecp/shared';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -58,6 +65,22 @@ export const api = {
 
   async deleteImport(id: string): Promise<void> {
     await request<void>(`/api/imports/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  async listAdminComponents(): Promise<AdminComponentRow[]> {
+    return request<AdminComponentRow[]>('/api/admin/components');
+  },
+
+  async upsertOverride(eic: string, patch: OverrideUpsertInput): Promise<unknown> {
+    return request<unknown>(`/api/overrides/${encodeURIComponent(eic)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  },
+
+  async deleteOverride(eic: string): Promise<void> {
+    await request<void>(`/api/overrides/${encodeURIComponent(eic)}`, { method: 'DELETE' });
   },
 
   async getGraph(env: string, refDate?: Date): Promise<GraphResponse> {

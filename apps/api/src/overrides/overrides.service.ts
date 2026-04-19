@@ -6,42 +6,7 @@ import {
   type ImportedComponentWithImport,
 } from '../graph/merge-components.js';
 import { applyCascade } from '../graph/apply-cascade.js';
-
-type OverrideUpsertInput = {
-  displayName?: string | null;
-  type?: string | null;
-  organization?: string | null;
-  country?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  tagsCsv?: string | null;
-  notes?: string | null;
-};
-
-type AdminComponentRow = {
-  eic: string;
-  current: {
-    displayName: string;
-    type: string;
-    organization: string | null;
-    country: string | null;
-    lat: number;
-    lng: number;
-    isDefaultPosition: boolean;
-  };
-  override: {
-    displayName: string | null;
-    type: string | null;
-    organization: string | null;
-    country: string | null;
-    lat: number | null;
-    lng: number | null;
-    tagsCsv: string | null;
-    notes: string | null;
-    updatedAt: string;
-  } | null;
-  importsCount: number;
-};
+import type { AdminComponentRow, OverrideUpsertInput } from '@carto-ecp/shared';
 
 @Injectable()
 export class OverridesService {
