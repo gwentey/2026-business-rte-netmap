@@ -10,6 +10,18 @@ import type {
   MessagingStatisticRow,
 } from './types.js';
 
+export type CdMessagePathRow = {
+  allowedSenders: string;
+  intermediateBrokerCode: string;
+  intermediateComponent: string;
+  messageType: string;
+  receivers: string;
+  transportPattern: string;
+  validFrom: string;
+  validTo: string;
+  validUntil: string;
+};
+
 type RawRow = Record<string, string>;
 
 @Injectable()
@@ -100,7 +112,7 @@ export class CsvReaderService {
     }));
   }
 
-  readMessagePaths(buffer: Buffer, warnings: Warning[]): MessagePathRow[] {
+  readEndpointMessagePaths(buffer: Buffer, warnings: Warning[]): MessagePathRow[] {
     const { rows, parseError } = this.readRaw(buffer, 'message_path.csv');
     if (parseError !== null) this.pushCsvWarning(warnings, 'message_path.csv', parseError);
     return rows.map((row) => {
@@ -122,6 +134,27 @@ export class CsvReaderService {
         validTo: this.date(row, 'validTo'),
       };
     });
+  }
+
+  readMessagePaths(
+    extracted: Record<string, Buffer>,
+    warnings: Warning[],
+  ): CdMessagePathRow[] {
+    const buf = extracted['message_path.csv'];
+    if (!buf) return [];
+    const { rows, parseError } = this.readRaw(buf, 'message_path.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'message_path.csv', parseError);
+    return rows.map((r) => ({
+      allowedSenders: (r['allowedSenders'] ?? '').trim(),
+      intermediateBrokerCode: (r['intermediateBrokerCode'] ?? '').trim(),
+      intermediateComponent: (r['intermediateComponent'] ?? '').trim(),
+      messageType: (r['messageType'] ?? '').trim(),
+      receivers: (r['receivers'] ?? '').trim(),
+      transportPattern: (r['transportPattern'] ?? '').trim(),
+      validFrom: (r['validFrom'] ?? '').trim(),
+      validTo: (r['validTo'] ?? '').trim(),
+      validUntil: (r['validUntil'] ?? '').trim(),
+    }));
   }
 
   readMessagingStatistics(buffer: Buffer, warnings: Warning[]): MessagingStatisticRow[] {
