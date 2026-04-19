@@ -8,6 +8,7 @@ import { IngestionModule } from './ingestion/ingestion.module.js';
 import { GraphModule } from './graph/graph.module.js';
 import { EnvsModule } from './envs/envs.module.js';
 import { OverridesModule } from './overrides/overrides.module.js';
+import { AdminModule } from './admin/admin.module.js';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { OverridesModule } from './overrides/overrides.module.js';
     GraphModule,
     EnvsModule,
     OverridesModule,
+    AdminModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
