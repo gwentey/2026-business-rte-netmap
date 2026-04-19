@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { BadRequestException } from '@nestjs/common';
 import { ImportsController } from './imports.controller.js';
 import { ImportsService } from './imports.service.js';
@@ -97,6 +97,127 @@ describe('ImportsController', () => {
     await expect(
       ctrl.create(
         { envName: 'X', label: 'l', dumpType: 'INVALID' } as any,
+        { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+      ),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('ImportsController.inspect', () => {
+  let ctrl: ImportsController;
+  const fakeInspectResult = {
+    fileName: 'x.zip',
+    fileSize: 100,
+    fileHash: 'deadbeef'.repeat(8),
+    sourceComponentEic: '17V-A',
+    sourceDumpTimestamp: '2026-04-17T21:27:17.000Z',
+    dumpType: 'ENDPOINT' as const,
+    confidence: 'HIGH' as const,
+    reason: 'messaging_statistics.csv',
+    duplicateOf: null,
+    warnings: [],
+  };
+  const inspectSpy = vi.fn(async () => [fakeInspectResult]);
+
+  beforeEach(async () => {
+    inspectSpy.mockClear();
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ImportsController],
+      providers: [
+        {
+          provide: ImportsService,
+          useValue: {
+            inspectBatch: inspectSpy,
+            createImport: async () => ({}),
+            listImports: async () => [],
+            deleteImport: async () => undefined,
+          },
+        },
+      ],
+    }).compile();
+    ctrl = moduleRef.get(ImportsController);
+  });
+
+  it('rejects empty file list', async () => {
+    await expect(
+      ctrl.inspect({}, undefined, []),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects files with wrong MIME', async () => {
+    await expect(
+      ctrl.inspect({}, undefined, [
+        { originalname: 'a.txt', buffer: Buffer.from('hi'), mimetype: 'text/plain' } as any,
+      ]),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('returns InspectResult[] for valid files', async () => {
+    const result = await ctrl.inspect({ envName: 'OPF' }, 'OPF', [
+      { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.fileName).toBe('x.zip');
+    expect(inspectSpy).toHaveBeenCalledWith(expect.any(Array), 'OPF');
+  });
+
+  it('accepts multiple files in one call', async () => {
+    inspectSpy.mockResolvedValueOnce([
+      { ...fakeInspectResult, fileName: 'a.zip' },
+      { ...fakeInspectResult, fileName: 'b.zip' },
+    ]);
+    const result = await ctrl.inspect({}, undefined, [
+      { originalname: 'a.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+      { originalname: 'b.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+    ]);
+    expect(result).toHaveLength(2);
+  });
+});
+
+describe('ImportsController.create — replaceImportId', () => {
+  let ctrl: ImportsController;
+  const createSpy = vi.fn(async () => ({
+    id: 'new-id', envName: 'X', label: 'l', fileName: 'f.zip',
+    dumpType: 'ENDPOINT' as const,
+    sourceComponentEic: null, sourceDumpTimestamp: null,
+    uploadedAt: '2026-04-19T00:00:00.000Z',
+    effectiveDate: '2026-04-19T00:00:00.000Z',
+    warnings: [], stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
+  }));
+
+  beforeEach(async () => {
+    createSpy.mockClear();
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ImportsController],
+      providers: [
+        {
+          provide: ImportsService,
+          useValue: {
+            createImport: createSpy,
+            inspectBatch: async () => [],
+            listImports: async () => [],
+            deleteImport: async () => undefined,
+          },
+        },
+      ],
+    }).compile();
+    ctrl = moduleRef.get(ImportsController);
+  });
+
+  it('forwards replaceImportId to service when provided', async () => {
+    await ctrl.create(
+      { envName: 'X', label: 'l', replaceImportId: '11111111-2222-3333-4444-555555555555' },
+      { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+    );
+    expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
+      replaceImportId: '11111111-2222-3333-4444-555555555555',
+    }));
+  });
+
+  it('rejects an invalid UUID for replaceImportId', async () => {
+    await expect(
+      ctrl.create(
+        { envName: 'X', label: 'l', replaceImportId: 'not-a-uuid' },
         { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
       ),
     ).rejects.toThrow(BadRequestException);
