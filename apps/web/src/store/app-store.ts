@@ -36,6 +36,7 @@ type AppState = {
   error: string | null;
   uploadBatch: UploadBatchItem[];
   uploadInProgress: boolean;
+  refDate: Date | null;
 
   loadEnvs: () => Promise<void>;
   setActiveEnv: (env: string) => Promise<void>;
@@ -48,6 +49,7 @@ type AppState = {
   updateBatchItem: (id: string, patch: Partial<UploadBatchItem>) => void;
   submitBatch: (envName: string) => Promise<void>;
   clearBatch: () => void;
+  setRefDate: (date: Date | null) => Promise<void>;
 };
 
 export const useAppStore = create<AppState>()(
@@ -63,6 +65,7 @@ export const useAppStore = create<AppState>()(
       error: null,
       uploadBatch: [],
       uploadInProgress: false,
+      refDate: null,
 
       loadEnvs: async () => {
         set({ loading: true, error: null });
@@ -212,6 +215,14 @@ export const useAppStore = create<AppState>()(
       },
 
       clearBatch: () => set({ uploadBatch: [], uploadInProgress: false }),
+
+      setRefDate: async (date) => {
+        set({ refDate: date });
+        const env = get().activeEnv;
+        if (env !== null) {
+          await get().loadGraph(env, date ?? undefined);
+        }
+      },
     }),
     {
       name: 'carto-ecp-store',
