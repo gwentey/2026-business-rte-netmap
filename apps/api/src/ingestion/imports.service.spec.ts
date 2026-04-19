@@ -338,6 +338,81 @@ describe('ImportsService.listImports — retourne ImportDetail[]', () => {
   });
 });
 
+describe('ImportsService.updateImport', () => {
+  let service: ImportsService;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ImportsService, ZipExtractorService, CsvReaderService, XmlMadesParserService,
+        ImportBuilderService, CsvPathReaderService, RawPersisterService, PrismaService,
+      ],
+    }).compile();
+    await moduleRef.init();
+    service = moduleRef.get(ImportsService);
+    prisma = moduleRef.get(PrismaService);
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_UPDATE' } } });
+  });
+
+  afterEach(async () => {
+    const rows = await prisma.import.findMany({ where: { envName: { startsWith: 'TEST_UPDATE' } } });
+    const { existsSync, unlinkSync } = await import('node:fs');
+    for (const r of rows) {
+      if (existsSync(r.zipPath)) { try { unlinkSync(r.zipPath); } catch {} }
+    }
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_UPDATE' } } });
+  });
+
+  it('updates label only without affecting effectiveDate', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const created = await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_UPDATE_LABEL',
+      label: 'original',
+    });
+    const before = await prisma.import.findUnique({ where: { id: created.id } });
+    const updated = await service.updateImport(created.id, { label: 'renamed' });
+
+    expect(updated.label).toBe('renamed');
+    expect(updated.effectiveDate).toBe(before!.effectiveDate.toISOString());
+  });
+
+  it('updates effectiveDate only without affecting label', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const created = await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_UPDATE_DATE',
+      label: 'stay-same',
+    });
+    const newDate = '2030-01-15T10:00:00.000Z';
+    const updated = await service.updateImport(created.id, { effectiveDate: newDate });
+
+    expect(updated.label).toBe('stay-same');
+    expect(updated.effectiveDate).toBe(newDate);
+  });
+
+  it('updates both fields in one call', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const created = await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_UPDATE_BOTH',
+      label: 'old',
+    });
+    const newDate = '2030-06-20T08:30:00.000Z';
+    const updated = await service.updateImport(created.id, { label: 'new', effectiveDate: newDate });
+
+    expect(updated.label).toBe('new');
+    expect(updated.effectiveDate).toBe(newDate);
+  });
+
+  it('throws NotFoundException for unknown id', async () => {
+    await expect(
+      service.updateImport('00000000-0000-0000-0000-000000000000', { label: 'x' }),
+    ).rejects.toMatchObject({ response: expect.objectContaining({ code: 'IMPORT_NOT_FOUND' }) });
+  });
+});
+
 describe('ImportsService.createImport — replaceImportId', () => {
   let service: ImportsService;
   let prisma: PrismaService;

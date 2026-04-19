@@ -341,6 +341,23 @@ export class ImportsService {
     }));
   }
 
+  async updateImport(
+    id: string,
+    patch: { label?: string; effectiveDate?: string },
+  ): Promise<ImportDetail> {
+    const existing = await this.prisma.import.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'IMPORT_NOT_FOUND', message: `Import ${id} not found` });
+    }
+
+    const data: { label?: string; effectiveDate?: Date } = {};
+    if (patch.label !== undefined) data.label = patch.label;
+    if (patch.effectiveDate !== undefined) data.effectiveDate = new Date(patch.effectiveDate);
+
+    await this.prisma.import.update({ where: { id }, data });
+    return this.toDetail(id);
+  }
+
   async deleteImport(id: string): Promise<void> {
     const existing = await this.prisma.import.findUnique({ where: { id } });
     if (!existing) {
