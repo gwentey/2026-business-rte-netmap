@@ -1,4 +1,5 @@
 import type { ProcessKey } from './registry.js';
+import type { Warning } from './snapshot.js';
 
 export type NodeKind =
   | 'RTE_ENDPOINT'
@@ -64,4 +65,25 @@ export type GraphResponse = {
   nodes: GraphNode[];
   edges: GraphEdge[];
   mapConfig: MapConfig;
+};
+
+export type ImportSummary = {
+  id: string;
+  envName: string;
+  label: string;
+  fileName: string;
+  dumpType: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  sourceComponentEic: string | null;
+  sourceDumpTimestamp: string | null;
+  uploadedAt: string;
+  effectiveDate: string;
+};
+
+export type ImportDetail = ImportSummary & {
+  warnings: Warning[];
+  stats: {
+    componentsCount: number;
+    pathsCount: number;
+    messagingStatsCount: number;
+  };
 };
