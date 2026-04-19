@@ -1,87 +1,98 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi, afterEach } from 'vitest';
+import { useAppStore } from './app-store.js';
+import { api } from '../lib/api.js';
 
-vi.mock('../lib/api', () => ({
+vi.mock('../lib/api.js', () => ({
   api: {
-    listSnapshots: vi.fn(),
+    listEnvs: vi.fn(),
+    listImports: vi.fn(),
     getGraph: vi.fn(),
-    createSnapshot: vi.fn(),
   },
 }));
 
-import { api } from '../lib/api';
-
-// Import fresh store per test to avoid state leak via the Zustand singleton
-async function freshStore() {
-  vi.resetModules();
-  const mod = await import('./app-store');
-  return mod.useAppStore;
-}
-
-describe('app-store — loadSnapshots bascule activeSnapshotId invalide', () => {
+describe('useAppStore', () => {
   beforeEach(() => {
+    useAppStore.setState({
+      activeEnv: null,
+      envs: [],
+      imports: [],
+      graph: null,
+      selectedNodeEic: null,
+      selectedEdgeId: null,
+      loading: false,
+      error: null,
+    });
+    vi.mocked(api.listEnvs).mockReset();
+    vi.mocked(api.listImports).mockReset();
+    vi.mocked(api.getGraph).mockReset();
+  });
+
+  afterEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
   });
 
-  it('switches to list[0] when persisted activeSnapshotId is not in the fresh list', async () => {
-    localStorage.setItem(
-      'carto-ecp-store',
-      JSON.stringify({ state: { activeSnapshotId: 'stale-id-deleted' }, version: 0 }),
-    );
-    vi.mocked(api.listSnapshots).mockResolvedValueOnce([
-      {
-        id: 'fresh-id-1',
-        label: 'Fresh 1',
-        envName: 'OPF',
-        componentType: 'ENDPOINT',
-        sourceComponentCode: 'S',
-        cdCode: 'C',
-        uploadedAt: '2026-04-18T12:00:00Z',
-        warningCount: 0,
-      },
-    ]);
-    vi.mocked(api.getGraph).mockResolvedValueOnce({
+  it('loadEnvs sets envs and activates first env when none persisted', async () => {
+    vi.mocked(api.listEnvs).mockResolvedValue(['OPF', 'PROD']);
+    vi.mocked(api.listImports).mockResolvedValue([]);
+    vi.mocked(api.getGraph).mockResolvedValue({
       nodes: [],
       edges: [],
-      bounds: { north: 0, south: 0, east: 0, west: 0 },
-      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01, defaultLat: 50.8503, defaultLng: 4.3517 },
+      bounds: { north: 60, south: 40, east: 20, west: -10 },
+      mapConfig: {} as any,
     });
 
-    const useStore = await freshStore();
-    await useStore.getState().loadSnapshots();
+    await useAppStore.getState().loadEnvs();
 
-    expect(useStore.getState().activeSnapshotId).toBe('fresh-id-1');
-    expect(api.getGraph).toHaveBeenCalledWith('fresh-id-1');
+    expect(useAppStore.getState().envs).toEqual(['OPF', 'PROD']);
+    expect(useAppStore.getState().activeEnv).toBe('OPF');
   });
 
-  it('keeps persisted id and loads its graph when it IS in the list', async () => {
-    localStorage.setItem(
-      'carto-ecp-store',
-      JSON.stringify({ state: { activeSnapshotId: 'valid-id' }, version: 0 }),
-    );
-    vi.mocked(api.listSnapshots).mockResolvedValueOnce([
-      {
-        id: 'valid-id',
-        label: 'Valid',
-        envName: 'OPF',
-        componentType: 'ENDPOINT',
-        sourceComponentCode: 'S',
-        cdCode: 'C',
-        uploadedAt: '2026-04-18T12:00:00Z',
-        warningCount: 0,
-      },
-    ]);
-    vi.mocked(api.getGraph).mockResolvedValueOnce({
+  it('loadEnvs preserves persisted activeEnv if still valid', async () => {
+    useAppStore.setState({ activeEnv: 'PROD' });
+    vi.mocked(api.listEnvs).mockResolvedValue(['OPF', 'PROD']);
+    vi.mocked(api.listImports).mockResolvedValue([]);
+    vi.mocked(api.getGraph).mockResolvedValue({
       nodes: [],
       edges: [],
-      bounds: { north: 0, south: 0, east: 0, west: 0 },
-      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01, defaultLat: 50.8503, defaultLng: 4.3517 },
+      bounds: { north: 60, south: 40, east: 20, west: -10 },
+      mapConfig: {} as any,
     });
 
-    const useStore = await freshStore();
-    await useStore.getState().loadSnapshots();
+    await useAppStore.getState().loadEnvs();
 
-    expect(useStore.getState().activeSnapshotId).toBe('valid-id');
-    expect(api.getGraph).toHaveBeenCalledWith('valid-id');
+    expect(useAppStore.getState().activeEnv).toBe('PROD');
+  });
+
+  it('loadEnvs resets activeEnv if persisted value no longer exists', async () => {
+    useAppStore.setState({ activeEnv: 'DELETED_ENV' });
+    vi.mocked(api.listEnvs).mockResolvedValue(['OPF']);
+    vi.mocked(api.listImports).mockResolvedValue([]);
+    vi.mocked(api.getGraph).mockResolvedValue({
+      nodes: [],
+      edges: [],
+      bounds: { north: 60, south: 40, east: 20, west: -10 },
+      mapConfig: {} as any,
+    });
+
+    await useAppStore.getState().loadEnvs();
+
+    expect(useAppStore.getState().activeEnv).toBe('OPF');
+  });
+
+  it('loadEnvs with empty list clears activeEnv and graph', async () => {
+    useAppStore.setState({ activeEnv: 'OPF', graph: {} as any });
+    vi.mocked(api.listEnvs).mockResolvedValue([]);
+
+    await useAppStore.getState().loadEnvs();
+
+    expect(useAppStore.getState().activeEnv).toBeNull();
+    expect(useAppStore.getState().graph).toBeNull();
+  });
+
+  it('selectNode clears selectedEdgeId', () => {
+    useAppStore.setState({ selectedEdgeId: 'edge-1' });
+    useAppStore.getState().selectNode('EIC-X');
+    expect(useAppStore.getState().selectedNodeEic).toBe('EIC-X');
+    expect(useAppStore.getState().selectedEdgeId).toBeNull();
   });
 });

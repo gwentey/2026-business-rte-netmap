@@ -1,19 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GraphResponse, SnapshotSummary } from '@carto-ecp/shared';
+import type { GraphResponse, ImportSummary } from '@carto-ecp/shared';
 import { api } from '../lib/api.js';
 
 type AppState = {
-  activeSnapshotId: string | null;
-  snapshots: SnapshotSummary[];
+  activeEnv: string | null;
+  envs: string[];
+  imports: ImportSummary[];
   graph: GraphResponse | null;
   selectedNodeEic: string | null;
   selectedEdgeId: string | null;
   loading: boolean;
   error: string | null;
 
-  loadSnapshots: () => Promise<void>;
-  setActiveSnapshot: (id: string) => Promise<void>;
+  loadEnvs: () => Promise<void>;
+  setActiveEnv: (env: string) => Promise<void>;
+  loadImports: (env: string) => Promise<void>;
+  loadGraph: (env: string, refDate?: Date) => Promise<void>;
   selectNode: (eic: string | null) => void;
   selectEdge: (id: string | null) => void;
 };
@@ -21,48 +24,71 @@ type AppState = {
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
-      activeSnapshotId: null,
-      snapshots: [],
+      activeEnv: null,
+      envs: [],
+      imports: [],
       graph: null,
       selectedNodeEic: null,
       selectedEdgeId: null,
       loading: false,
       error: null,
 
-      loadSnapshots: async () => {
+      loadEnvs: async () => {
         set({ loading: true, error: null });
         try {
-          const list = await api.listSnapshots();
-          set({ snapshots: list, loading: false });
-          const id = get().activeSnapshotId;
-          const persistedStillValid = id !== null && list.some((s) => s.id === id);
-
-          if (persistedStillValid) {
-            await get().setActiveSnapshot(id);
-          } else if (list.length > 0) {
-            await get().setActiveSnapshot(list[0]!.id);
+          const envs = await api.listEnvs();
+          set({ envs, loading: false });
+          const current = get().activeEnv;
+          const stillValid = current != null && envs.includes(current);
+          if (stillValid) {
+            await get().setActiveEnv(current);
+          } else if (envs.length > 0) {
+            await get().setActiveEnv(envs[0]!);
+          } else {
+            // Aucun env disponible — réinitialiser proprement
+            set({ activeEnv: null, imports: [], graph: null });
           }
         } catch (err) {
           set({ loading: false, error: (err as Error).message });
         }
       },
 
-      setActiveSnapshot: async (id: string) => {
-        set({ loading: true, error: null, selectedNodeEic: null, selectedEdgeId: null });
+      setActiveEnv: async (env) => {
+        set({
+          activeEnv: env,
+          selectedNodeEic: null,
+          selectedEdgeId: null,
+        });
+        await Promise.all([get().loadImports(env), get().loadGraph(env)]);
+      },
+
+      loadImports: async (env) => {
         try {
-          const graph = await api.getGraph(id);
-          set({ activeSnapshotId: id, graph, loading: false });
+          const imports = await api.listImports(env);
+          set({ imports });
+        } catch (err) {
+          set({ error: (err as Error).message });
+        }
+      },
+
+      loadGraph: async (env, refDate) => {
+        set({ loading: true, error: null });
+        try {
+          const graph = await api.getGraph(env, refDate);
+          set({ graph, loading: false });
         } catch (err) {
           set({ loading: false, error: (err as Error).message });
         }
       },
 
-      selectNode: (eic) => set({ selectedNodeEic: eic, selectedEdgeId: null }),
-      selectEdge: (id) => set({ selectedEdgeId: id, selectedNodeEic: null }),
+      selectNode: (eic) =>
+        set({ selectedNodeEic: eic, selectedEdgeId: null }),
+      selectEdge: (id) =>
+        set({ selectedEdgeId: id, selectedNodeEic: null }),
     }),
     {
       name: 'carto-ecp-store',
-      partialize: (s) => ({ activeSnapshotId: s.activeSnapshotId }),
+      partialize: (s) => ({ activeEnv: s.activeEnv }),
     },
   ),
 );
