@@ -60,4 +60,9 @@ export class ZipExtractorService {
 
     return { files };
   }
+
+  listEntries(buffer: Buffer): Array<{ entryName: string }> {
+    const zip = new AdmZip(buffer);
+    return zip.getEntries().map((e) => ({ entryName: e.entryName }));
+  }
 }
