@@ -25,7 +25,7 @@ const CreateImportSchema = z.object({
 const MAX_SIZE = 50 * 1024 * 1024;
 const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
 
-@Controller('api/imports')
+@Controller('imports')
 export class ImportsController {
   constructor(private readonly imports: ImportsService) {}
 

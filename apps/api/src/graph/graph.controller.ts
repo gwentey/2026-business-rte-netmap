@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import type { GraphResponse } from '@carto-ecp/shared';
 import { GraphService } from './graph.service.js';
 
-@Controller('api/graph')
+@Controller('graph')
 export class GraphController {
   constructor(private readonly graph: GraphService) {}
 

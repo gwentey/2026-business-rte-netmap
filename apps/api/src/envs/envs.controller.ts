@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { EnvsService } from './envs.service.js';
 
-@Controller('api/envs')
+@Controller('envs')
 export class EnvsController {
   constructor(private readonly envs: EnvsService) {}
 
