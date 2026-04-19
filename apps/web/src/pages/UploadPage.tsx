@@ -136,7 +136,7 @@ export function UploadPage(): JSX.Element {
           ) : null}
           <button
             type="button"
-            onClick={openMap}
+            onClick={() => { void openMap(); }}
             className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white"
           >
             Voir sur la carte →
