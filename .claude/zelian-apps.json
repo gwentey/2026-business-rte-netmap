@@ -1,0 +1,8 @@
+{
+  "apps": {
+    "api": { "root": "apps/api", "stack": "nestjs" },
+    "web": { "root": "apps/web", "stack": "react-vite" },
+    "shared": { "root": "packages/shared", "stack": "typescript-lib" },
+    "registry": { "root": "packages/registry", "stack": "data-only" }
+  }
+}
