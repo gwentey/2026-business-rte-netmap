@@ -7,6 +7,34 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.2 — Slice 2b Multi-upload + Detection fiable + Parser CD (2026-04-19)
+
+**Multi-upload avec preview et confirmation** + **détection fiable** du type de dump basée sur la signature documentée ECP Admin Guide §4.20 + **parser CD complet** (`CsvPathReader`) qui lit directement `message_path.csv` (pas de XML côté CD).
+
+**Highlights :**
+
+- **DumpTypeDetectorV2** : inspection des noms de fichiers dans le ZIP (`synchronized_directories.csv` → CD, `messaging_statistics.csv` → ENDPOINT, `broker.xml` → BROKER, fallback CD). Retourne `{ dumpType, confidence: HIGH|FALLBACK, reason }` pour traçabilité frontend. Remplace la v1 naïve de 2a qui inspectait le contenu XML.
+- **`ZipExtractor.listEntries`** : nouvelle méthode qui énumère les fichiers du ZIP sans charger les contenus en mémoire (utilisée par le détecteur + inspection).
+- **CsvPathReaderService** : parser dédié `message_path.csv`, explose `allowedSenders × receivers` en N×M paths logiques. Supporte séparateurs `|`, `,`, `;` en fallback. Warnings pour `transportPattern` inconnu ou receivers vide.
+- **`CsvReader.readMessagePaths`** : nouvelle méthode pour lire les paths CD au format CSV tabulaire.
+- **ImportBuilder.buildFromCdCsv** : méthode dédiée dumps CD (composants depuis CSV pur, paths via `CsvPathReader`, stubs BROKER pour `intermediateBrokerCode` inconnus). Le type composant est inféré (`componentCode == id` → COMPONENT_DIRECTORY, sinon ENDPOINT).
+- **Routing dans `ImportsService.createImport`** : branche ENDPOINT (pipeline v2a XML inchangé) / CD (pipeline 2b CSV) / BROKER (metadata-only avec warning `BROKER_DUMP_METADATA_ONLY`).
+- **POST /api/imports/inspect** : preview multi-fichiers sans persistance (max 20 × 50MB par requête, check dédup scoped par env, retourne `InspectResult[]`).
+- **POST /api/imports** étendu : `replaceImportId?` pour supprimer l'ancien puis créer le nouveau, avec validation `REPLACE_IMPORT_MISMATCH` si env diffère et `IMPORT_NOT_FOUND` si id inconnu.
+- **UploadPage refondue** : dropzone `multiple: true` (max 20 fichiers), composant `UploadBatchTable` pour preview/édition (override dumpType, edit label, toggle Remplacer), bouton « Importer tout (N prêts) », résumé final avec lien vers la carte.
+- **Store Zustand slice `uploadBatch`** : states `pending-inspect | inspected | uploading | done | skipped | error`, submit best-effort transactionnel par fichier. Non persisté entre sessions.
+- **Tests** : 169 tests API (24 suites) + 40 tests web + 1 E2E Playwright (`multi-upload.spec.ts`). Typecheck api + web + shared PASS.
+- **3 ADRs** : ADR-031 (détecteur via signatures CSV), ADR-032 (parser CD indépendant XML), ADR-033 (batch best-effort).
+
+**Breaking changes :**
+- Signature `detectDumpType` change : `(zipEntries, override?)` au lieu de `(csvRows, override)`. Callers internes mis à jour.
+- Type `InspectResult` ajouté dans `@carto-ecp/shared`.
+- `CsvReader.readMessagePaths` (buffer) renommée en `readEndpointMessagePaths` pour lever le conflit avec la nouvelle `readMessagePaths(extracted, warnings)` qui lit `message_path.csv` des CDs.
+
+**Docs référencées :**
+- `docs/officiel/ECP Administration Guide v4.16.0.pdf §4.20` — signature des tables backup par type de composant.
+- `docs/officiel/ECP System Design v4.16.0.pdf §9.2.2` — Broker ne persiste pas en base SQL (file-system backup).
+
 ### v2.0-alpha.1 — Slice 2a Fondations (2026-04-19)
 
 **Refonte architecturale majeure du modèle de données et du pipeline ECP.** L'hypothèse v1.2 « 1 snapshot = 1 vue complète du réseau » est remplacée par une logique cumulative : la carte agrège désormais `N imports` successifs par environnement, avec résolution à la lecture (compute-on-read) et cascade de priorité à 5 niveaux.
