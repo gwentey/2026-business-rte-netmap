@@ -7,6 +7,37 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.1 — Slice 2a Fondations (2026-04-19)
+
+**Refonte architecturale majeure du modèle de données et du pipeline ECP.** L'hypothèse v1.2 « 1 snapshot = 1 vue complète du réseau » est remplacée par une logique cumulative : la carte agrège désormais `N imports` successifs par environnement, avec résolution à la lecture (compute-on-read) et cascade de priorité à 5 niveaux.
+
+**Highlights :**
+
+- **Nouveau modèle Prisma** : tables `Import`, `ImportedComponent(+Url)`, `ImportedPath`, `ImportedMessagingStat`, `ImportedAppProperty` (contributions brutes conservées) + `ComponentOverride` (surcharge admin globale par EIC, cross-env) + `EntsoeEntry` (annuaire ENTSO-E embarqué, vide en 2a). `lat/lng` nullable — fallback Bruxelles appliqué au rendu.
+- **Pipeline d'ingestion refondu** : `ZipExtractor → CsvReader → XmlMadesParser → DumpTypeDetector (nouveau) → ImportBuilder (nouveau) → RawPersister (nouveau)`. La résolution registry est **déplacée au read** pour garantir la rétroactivité des changements de registry.
+- **GraphService compute-on-read** : 3 fonctions pures isolées et testables (`mergeComponentsLatestWins`, `applyCascade` 5 niveaux, `mergePathsLatestWins`) composées à chaque requête. Timeline prête côté backend via `refDate` (slider front en slice 2d).
+- **Cascade de priorité 5 niveaux par champ** : `ComponentOverride` > `EntsoeEntry` > registry RTE > latest-import > default Bruxelles.
+- **Frontière `envName` first-class** : imports scopés par env, rendu carte scopé par env, overrides/ENTSO-E/registry globaux. Aucune fusion cross-env.
+- **Nouveaux endpoints API** : `POST /api/imports`, `GET /api/imports[?env]`, `DELETE /api/imports/:id`, `GET /api/graph?env&refDate`, `GET /api/envs`. Endpoints legacy `/api/snapshots*` supprimés (reset DB total, dev-local).
+- **Front refondu** : route `/` = carte (empty state différencié), `/map` redirige vers `/`, `/upload` conservé comme entrée secondaire. Nouveau `EnvSelector` component remplace `SnapshotSelector`. Store Zustand refondu (`activeEnv` persisté, suppression `activeSnapshotId`).
+- **Tests** : 121 tests api (16+ suites dont 3 intégration) + 33 tests web + 3 E2E Playwright (empty-state, upload-then-map, env-switch). `typecheck` api + web + shared PASS.
+- **ADRs fondateurs** : 7 ADRs rédigés en amont (ADR-023 à ADR-028, ADR-030).
+- **Migrations Prisma** : `20260419135633_v2_fondations_raw_tables` + `20260419150916_drop_redundant_envname_index`.
+
+**Breaking changes (dev-local uniquement) :**
+
+- Schéma Prisma remplacé intégralement. Reset total de `dev.db`. Les anciens zips sous `storage/snapshots/` sont orphelins (dossier supprimable manuellement, le nouveau chemin est `storage/imports/`).
+- Endpoints `/api/snapshots*` supprimés sans couche de compat.
+- Types shared `SnapshotSummary` / `SnapshotDetail` supprimés au profit de `ImportSummary` / `ImportDetail`.
+
+**Non-inclus (reporté aux slices suivantes, voir chapeau v2.0 §7) :**
+
+- Upload multi-fichiers + détection auto avancée (slice 2b)
+- Panneau admin (Imports + Composants + surcharge EIC) (slice 2c)
+- Timeline slider UI (slice 2d)
+- Refresh ENTSO-E + registry admin + purges (slice 2e)
+- Icônes différenciées par type (slice 2f)
+
 ### Added
 
 - **v2-2a T1 — 7 ADRs fondateurs slice 2a** : `docs/adr/ADR-023` (raw + compute on read), `ADR-024` (cascade 5 niveaux par champ), `ADR-025` (clé path 5 champs sans tri canonique), `ADR-026` (`effectiveDate` pilotante), `ADR-027` (`envName` first-class), `ADR-028` (suppression endpoints legacy `/api/snapshots*`), `ADR-030` (heuristique `DumpTypeDetector`). Commits `d948e2e`, `49f4148`, `08d068c`.
