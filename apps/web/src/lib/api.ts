@@ -17,9 +17,9 @@ export const api = {
     return request<string[]>('/api/envs');
   },
 
-  async listImports(env?: string): Promise<ImportSummary[]> {
+  async listImports(env?: string): Promise<ImportDetail[]> {
     const query = env ? `?env=${encodeURIComponent(env)}` : '';
-    return request<ImportSummary[]>(`/api/imports${query}`);
+    return request<ImportDetail[]>(`/api/imports${query}`);
   },
 
   async createImport(
@@ -36,6 +36,17 @@ export const api = {
     if (dumpType) fd.append('dumpType', dumpType);
     if (replaceImportId) fd.append('replaceImportId', replaceImportId);
     return request<ImportDetail>('/api/imports', { method: 'POST', body: fd });
+  },
+
+  async updateImport(
+    id: string,
+    patch: { label?: string; effectiveDate?: string },
+  ): Promise<ImportDetail> {
+    return request<ImportDetail>(`/api/imports/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
   },
 
   async inspectBatch(files: File[], envName?: string): Promise<InspectResult[]> {
