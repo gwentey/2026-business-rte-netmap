@@ -7,6 +7,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.5 — Slice 2c-2 Admin composants surcharge EIC (2026-04-20)
+
+**Onglet Composants** activé dans `/admin`. Permet à l'admin de surcharger manuellement les métadonnées d'un EIC (nom, type, organisation, pays, coordonnées, tags, notes). Répond au besoin concret : corriger les positions des composants qui tombent à Bruxelles par défaut (MONITORING, TSOs non-RTE, etc.).
+
+**Highlights :**
+
+- **3 endpoints backend** : `GET /api/admin/components` (liste EICs des imports + cascade + override), `PUT /api/overrides/:eic` (upsert zod strict 8 champs nullable), `DELETE /api/overrides/:eic` (retire).
+- **Upsert idempotent via PUT** (ADR-036) : l'admin envoie l'état souhaité pour un EIC. Champs nullable = fallback cascade niveau 2+.
+- **`OverridesService.listAdminComponents`** : réutilise `mergeComponentsLatestWins` + `applyCascade` du graph module pour calculer le `current` après cascade. Retourne `AdminComponentRow[]` triés par EIC.
+- **`ComponentsAdminTable`** : liste des EICs rencontrés (dédupée), recherche sur EIC/nom/organisation/pays, toggle "Seulement surchargés", click pour ouvrir la modale.
+- **`ComponentOverrideModal`** : 8 inputs (text, select, number, textarea), placeholders affichent les valeurs cascade courantes, submit ne PUT que les champs modifiés (diff-only patch), bouton "Retirer surcharge" avec confirm.
+- **Types shared** : `AdminComponentRow`, `OverrideUpsertInput`.
+- **ADR-036** : PUT upsert retenu vs POST+PATCH (idempotence + cohérence EIC PK).
+
+**Tests :**
+- Backend : 5 tests `OverridesService.upsert/delete` (create/update/null/404) + 3 tests `listAdminComponents` (empty, with imports, with overrides merged) + 6 tests `OverridesController` (routes + reject invalid body) = 14 nouveaux tests API (26 suites, 195/195 tests PASS)
+- Frontend : 4 tests `ComponentsAdminTable` (render, search, filter surchargés, modal open) + 4 tests `ComponentOverrideModal` (title, save partial, retire visible, delete flow) = 8 nouveaux tests web (64/64 total)
+
+**Breaking changes :** aucun.
+
 ### v2.0-alpha.4 — Slice 2c-1 Admin panel onglet Imports (2026-04-19)
 
 **Panneau d'administration** accessible via le lien `Admin` du header. Répond à la demande du gros spec fonctionnel : *« Un panneau d'administration centralise upload, surcharge des données, gestion du registry, purge »*.
