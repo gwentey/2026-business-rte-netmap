@@ -7,6 +7,7 @@ import { RegistryModule } from './registry/registry.module.js';
 import { IngestionModule } from './ingestion/ingestion.module.js';
 import { GraphModule } from './graph/graph.module.js';
 import { EnvsModule } from './envs/envs.module.js';
+import { OverridesModule } from './overrides/overrides.module.js';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { EnvsModule } from './envs/envs.module.js';
     IngestionModule,
     GraphModule,
     EnvsModule,
+    OverridesModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
