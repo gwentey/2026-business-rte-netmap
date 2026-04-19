@@ -142,3 +142,7 @@ export type OverrideUpsertInput = {
   tagsCsv?: string | null;
   notes?: string | null;
 };
+
+export type EntsoeStatus = { count: number; refreshedAt: string | null };
+export type PurgeResult = { deletedCount: number };
+export type ResetAllResult = { imports: number; overrides: number; entsoe: number };

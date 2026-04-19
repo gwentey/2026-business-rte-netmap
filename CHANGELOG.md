@@ -7,6 +7,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.7 — Slice 2e Zone danger + Annuaire ENTSO-E (2026-04-20)
+
+Deux onglets admin activés : **⚠ Zone danger** (3 purges avec typing-to-confirm) et **Annuaire ENTSO-E** (upload CSV officiel).
+
+**Highlights :**
+
+- **3 endpoints purge** : `DELETE /api/admin/purge-imports` (deletedCount + unlink zips disque), `DELETE /api/admin/purge-overrides`, `DELETE /api/admin/purge-all` (imports + overrides + entsoe).
+- **2 endpoints ENTSO-E** : `POST /api/entsoe/upload` (multipart CSV, max 5 MB, parse format standard `EicCode;EicDisplayName;EicLongName;…;MarketParticipantIsoCountryCode;EicTypeFunctionList`) + `GET /api/entsoe/status` (count + refreshedAt).
+- **`DangerService`** et **`EntsoeService`** backend dans `apps/api/src/admin/`.
+- **`DangerZoneTab`** frontend avec typing-to-confirm : mot-clé `PURGER` pour les 2 purges ciblées, `RESET` pour le reset total. Modal bloquante + bouton confirmer disabled tant que le mot n'est pas exact.
+- **`EntsoeAdminTab`** frontend : status display (count + dernier refresh) + upload `<input type=file>` + bouton.
+- **AdminTabs** : `entsoe` et `danger` passent à `enabled: true` ; `registry` reste disabled (reporté, YAGNI — l'overlay JSON reste éditable via commit git).
+
+**Tests :**
+- Backend : 3 `DangerService` + 4 `EntsoeService` + 6 `AdminController` = 13 nouveaux (208/208 total)
+- Frontend : 3 `EntsoeAdminTab` + 4 `DangerZoneTab` = 7 nouveaux
+
+**Breaking changes :** aucun. Registry admin tab reste disabled avec tooltip "Reporté".
+
 ### v2.0-alpha.6 — Slice 2d Timeline slider UI (2026-04-20)
 
 **Curseur temporel** au-dessus de la carte permet de rejouer l'état du réseau à une date passée. Chaque cran du slider = une `effectiveDate` distincte parmi les imports de l'env actif.

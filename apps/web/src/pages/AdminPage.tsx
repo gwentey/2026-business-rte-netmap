@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { AdminTabs, type AdminTabId } from '../components/Admin/AdminTabs.js';
 import { ImportsAdminTable } from '../components/Admin/ImportsAdminTable.js';
 import { ComponentsAdminTable } from '../components/Admin/ComponentsAdminTable.js';
+import { EntsoeAdminTab } from '../components/Admin/EntsoeAdminTab.js';
+import { DangerZoneTab } from '../components/Admin/DangerZoneTab.js';
 
 export function AdminPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<AdminTabId>('imports');
@@ -13,6 +15,8 @@ export function AdminPage(): JSX.Element {
       <div className="mt-4">
         {activeTab === 'imports' ? <ImportsAdminTable /> : null}
         {activeTab === 'components' ? <ComponentsAdminTable /> : null}
+        {activeTab === 'entsoe' ? <EntsoeAdminTab /> : null}
+        {activeTab === 'danger' ? <DangerZoneTab /> : null}
       </div>
     </div>
   );
