@@ -2,6 +2,15 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { OverridesService } from './overrides.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ImportsService } from '../ingestion/imports.service.js';
+import { ZipExtractorService } from '../ingestion/zip-extractor.service.js';
+import { CsvReaderService } from '../ingestion/csv-reader.service.js';
+import { XmlMadesParserService } from '../ingestion/xml-mades-parser.service.js';
+import { ImportBuilderService } from '../ingestion/import-builder.service.js';
+import { CsvPathReaderService } from '../ingestion/csv-path-reader.service.js';
+import { RawPersisterService } from '../ingestion/raw-persister.service.js';
+import { RegistryService } from '../registry/registry.service.js';
+import { buildZipFromFixture, ENDPOINT_FIXTURE } from '../../test/fixtures-loader.js';
 
 describe('OverridesService', () => {
   let service: OverridesService;
@@ -9,7 +18,7 @@ describe('OverridesService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [OverridesService, PrismaService],
+      providers: [OverridesService, PrismaService, RegistryService],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(OverridesService);
@@ -58,5 +67,87 @@ describe('OverridesService', () => {
         response: expect.objectContaining({ code: 'OVERRIDE_NOT_FOUND' }),
       });
     });
+  });
+});
+
+describe('listAdminComponents', () => {
+  let service: OverridesService;
+  let prisma: PrismaService;
+  let imports: ImportsService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        OverridesService, ImportsService, PrismaService,
+        ZipExtractorService, CsvReaderService, XmlMadesParserService,
+        ImportBuilderService, CsvPathReaderService, RawPersisterService,
+        RegistryService,
+      ],
+    }).compile();
+    await moduleRef.init();
+    service = moduleRef.get(OverridesService);
+    prisma = moduleRef.get(PrismaService);
+    imports = moduleRef.get(ImportsService);
+    await prisma.import.deleteMany({ where: { envName: 'TEST_AC' } });
+    await prisma.componentOverride.deleteMany({ where: { eic: { startsWith: 'TEST_OV_' } } });
+  });
+
+  afterEach(async () => {
+    const rows = await prisma.import.findMany({ where: { envName: 'TEST_AC' } });
+    const { existsSync, unlinkSync } = await import('node:fs');
+    for (const r of rows) {
+      if (existsSync(r.zipPath)) { try { unlinkSync(r.zipPath); } catch {} }
+    }
+    await prisma.import.deleteMany({ where: { envName: 'TEST_AC' } });
+    await prisma.componentOverride.deleteMany({ where: { eic: { startsWith: 'TEST_OV_' } } });
+  });
+
+  it('returns empty array when no imports exist', async () => {
+    // Cleanup agressive pour ce test
+    const fullCleanup = await prisma.import.findMany();
+    const { existsSync, unlinkSync } = await import('node:fs');
+    for (const r of fullCleanup) {
+      if (existsSync(r.zipPath)) { try { unlinkSync(r.zipPath); } catch {} }
+    }
+    await prisma.import.deleteMany();
+    const list = await service.listAdminComponents();
+    expect(list).toEqual([]);
+  });
+
+  it('returns one row per distinct EIC from imports', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    await imports.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_AC',
+      label: 'fixture',
+    });
+    const list = await service.listAdminComponents();
+    expect(list.length).toBeGreaterThan(0);
+    const eics = list.map((r) => r.eic);
+    expect(new Set(eics).size).toBe(eics.length);
+    for (const row of list) {
+      expect(row.current).toBeDefined();
+      expect(row.current.displayName).toBeDefined();
+      expect(row.importsCount).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('merges override into row.override field when override exists for EIC', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    await imports.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_AC',
+      label: 'fixture',
+    });
+    const list0 = await service.listAdminComponents();
+    const firstEic = list0[0]!.eic;
+    await service.upsert(firstEic, { displayName: 'OverrideName', country: 'FR' });
+
+    const list1 = await service.listAdminComponents();
+    const row = list1.find((r) => r.eic === firstEic)!;
+    expect(row.override).not.toBeNull();
+    expect(row.override!.displayName).toBe('OverrideName');
+    expect(row.override!.country).toBe('FR');
+    expect(row.current.displayName).toBe('OverrideName');  // cascade applied
   });
 });
