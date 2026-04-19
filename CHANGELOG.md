@@ -32,6 +32,16 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 - **v2-2a T17 — `EnvsController GET /api/envs`** : endpoint liste distincte des `envName` présents dans la table `Import`, trié alphabétiquement. Nouveau module `EnvsModule` registered dans `AppModule`. 2/2 tests. Commit `c260f2d`.
 - **v2-2a T18-T19 — Tests d'intégration v2** : `full-ingestion-v2.spec.ts` (upload 2 fixtures ENDPOINT+CD, agrégation sans doublons EIC, bounds cohérents, liste imports), `env-isolation.spec.ts` (2 envs indépendants, suppression OPF n'affecte pas PROD), `import-deletion.spec.ts` (cascade delete + zip unlink + NotFoundException sur id inconnu). 8 tests intégration verts / 121 tests total. Commits `28a0cb2`, `2d6bca5`.
 
+### Added — Phase 5 Frontend
+
+- **v2-2a T20 — Client API web v2** : `apps/web/src/lib/api.ts` réécrit pour `listEnvs`, `listImports(env?)`, `createImport(file, envName, label, dumpType?)`, `deleteImport(id)`, `getGraph(env, refDate?)`. URLSearchParams pour les query strings. Suppression des méthodes legacy `createSnapshot`/`listSnapshots`/`getGraph(id)`. Commit `7bcd34c`.
+- **v2-2a T21 — Store Zustand refonte** : state `activeEnv` (persisté) + `envs` + `imports` + `graph`. Suppression de `activeSnapshotId`/`snapshots`/`setActiveSnapshot`. `loadEnvs()` avec fallback intelligent (persisted → premier env → null). `setActiveEnv()` parallèle `loadImports + loadGraph`. 5/5 tests. Commit `7e41a15`.
+- **v2-2a T22 — `EnvSelector` component** : composant `<select>` synchronisé avec le store, fallback « Aucun env » si liste vide. Remplace `SnapshotSelector`. 4/4 tests. Commit `0ecfcc1`.
+- **v2-2a T23 — `MapPage` empty state + consommation activeEnv** : route `/` entrée principale. Empty state différencié (pas d'env vs pas de composants). CTA « Importer un dump » vers `/upload?env=X`. `loadEnvs()` au mount. Commit `fbfae71`.
+- **v2-2a T24 — `UploadPage` adaptations v2** : appelle `api.createImport`, lit `envName` depuis `?env=X` (default `OPF`), déclenche `loadEnvs()` post-succès, redirige vers `/`. Affiche `dumpType` et warnings. 10/10 tests. Commit `9661ff2`.
+- **v2-2a T25 — `App.tsx` routes refondues** : `/` = MapPage, `/map` → redirect `/`, `/upload` = UploadPage, `*` → `/`. Header : titre + `EnvSelector` + lien `+ Importer`. **Suppression complète du dossier `SnapshotSelector/`**. 33/33 tests web + typecheck web PASS. Commit `0f136e3`.
+- **v2-2a T26-T28 — 3 E2E Playwright** : `empty-state.spec.ts` (purge via API + vérif empty state + CTA), `upload-then-map.spec.ts` (upload fixture ENDPOINT → redirect `/` → marker leaflet visible), `env-switch.spec.ts` (2 uploads dans 2 envs → switch via selector, skip dynamique si <2 envs). Localisation confirmée à `apps/web/e2e/`. Commit `28fcc13`.
+
 ### Changed
 
 - **v2-2a dette — Suppression index redondant `Import.envName`** : l'index simple `@@index([envName])` est couvert par le composite `@@index([envName, effectiveDate])` via leftmost-prefix scan B-tree. Migration `20260419150916_drop_redundant_envname_index` appliquée. Détecté par code-review quality de T2. Commit `14a6866`.
