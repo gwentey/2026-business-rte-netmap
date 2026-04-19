@@ -28,7 +28,6 @@ model Import {
   importedStats         ImportedMessagingStat[]
   importedProps         ImportedAppProperty[]
 
-  @@index([envName])
   @@index([envName, effectiveDate])
   @@index([fileHash])
 }
