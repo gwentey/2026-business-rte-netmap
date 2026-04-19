@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAppStore } from '../store/app-store.js';
 import { NetworkMap } from '../components/Map/NetworkMap.js';
 import { DetailPanel } from '../components/DetailPanel/DetailPanel.js';
+import { TimelineSlider } from '../components/TimelineSlider/TimelineSlider.js';
 import { PROCESS_COLORS } from '../lib/process-colors.js';
 
 export function MapPage(): JSX.Element {
@@ -63,6 +64,8 @@ export function MapPage(): JSX.Element {
           + Charger un snapshot
         </Link>
       </header>
+
+      <TimelineSlider />
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">

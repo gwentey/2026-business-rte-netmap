@@ -7,6 +7,24 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.6 — Slice 2d Timeline slider UI (2026-04-20)
+
+**Curseur temporel** au-dessus de la carte permet de rejouer l'état du réseau à une date passée. Chaque cran du slider = une `effectiveDate` distincte parmi les imports de l'env actif.
+
+**Highlights :**
+
+- **`TimelineSlider`** : composant React avec `<input type="range">` affichant N crans (1 par `effectiveDate` distincte), label "maintenant" à droite par défaut.
+- **Store Zustand étendu** : `refDate: Date | null` (non persisté, session-only) + `setRefDate(date | null)` qui déclenche `loadGraph(env, date)`.
+- **Bouton "⟲ Retour au présent"** visible quand `refDate !== null`.
+- **Intégration `MapPage`** : slider inséré au-dessus de la zone `NetworkMap + DetailPanel`.
+- **Backend** : zéro changement — `GET /api/graph?env&refDate` supporte déjà `refDate` depuis 2a.
+
+**Tests :**
+- 3 tests store (default null, setRefDate triggers loadGraph, setRefDate(null) clears)
+- 4 tests `TimelineSlider` (hidden if <2 dates, "maintenant" label, formatted date label, retour présent button)
+
+**Breaking changes :** aucun.
+
 ### v2.0-alpha.5 — Slice 2c-2 Admin composants surcharge EIC (2026-04-20)
 
 **Onglet Composants** activé dans `/admin`. Permet à l'admin de surcharger manuellement les métadonnées d'un EIC (nom, type, organisation, pays, coordonnées, tags, notes). Répond au besoin concret : corriger les positions des composants qui tombent à Bruxelles par défaut (MONITORING, TSOs non-RTE, etc.).

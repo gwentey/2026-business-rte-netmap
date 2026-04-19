@@ -221,3 +221,40 @@ describe('useAppStore — uploadBatch', () => {
     expect(useAppStore.getState().uploadInProgress).toBe(false);
   });
 });
+
+describe('useAppStore — refDate / setRefDate', () => {
+  beforeEach(() => {
+    useAppStore.setState({
+      activeEnv: 'OPF', envs: ['OPF'], imports: [], graph: null,
+      selectedNodeEic: null, selectedEdgeId: null,
+      loading: false, error: null,
+      uploadBatch: [], uploadInProgress: false,
+      refDate: null,
+    });
+    vi.mocked(api.getGraph).mockReset();
+  });
+
+  it('defaults refDate to null', () => {
+    expect(useAppStore.getState().refDate).toBeNull();
+  });
+
+  it('setRefDate updates state and triggers loadGraph with the date', async () => {
+    vi.mocked(api.getGraph).mockResolvedValue({
+      nodes: [], edges: [], bounds: { north: 60, south: 40, east: 20, west: -10 }, mapConfig: {} as any,
+    });
+    const date = new Date('2026-04-17T10:00:00.000Z');
+    await useAppStore.getState().setRefDate(date);
+    expect(useAppStore.getState().refDate).toEqual(date);
+    expect(api.getGraph).toHaveBeenCalledWith('OPF', date);
+  });
+
+  it('setRefDate(null) clears refDate and calls loadGraph without date', async () => {
+    useAppStore.setState({ refDate: new Date('2026-01-01') });
+    vi.mocked(api.getGraph).mockResolvedValue({
+      nodes: [], edges: [], bounds: { north: 60, south: 40, east: 20, west: -10 }, mapConfig: {} as any,
+    });
+    await useAppStore.getState().setRefDate(null);
+    expect(useAppStore.getState().refDate).toBeNull();
+    expect(api.getGraph).toHaveBeenCalledWith('OPF', undefined);
+  });
+});
