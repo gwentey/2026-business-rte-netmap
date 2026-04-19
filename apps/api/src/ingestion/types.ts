@@ -1,4 +1,5 @@
 import type { ComponentType, ProcessKey, Warning } from '@carto-ecp/shared';
+import type { DumpType } from './dump-type-detector.js';
 
 export const REQUIRED_CSV_FILES = [
   'application_property.csv',
@@ -173,5 +174,63 @@ export type IngestionResult = {
   componentType: ComponentType;
   sourceComponentCode: string;
   cdCode: string | null;
+  warnings: Warning[];
+};
+
+export type BuiltImportedComponent = {
+  eic: string;
+  type: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER' | 'BA';
+  organization: string | null;
+  personName: string | null;
+  email: string | null;
+  phone: string | null;
+  homeCdCode: string | null;
+  networksCsv: string | null;
+  displayName: string | null;
+  country: string | null;
+  lat: number | null;
+  lng: number | null;
+  isDefaultPosition: boolean;
+  sourceType: 'XML_CD' | 'LOCAL_CSV';
+  creationTs: Date | null;
+  modificationTs: Date | null;
+  urls: { network: string; url: string }[];
+};
+
+export type BuiltImportedPath = {
+  receiverEic: string;
+  senderEic: string;
+  messageType: string;
+  transportPattern: 'DIRECT' | 'INDIRECT';
+  intermediateBrokerEic: string | null;
+  validFrom: Date | null;
+  validTo: Date | null;
+  isExpired: boolean;
+};
+
+export type BuiltImportedMessagingStat = {
+  sourceEndpointCode: string;
+  remoteComponentCode: string;
+  connectionStatus: string | null;
+  lastMessageUp: Date | null;
+  lastMessageDown: Date | null;
+  sumMessagesUp: number;
+  sumMessagesDown: number;
+  deleted: boolean;
+};
+
+export type BuiltImport = {
+  envName: string;
+  label: string;
+  fileName: string;
+  fileHash: string;
+  dumpType: DumpType;
+  sourceComponentEic: string | null;
+  sourceDumpTimestamp: Date | null;
+  effectiveDate: Date;
+  components: BuiltImportedComponent[];
+  paths: BuiltImportedPath[];
+  messagingStats: BuiltImportedMessagingStat[];
+  appProperties: { key: string; value: string }[];
   warnings: Warning[];
 };
