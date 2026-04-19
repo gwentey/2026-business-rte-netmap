@@ -9,108 +9,130 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Snapshot {
-  id                  String   @id @default(uuid())
-  label               String
-  envName             String
-  componentType       String   // 'ENDPOINT' | 'COMPONENT_DIRECTORY'
-  sourceComponentCode String
-  cdCode              String?
-  organization        String?
-  uploadedAt          DateTime @default(now())
-  zipPath             String
-  warningsJson        String   @default("[]")
+model Import {
+  id                    String   @id @default(uuid())
+  envName               String
+  label                 String
+  fileName              String
+  fileHash              String   // SHA256 du zip brut
+  sourceComponentEic    String?  // Extrait du nom de fichier si pattern reconnu
+  sourceDumpTimestamp   DateTime?  // Extrait du nom de fichier si pattern reconnu
+  dumpType              String   // 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER'
+  zipPath               String   // storage/imports/{id}.zip
+  uploadedAt            DateTime @default(now())
+  effectiveDate         DateTime // default = sourceDumpTimestamp ?? uploadedAt
+  warningsJson          String   @default("[]")
 
-  components        Component[]
-  messagePaths      MessagePath[]
-  messagingStats    MessagingStatistic[]
-  appProperties     AppProperty[]
+  importedComponents    ImportedComponent[]
+  importedPaths         ImportedPath[]
+  importedStats         ImportedMessagingStat[]
+  importedProps         ImportedAppProperty[]
 
-  @@index([envName])
-  @@index([uploadedAt])
+  @@index([envName, effectiveDate])
+  @@index([fileHash])
 }
 
-model Component {
+model ImportedComponent {
   id                 String  @id @default(uuid())
-  snapshotId         String
-  snapshot           Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  importId           String
+  import             Import  @relation(fields: [importId], references: [id], onDelete: Cascade)
   eic                String
-  type               String  // BROKER | ENDPOINT | COMPONENT_DIRECTORY
-  organization       String
+  type               String  // 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER' | 'BA'
+  organization       String?
   personName         String?
   email              String?
   phone              String?
   homeCdCode         String?
-  networksCsv        String  // CSV-joined list of networks
+  networksCsv        String?
+  displayName        String?
+  country            String?
+  lat                Float?
+  lng                Float?
+  isDefaultPosition  Boolean @default(false)   // Hint : le parser n'a pas trouvé de coord
+  sourceType         String  // 'XML_CD' | 'LOCAL_CSV'
   creationTs         DateTime?
   modificationTs     DateTime?
-  displayName        String
-  country            String?
-  lat                Float
-  lng                Float
-  isDefaultPosition  Boolean @default(false)
-  process            String?
-  sourceType         String  // 'XML_CD' | 'LOCAL_CSV'
 
-  urls ComponentUrl[]
+  urls               ImportedComponentUrl[]
 
-  @@unique([snapshotId, eic])
-  @@index([snapshotId])
+  @@index([importId])
+  @@index([eic])
+  @@unique([importId, eic])
 }
 
-model ComponentUrl {
-  id          String   @id @default(uuid())
-  componentId String
-  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
-  network     String
-  url         String
+model ImportedComponentUrl {
+  id                   String @id @default(uuid())
+  importedComponentId  String
+  importedComponent    ImportedComponent @relation(fields: [importedComponentId], references: [id], onDelete: Cascade)
+  network              String
+  url                  String
 
-  @@index([componentId])
+  @@index([importedComponentId])
 }
 
-model MessagePath {
+model ImportedPath {
   id                     String   @id @default(uuid())
-  snapshotId             String
-  snapshot               Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  importId               String
+  import                 Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
   receiverEic            String
-  senderEicOrWildcard    String   // "*" ou EIC
-  messageType            String   // "*" ou libre
+  senderEic              String   // "*" autorisé, skippé au rendu
+  messageType            String
   transportPattern       String   // 'DIRECT' | 'INDIRECT'
   intermediateBrokerEic  String?
   validFrom              DateTime?
   validTo                DateTime?
-  process                String   // ProcessKey incluant 'UNKNOWN'
-  direction              String   // 'IN' | 'OUT'
-  source                 String   // 'XML_CD_PATHS' | 'LOCAL_CSV_PATHS'
   isExpired              Boolean  @default(false)
 
-  @@index([snapshotId])
-  @@index([snapshotId, receiverEic])
+  @@index([importId])
+  @@index([receiverEic, senderEic])
+  @@index([receiverEic, senderEic, messageType, transportPattern, intermediateBrokerEic], name: "idx_path_identity")
 }
 
-model MessagingStatistic {
-  id                   String   @id @default(uuid())
-  snapshotId           String
-  snapshot             Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+model ImportedMessagingStat {
+  id                   String @id @default(uuid())
+  importId             String
+  import               Import @relation(fields: [importId], references: [id], onDelete: Cascade)
   sourceEndpointCode   String
   remoteComponentCode  String
   connectionStatus     String?
   lastMessageUp        DateTime?
   lastMessageDown      DateTime?
-  sumMessagesUp        Int       @default(0)
-  sumMessagesDown      Int       @default(0)
-  deleted              Boolean   @default(false)
+  sumMessagesUp        Int     @default(0)
+  sumMessagesDown      Int     @default(0)
+  deleted              Boolean @default(false)
 
-  @@index([snapshotId])
-  @@index([snapshotId, remoteComponentCode])
+  @@index([importId])
+  @@index([importId, remoteComponentCode])
 }
 
-model AppProperty {
-  id         String   @id @default(uuid())
-  snapshotId String
-  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+model ImportedAppProperty {
+  id         String @id @default(uuid())
+  importId   String
+  import     Import @relation(fields: [importId], references: [id], onDelete: Cascade)
   key        String
   value      String
 
-  @@index([snapshotId])
+  @@index([importId])
+}
+
+model ComponentOverride {
+  eic            String   @id
+  displayName    String?
+  type           String?
+  organization   String?
+  country        String?
+  lat            Float?
+  lng            Float?
+  tagsCsv        String?
+  notes          String?
+  updatedAt      DateTime @updatedAt
+}
+
+model EntsoeEntry {
+  eic            String   @id
+  displayName    String?
+  organization   String?
+  country        String?
+  function       String?
+  refreshedAt    DateTime  // Écrit par refresh batch en 2e, null pour 2a (table vide)
 }

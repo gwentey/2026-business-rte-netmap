@@ -53,3 +53,6 @@ tests/fixtures/**/registration_requests.csv
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Smoke test zips générés localement pour upload manuel (non versionnés)
+smoke-zips/

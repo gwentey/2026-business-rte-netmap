@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useNavigate } from 'react-router-dom';
-import type { SnapshotDetail, Warning } from '@carto-ecp/shared';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import type { ImportDetail, Warning } from '@carto-ecp/shared';
 import { api } from '../lib/api.js';
 import { useAppStore } from '../store/app-store.js';
 
@@ -9,13 +9,15 @@ const MAX_UPLOAD = 50 * 1024 * 1024;
 
 export function UploadPage(): JSX.Element {
   const navigate = useNavigate();
-  const setActive = useAppStore((s) => s.setActiveSnapshot);
+  const [searchParams] = useSearchParams();
+  const loadEnvs = useAppStore((s) => s.loadEnvs);
+
   const [file, setFile] = useState<File | null>(null);
   const [label, setLabel] = useState('');
-  const [envName, setEnvName] = useState('OPF');
+  const [envName, setEnvName] = useState(searchParams.get('env') ?? 'OPF');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<SnapshotDetail | null>(null);
+  const [result, setResult] = useState<ImportDetail | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'application/zip': ['.zip'] },
@@ -38,8 +40,9 @@ export function UploadPage(): JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.createSnapshot(file, label.trim(), envName.trim());
+      const res = await api.createImport(file, envName.trim(), label.trim());
       setResult(res);
+      await loadEnvs();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -47,17 +50,16 @@ export function UploadPage(): JSX.Element {
     }
   };
 
-  const openMap = async (): Promise<void> => {
-    if (!result) return;
-    await setActive(result.id);
-    navigate('/map');
+  const openMap = (): void => {
+    navigate('/');
   };
 
   return (
     <div className="mx-auto max-w-2xl p-8">
-      <h1 className="mb-2 text-2xl font-semibold">Charger un snapshot ECP</h1>
+      <h1 className="mb-2 text-2xl font-semibold">Importer un dump ECP</h1>
       <p className="mb-6 text-sm text-gray-600">
-        Déposez un zip de backup ECP (Endpoint ou Component Directory).
+        Déposez un dump ZIP (Endpoint ou Component Directory). Format attendu :{' '}
+        <code className="px-1">{'{EIC}_{timestamp}.zip'}</code>.
       </p>
 
       <div
@@ -84,7 +86,7 @@ export function UploadPage(): JSX.Element {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             className="w-full rounded border border-gray-300 px-3 py-2"
-            placeholder="ex: Snapshot hebdo PROD 17/04"
+            placeholder="ex: Semaine 15 RTE"
           />
         </label>
         <label className="block">
@@ -105,7 +107,7 @@ export function UploadPage(): JSX.Element {
         disabled={loading}
         className="rounded bg-rte px-4 py-2 font-medium text-white disabled:opacity-50"
       >
-        {loading ? 'Envoi en cours…' : 'Envoyer'}
+        {loading ? 'Envoi en cours…' : 'Importer'}
       </button>
 
       {error ? (
@@ -117,10 +119,10 @@ export function UploadPage(): JSX.Element {
       {result ? (
         <div className="mt-6 rounded border border-gray-200 p-4">
           <p className="mb-2 text-sm text-gray-700">
-            Snapshot créé : <strong>{result.label}</strong> — {result.componentType} —{' '}
+            Import créé : <strong>{result.label}</strong> — {result.dumpType} —{' '}
             {result.stats.componentsCount} composants / {result.stats.pathsCount} paths
           </p>
-          {result.warnings.length > 0 && (
+          {result.warnings.length > 0 ? (
             <details className="mb-3 text-sm text-gray-600">
               <summary>{result.warnings.length} avertissement(s)</summary>
               <ul className="mt-2 space-y-1">
@@ -131,7 +133,7 @@ export function UploadPage(): JSX.Element {
                 ))}
               </ul>
             </details>
-          )}
+          ) : null}
           <button
             type="button"
             onClick={() => { void openMap(); }}

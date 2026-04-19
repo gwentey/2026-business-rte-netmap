@@ -1,30 +1,48 @@
-import type { GraphResponse, SnapshotDetail, SnapshotSummary } from '@carto-ecp/shared';
+import type { GraphResponse, ImportDetail, ImportSummary } from '@carto-ecp/shared';
 
-type JsonError = { code: string; message: string };
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
-async function parseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) {
-    const err = (await response.json().catch(() => ({}))) as Partial<JsonError>;
-    throw new Error(err.message ?? `HTTP ${response.status}`);
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, init);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status} ${res.statusText}: ${body}`);
   }
-  return (await response.json()) as T;
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
 }
 
 export const api = {
-  listSnapshots: (envName?: string): Promise<SnapshotSummary[]> => {
-    const qs = envName ? `?envName=${encodeURIComponent(envName)}` : '';
-    return fetch(`/api/snapshots${qs}`).then((r) => parseJson<SnapshotSummary[]>(r));
+  async listEnvs(): Promise<string[]> {
+    return request<string[]>('/api/envs');
   },
-  getSnapshot: (id: string): Promise<SnapshotDetail> =>
-    fetch(`/api/snapshots/${id}`).then((r) => parseJson<SnapshotDetail>(r)),
-  getGraph: (id: string): Promise<GraphResponse> =>
-    fetch(`/api/snapshots/${id}/graph`).then((r) => parseJson<GraphResponse>(r)),
-  createSnapshot: async (file: File, label: string, envName: string): Promise<SnapshotDetail> => {
-    const form = new FormData();
-    form.append('zip', file);
-    form.append('label', label);
-    form.append('envName', envName);
-    const res = await fetch('/api/snapshots', { method: 'POST', body: form });
-    return parseJson<SnapshotDetail>(res);
+
+  async listImports(env?: string): Promise<ImportSummary[]> {
+    const query = env ? `?env=${encodeURIComponent(env)}` : '';
+    return request<ImportSummary[]>(`/api/imports${query}`);
+  },
+
+  async createImport(
+    file: File,
+    envName: string,
+    label: string,
+    dumpType?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER',
+  ): Promise<ImportDetail> {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('envName', envName);
+    fd.append('label', label);
+    if (dumpType) fd.append('dumpType', dumpType);
+    return request<ImportDetail>('/api/imports', { method: 'POST', body: fd });
+  },
+
+  async deleteImport(id: string): Promise<void> {
+    await request<void>(`/api/imports/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+
+  async getGraph(env: string, refDate?: Date): Promise<GraphResponse> {
+    const qs = new URLSearchParams({ env });
+    if (refDate) qs.set('refDate', refDate.toISOString());
+    return request<GraphResponse>(`/api/graph?${qs.toString()}`);
   },
 };

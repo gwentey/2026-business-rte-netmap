@@ -31,6 +31,14 @@ export type RteOverlay = {
     patterns: { match: string; process: ProcessKey }[];
   };
   processColors: Record<ProcessKey, string>;
+  mapConfig: {
+    rteClusterLat: number;
+    rteClusterLng: number;
+    rteClusterOffsetDeg: number;
+    rteClusterProximityDeg: number;
+    defaultLat: number;
+    defaultLng: number;
+  };
 };
 
 export type ResolvedLocation = {

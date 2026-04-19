@@ -9,6 +9,86 @@
       "lat": 48.8918,
       "lng": 2.2378,
       "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17VRTE-BROKER-01",
+      "code": "BROKER-01",
+      "displayName": "BROKER-01",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17VRTE-TST-BK-I9",
+      "code": "BROKER-TEST-I9",
+      "displayName": "BROKER-TEST-I9",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V000001401526W",
+      "code": "RTE-ATOM-01",
+      "displayName": "RTE-ATOM-01",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V000001339268E",
+      "code": "INT-01",
+      "displayName": "INT-01",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V000002128089V",
+      "code": "INT-02",
+      "displayName": "INT-02",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V0000004MONI",
+      "code": "MONITORING",
+      "displayName": "MONITORING",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V0000009823063",
+      "code": "INT-03",
+      "displayName": "INT-03",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "10VEXT-TST-EP-D8",
+      "code": "EXT-TEST-EP-D8",
+      "displayName": "EXT-TEST-EP-D8",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V000002128128A",
+      "code": "INT-04",
+      "displayName": "INT-04",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
+    },
+    {
+      "eic": "17V0000009927458",
+      "code": "INT-05",
+      "displayName": "INT-05",
+      "lat": 48.8918,
+      "lng": 2.2378,
+      "city": "Paris - La Défense"
     }
   ],
   "rteComponentDirectory": {
@@ -85,5 +165,13 @@
     "VP":       "#ec4899",
     "MIXTE":    "#4b5563",
     "UNKNOWN":  "#9ca3af"
+  },
+  "mapConfig": {
+    "rteClusterLat": 48.8918,
+    "rteClusterLng": 2.2378,
+    "rteClusterOffsetDeg": 0.6,
+    "rteClusterProximityDeg": 0.01,
+    "defaultLat": 50.8503,
+    "defaultLng": 4.3517
   }
 }
