@@ -7,6 +7,29 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.3 — Slice 2f Icônes différenciées + badge isDefaultPosition (2026-04-19)
+
+**Icônes cartographiques différenciées par type de composant ECP.** Répond à la demande initiale n°4 de l'utilisateur : distinguer visuellement broker / CD / endpoint sur la carte (plus juste un rond uniforme).
+
+**Highlights :**
+
+- **`buildNodeDivIcon(kind, isDefault, selected)`** : factory pure qui construit un `L.DivIcon` avec icône Lucide centrée (14px blanc) dans un cercle coloré (24px) selon le `NodeKind` :
+  - `RTE_ENDPOINT` → `Zap` rouge `#e30613`
+  - `RTE_CD` → `Network` rouge foncé `#b91c1c`
+  - `BROKER` → `Router` noir `#111827`
+  - `EXTERNAL_CD` → `Network` gris très foncé `#1f2937`
+  - `EXTERNAL_ENDPOINT` → `Zap` gris `#6b7280`
+- **Badge `⚠` orange `#f97316`** overlay coin bas-droit du marker quand `isDefaultPosition = true` (fallback Bruxelles). Tooltip enrichi d'une ligne explicite.
+- **Halo bleu** `box-shadow` à la sélection, à la place de l'agrandissement de rayon v2a.
+- **`NodeMarker`** réécrit : `CircleMarker` → `Marker + divIcon`. Couleurs conservées, pas de couleur par process sur les nodes (couleur process reste uniquement sur les edges).
+- **Règle CSS globale** pour neutraliser le fond/bordure par défaut de `.leaflet-div-icon`.
+- **4 tests unit** isolés sur `node-icon.tsx` (factory pure), pas de test React-Testing-Library sur `NodeMarker` (ROI faible, Leaflet context trop lourd à mocker).
+- **1 ADR** : ADR-034 (divIcon + renderToStaticMarkup).
+
+**Breaking changes :** aucun côté API ou shared. Le changement est purement visuel côté front.
+
+**Performance :** `renderToStaticMarkup` est appelé une fois par marker à chaque update de props ; acceptable pour <500 markers. Si le graph grandit au-delà, envisager un cache par `(kind, isDefault, selected)`.
+
 ### v2.0-alpha.2 — Slice 2b Multi-upload + Detection fiable + Parser CD (2026-04-19)
 
 **Multi-upload avec preview et confirmation** + **détection fiable** du type de dump basée sur la signature documentée ECP Admin Guide §4.20 + **parser CD complet** (`CsvPathReader`) qui lit directement `message_path.csv` (pas de XML côté CD).
