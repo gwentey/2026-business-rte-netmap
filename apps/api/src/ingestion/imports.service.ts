@@ -11,7 +11,7 @@ import { RawPersisterService } from './raw-persister.service.js';
 import { detectDumpType } from './dump-type-detector.js';
 import { parseDumpFilename } from './filename-parser.js';
 import type { DumpType } from './dump-type-detector.js';
-import type { BuiltImport, BuiltImportedComponent, BuiltImportedPath } from './types.js';
+import type { BuiltImport, BuiltImportedComponent, BuiltImportedPath, BuiltImportedMessagingStat } from './types.js';
 
 export type CreateImportInput = {
   file: { originalname: string; buffer: Buffer };
@@ -46,7 +46,7 @@ export class ImportsService {
   ) {}
 
   async createImport(input: CreateImportInput): Promise<ImportDetail> {
-    // Handle replace: validate and delete old import BEFORE pipeline
+    // --- 1. Handle replace: validate and delete old import BEFORE pipeline ---
     if (input.replaceImportId) {
       const old = await this.prisma.import.findUnique({ where: { id: input.replaceImportId } });
       if (!old) {
@@ -67,92 +67,141 @@ export class ImportsService {
     const { file, envName, label } = input;
     const { sourceComponentEic, sourceDumpTimestamp } = parseDumpFilename(file.originalname);
     const fileHash = createHash('sha256').update(file.buffer).digest('hex');
-    const warnings: Warning[] = [];
 
-    const extracted = this.zipExtractor.extract(file.buffer);
-
-    // Read component_directory.csv
-    const cdBuffer = extracted.files.get('component_directory.csv')!;
-    const cdRows = this.csvReader.readComponentDirectory(cdBuffer, warnings);
-
-    // Detect dump type via zip entries (T3 API: zipEntries, not cdRows)
+    // --- 2. Détection de type (avant extract pour éviter l'erreur REQUIRED_CSV sur BROKER) ---
     const zipEntries = this.zipExtractor.listEntries(file.buffer);
     const detection = detectDumpType(zipEntries, input.dumpType);
     const dumpType = detection.dumpType;
 
-    // Build components from CSV — ComponentDirectoryRow.id is the EIC
-    const csvComponentRows = cdRows.map((r) => ({
-      eic: r.id,
-      componentCode: r.id,
-      xml: r.directoryContent,
-    }));
-    const fromCsv = this.builder.buildFromLocalCsv(csvComponentRows);
-    warnings.push(...fromCsv.warnings);
+    const warnings: Warning[] = [];
+    let components: BuiltImportedComponent[] = [];
+    let paths: BuiltImportedPath[] = [];
+    let messagingStats: BuiltImportedMessagingStat[] = [];
+    let appProperties: Array<{ key: string; value: string }> = [];
 
-    // Parse XML blobs from directoryContent and extract components/paths
-    const xmlComponents: BuiltImportedComponent[] = [];
-    const xmlPaths: BuiltImportedPath[] = [];
-    const xmlWarnings: Warning[] = [];
+    // --- 3. Routing selon dumpType ---
+    if (dumpType === 'ENDPOINT') {
+      // Pipeline v2a inchangé : CSV + XML blob
+      const extracted = this.zipExtractor.extract(file.buffer);
 
-    for (const row of cdRows) {
-      const xml = row.directoryContent;
-      if (typeof xml !== 'string' || !xml.includes('<?xml')) continue;
-      try {
-        const parsed = this.xmlParser.parse(xml);
-        const xmlBuilt = this.builder.buildFromXml(parsed);
-        xmlComponents.push(...xmlBuilt.components);
-        xmlPaths.push(...xmlBuilt.paths);
-        xmlWarnings.push(...xmlBuilt.warnings);
-      } catch (err) {
-        warnings.push({
-          code: 'XML_PARSE_ERROR',
-          message: `XML blob parse error: ${(err as Error).message}`,
-        });
+      const cdBuffer = extracted.files.get('component_directory.csv')!;
+      const cdRows = this.csvReader.readComponentDirectory(cdBuffer, warnings);
+
+      // Build components from CSV — ComponentDirectoryRow.id is the EIC
+      const csvComponentRows = cdRows.map((r) => ({
+        eic: r.id,
+        componentCode: r.id,
+        xml: r.directoryContent,
+      }));
+      const fromCsv = this.builder.buildFromLocalCsv(csvComponentRows);
+      warnings.push(...fromCsv.warnings);
+
+      // Parse XML blobs from directoryContent and extract components/paths
+      const xmlComponents: BuiltImportedComponent[] = [];
+      const xmlPaths: BuiltImportedPath[] = [];
+      const xmlWarnings: Warning[] = [];
+
+      for (const row of cdRows) {
+        const xml = row.directoryContent;
+        if (typeof xml !== 'string' || !xml.includes('<?xml')) continue;
+        try {
+          const parsed = this.xmlParser.parse(xml);
+          const xmlBuilt = this.builder.buildFromXml(parsed);
+          xmlComponents.push(...xmlBuilt.components);
+          xmlPaths.push(...xmlBuilt.paths);
+          xmlWarnings.push(...xmlBuilt.warnings);
+        } catch (err) {
+          warnings.push({
+            code: 'XML_PARSE_ERROR',
+            message: `XML blob parse error: ${(err as Error).message}`,
+          });
+        }
       }
+      warnings.push(...xmlWarnings);
+
+      // Read application_property.csv
+      const appPropBuffer = extracted.files.get('application_property.csv')!;
+      const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
+      appProperties = this.builder.buildAppProperties(
+        appPropRows
+          .filter((r) => r.value != null)
+          .map((r) => ({ key: r.key, value: r.value! })),
+      );
+
+      // Determine local source EIC for messaging stats (from app props or filename)
+      const appsMap = new Map(appPropRows.map((r) => [r.key, r.value] as const));
+      const localEic = appsMap.get('ecp.componentCode') ?? sourceComponentEic ?? '';
+
+      // Read messaging_statistics.csv (optional)
+      const statsBuf = extracted.files.get('messaging_statistics.csv');
+      const statRows = statsBuf
+        ? this.csvReader.readMessagingStatistics(statsBuf, warnings)
+        : [];
+
+      messagingStats = this.builder.buildMessagingStats(
+        statRows
+          .filter((r) => r.remoteComponentCode != null)
+          .map((r) => ({
+            sourceEndpointCode: r.localEcpInstanceId ?? localEic,
+            remoteComponentCode: r.remoteComponentCode!,
+            connectionStatus: r.connectionStatus,
+            lastMessageUp: r.lastMessageUp?.toISOString() ?? null,
+            lastMessageDown: r.lastMessageDown?.toISOString() ?? null,
+            sumMessagesUp: r.sumMessagesUp ?? 0,
+            sumMessagesDown: r.sumMessagesDown ?? 0,
+            deleted: r.deleted ?? false,
+          })),
+      );
+
+      // Dedup components CSV↔XML by EIC: XML takes precedence (richer data)
+      const componentsByEic = new Map<string, BuiltImportedComponent>();
+      for (const c of fromCsv.components) componentsByEic.set(c.eic, c);
+      for (const c of xmlComponents) componentsByEic.set(c.eic, c);
+      components = Array.from(componentsByEic.values());
+      paths = xmlPaths;
+    } else if (dumpType === 'COMPONENT_DIRECTORY') {
+      // Pipeline 2b : CSVs only, pas de XML blob
+      const extracted = this.zipExtractor.extract(file.buffer);
+
+      // Convert Map to Record for readMessagePaths
+      const extractedRecord: Record<string, Buffer> = {};
+      for (const [k, v] of extracted.files.entries()) {
+        extractedRecord[k] = v;
+      }
+
+      const cdBuffer = extracted.files.get('component_directory.csv')!;
+      const cdRawRows = this.csvReader.readComponentDirectory(cdBuffer, warnings);
+      // Adapter: ComponentDirectoryRow → shape attendu par buildFromCdCsv
+      const cdComponentRows = cdRawRows.map((r) => ({
+        id: r.id,
+        componentCode: r.id,
+        directoryContent: r.directoryContent,
+        organization: null,
+      }));
+      const cdPathRows = this.csvReader.readMessagePaths(extractedRecord, warnings);
+      const cdBuilt = this.builder.buildFromCdCsv(cdComponentRows, cdPathRows);
+      components = cdBuilt.components;
+      paths = cdBuilt.paths;
+      warnings.push(...cdBuilt.warnings);
+
+      const appPropBuffer = extracted.files.get('application_property.csv')!;
+      const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
+      appProperties = this.builder.buildAppProperties(
+        appPropRows
+          .filter((r) => r.value != null)
+          .map((r) => ({ key: r.key, value: r.value! })),
+      );
+      // Pas de messaging_statistics côté CD (tableau vide par défaut)
+    } else {
+      // BROKER : metadata-only — pas d'extraction CSV (zip ne contient pas les CSVs requis)
+      warnings.push({
+        code: 'BROKER_DUMP_METADATA_ONLY',
+        message: 'Dump BROKER accepté sans extraction de composants/paths (pas de base SQL côté broker).',
+      });
+      // components, paths, messagingStats, appProperties restent vides
     }
-    warnings.push(...xmlWarnings);
 
-    // Read application_property.csv
-    const appPropBuffer = extracted.files.get('application_property.csv')!;
-    const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
-    const appProperties = this.builder.buildAppProperties(
-      appPropRows
-        .filter((r) => r.value != null)
-        .map((r) => ({ key: r.key, value: r.value! })),
-    );
-
-    // Determine local source EIC for messaging stats (from app props or filename)
-    const appsMap = new Map(appPropRows.map((r) => [r.key, r.value] as const));
-    const localEic =
-      appsMap.get('ecp.componentCode') ?? sourceComponentEic ?? '';
-
-    // Read messaging_statistics.csv (optional)
-    const statsBuf = extracted.files.get('messaging_statistics.csv');
-    const statRows = statsBuf
-      ? this.csvReader.readMessagingStatistics(statsBuf, warnings)
-      : [];
-
-    const messagingStats = this.builder.buildMessagingStats(
-      statRows
-        .filter((r) => r.remoteComponentCode != null)
-        .map((r) => ({
-          sourceEndpointCode: r.localEcpInstanceId ?? localEic,
-          remoteComponentCode: r.remoteComponentCode!,
-          connectionStatus: r.connectionStatus,
-          lastMessageUp: r.lastMessageUp?.toISOString() ?? null,
-          lastMessageDown: r.lastMessageDown?.toISOString() ?? null,
-          sumMessagesUp: r.sumMessagesUp ?? 0,
-          sumMessagesDown: r.sumMessagesDown ?? 0,
-          deleted: r.deleted ?? false,
-        })),
-    );
-
-    // Dedup components CSV↔XML by EIC: XML takes precedence (richer data)
-    const componentsByEic = new Map<string, BuiltImportedComponent>();
-    for (const c of fromCsv.components) componentsByEic.set(c.eic, c);
-    for (const c of xmlComponents) componentsByEic.set(c.eic, c);
-    const components = Array.from(componentsByEic.values());
-
+    // --- 4. Build + persist ---
     const effectiveDate = sourceDumpTimestamp ?? new Date();
 
     const built: BuiltImport = {
@@ -165,7 +214,7 @@ export class ImportsService {
       sourceDumpTimestamp,
       effectiveDate,
       components,
-      paths: xmlPaths,
+      paths,
       messagingStats,
       appProperties,
       warnings,

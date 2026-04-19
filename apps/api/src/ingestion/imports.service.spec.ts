@@ -206,6 +206,81 @@ describe('ImportsService.inspectBatch', () => {
   });
 });
 
+describe('ImportsService.createImport — routing par dumpType', () => {
+  let service: ImportsService;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ImportsService,
+        ZipExtractorService,
+        CsvReaderService,
+        XmlMadesParserService,
+        ImportBuilderService,
+        CsvPathReaderService,
+        RawPersisterService,
+        PrismaService,
+      ],
+    }).compile();
+    await moduleRef.init();
+    service = moduleRef.get(ImportsService);
+    prisma = moduleRef.get(PrismaService);
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_ROUTING' } } });
+  });
+
+  afterEach(async () => {
+    const rows = await prisma.import.findMany({ where: { envName: { startsWith: 'TEST_ROUTING' } } });
+    const { existsSync, unlinkSync } = await import('node:fs');
+    for (const r of rows) {
+      if (existsSync(r.zipPath)) { try { unlinkSync(r.zipPath); } catch {} }
+    }
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_ROUTING' } } });
+  });
+
+  it('routes ENDPOINT fixture via legacy XML pipeline', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const detail = await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_ROUTING_EP',
+      label: 'ep',
+    });
+    expect(detail.dumpType).toBe('ENDPOINT');
+    expect(detail.stats.componentsCount).toBeGreaterThan(0);
+  });
+
+  it('routes CD fixture via CsvPathReader pipeline', async () => {
+    const zip = buildZipFromFixture(CD_FIXTURE);
+    const detail = await service.createImport({
+      file: { originalname: `${CD_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_ROUTING_CD',
+      label: 'cd',
+    });
+    expect(detail.dumpType).toBe('COMPONENT_DIRECTORY');
+    expect(detail.stats.componentsCount).toBeGreaterThan(0);
+    // CD fixture may have 0 paths (message_path.csv vide dans notre fixture) — ok
+  });
+
+  it('accepts BROKER dump (synthetic) with metadata-only storage', async () => {
+    const AdmZip = (await import('adm-zip')).default;
+    const z = new AdmZip();
+    z.addFile('broker.xml', Buffer.from('<?xml version="1.0"?><broker/>'));
+    z.addFile('bootstrap.xml', Buffer.from('<?xml version="1.0"?><bootstrap/>'));
+    z.addFile('config/broker.properties', Buffer.from('ecp.broker.code=TEST-BROKER\n'));
+    const zip = z.toBuffer();
+
+    const detail = await service.createImport({
+      file: { originalname: 'broker.zip', buffer: zip },
+      envName: 'TEST_ROUTING_BK',
+      label: 'bk',
+    });
+    expect(detail.dumpType).toBe('BROKER');
+    expect(detail.stats.componentsCount).toBe(0);
+    expect(detail.stats.pathsCount).toBe(0);
+    expect(detail.warnings.some((w) => w.code === 'BROKER_DUMP_METADATA_ONLY')).toBe(true);
+  });
+});
+
 describe('ImportsService.createImport — replaceImportId', () => {
   let service: ImportsService;
   let prisma: PrismaService;
