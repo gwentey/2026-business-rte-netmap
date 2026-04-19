@@ -84,3 +84,35 @@ describe('ZipExtractorService', () => {
     });
   });
 });
+
+describe('ZipExtractorService.listEntries', () => {
+  it('returns entry names without extracting content', async () => {
+    const AdmZipLib = (await import('adm-zip')).default;
+    const z = new AdmZipLib();
+    z.addFile('application_property.csv', Buffer.from('a,b\n1,2\n'));
+    z.addFile('component_directory.csv', Buffer.from('x,y\n'));
+    z.addFile('README.txt', Buffer.from('hello'));
+    const buf = z.toBuffer();
+
+    const service = new ZipExtractorService();
+    const entries = service.listEntries(buf);
+
+    expect(entries).toHaveLength(3);
+    const names = entries.map((e) => e.entryName).sort();
+    expect(names).toEqual(['README.txt', 'application_property.csv', 'component_directory.csv']);
+  });
+
+  it('returns empty array for an empty ZIP', async () => {
+    const AdmZipLib = (await import('adm-zip')).default;
+    const z = new AdmZipLib();
+    const buf = z.toBuffer();
+
+    const service = new ZipExtractorService();
+    expect(service.listEntries(buf)).toEqual([]);
+  });
+
+  it('throws on an invalid buffer (not a ZIP)', () => {
+    const service = new ZipExtractorService();
+    expect(() => service.listEntries(Buffer.from('not a zip file'))).toThrow();
+  });
+});

@@ -2,13 +2,15 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, beforeEach } from 'vitest';
 import { ImportBuilderService } from './import-builder.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
+import { CsvPathReaderService } from './csv-path-reader.service.js';
+import type { CdMessagePathRow } from './csv-reader.service.js';
 
 describe('ImportBuilderService — composants', () => {
   let builder: ImportBuilderService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ImportBuilderService],
+      providers: [ImportBuilderService, CsvPathReaderService],
     }).compile();
     builder = moduleRef.get(ImportBuilderService);
   });
@@ -163,7 +165,7 @@ describe('ImportBuilderService — XML', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ImportBuilderService, XmlMadesParserService],
+      providers: [ImportBuilderService, CsvPathReaderService, XmlMadesParserService],
     }).compile();
     builder = moduleRef.get(ImportBuilderService);
     parser = moduleRef.get(XmlMadesParserService);
@@ -220,7 +222,7 @@ describe('ImportBuilderService — stats & app properties', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [ImportBuilderService],
+      providers: [ImportBuilderService, CsvPathReaderService],
     }).compile();
     builder = moduleRef.get(ImportBuilderService);
   });
@@ -270,5 +272,100 @@ describe('ImportBuilderService — stats & app properties', () => {
     ];
     const result = builder.buildAppProperties(rows);
     expect(result.map((r) => r.key).sort()).toEqual(['ecp.version', 'normal.key']);
+  });
+});
+
+describe('ImportBuilderService.buildFromCdCsv', () => {
+  let builder: ImportBuilderService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ImportBuilderService, CsvPathReaderService],
+    }).compile();
+    builder = moduleRef.get(ImportBuilderService);
+  });
+
+  it('produces components from component_directory.csv rows (CD format)', () => {
+    const cdComponentRows = [
+      { id: '17V000002014106G', componentCode: '17V000002014106G', organization: 'RTE', directoryContent: '' },
+      { id: '17V-PARTNER', componentCode: 'ENDPOINT-1', organization: 'APG', directoryContent: '' },
+    ];
+    const cdPathRows: CdMessagePathRow[] = [];
+
+    const { components } = builder.buildFromCdCsv(cdComponentRows as any, cdPathRows);
+
+    expect(components).toHaveLength(2);
+    const cd = components.find((c) => c.eic === '17V000002014106G')!;
+    expect(cd.type).toBe('COMPONENT_DIRECTORY');
+    expect(cd.organization).toBe('RTE');
+    expect(cd.sourceType).toBe('LOCAL_CSV');
+
+    const endpoint = components.find((c) => c.eic === '17V-PARTNER')!;
+    expect(endpoint.type).toBe('ENDPOINT');
+  });
+
+  it('generates paths via CsvPathReader with explosion', () => {
+    const cdComponentRows: any[] = [];
+    const cdPathRows: CdMessagePathRow[] = [{
+      allowedSenders: '17V-A|17V-B',
+      intermediateBrokerCode: '',
+      intermediateComponent: '',
+      messageType: 'A06',
+      receivers: '17V-X',
+      transportPattern: 'DIRECT',
+      validFrom: '',
+      validTo: '',
+      validUntil: '',
+    }];
+
+    const { paths } = builder.buildFromCdCsv(cdComponentRows, cdPathRows);
+    expect(paths).toHaveLength(2);
+    expect(paths.map((p) => p.senderEic).sort()).toEqual(['17V-A', '17V-B']);
+  });
+
+  it('creates BROKER stubs for intermediateBrokerCode not in component list', () => {
+    const cdComponentRows = [
+      { id: '17V-A', componentCode: 'EP1', organization: 'OrgA', directoryContent: '' },
+    ];
+    const cdPathRows: CdMessagePathRow[] = [{
+      allowedSenders: '17V-A',
+      intermediateBrokerCode: '17V-UNKNOWN-BROKER',
+      intermediateComponent: '',
+      messageType: 'A06',
+      receivers: '17V-X',
+      transportPattern: 'INDIRECT',
+      validFrom: '',
+      validTo: '',
+      validUntil: '',
+    }];
+
+    const { components } = builder.buildFromCdCsv(cdComponentRows as any, cdPathRows);
+    const broker = components.find((c) => c.eic === '17V-UNKNOWN-BROKER');
+    expect(broker).toBeDefined();
+    expect(broker!.type).toBe('BROKER');
+    expect(broker!.sourceType).toBe('LOCAL_CSV');
+    expect(broker!.isDefaultPosition).toBe(true);
+  });
+
+  it('does not duplicate a BROKER stub if already in component list', () => {
+    const cdComponentRows = [
+      { id: '17V-A', componentCode: 'EP1', organization: 'OrgA', directoryContent: '' },
+      { id: '17V-BROKER-KNOWN', componentCode: '17V-BROKER-KNOWN', organization: 'BrkOrg', directoryContent: '' },
+    ];
+    const cdPathRows: CdMessagePathRow[] = [{
+      allowedSenders: '17V-A',
+      intermediateBrokerCode: '17V-BROKER-KNOWN',
+      intermediateComponent: '',
+      messageType: 'A06',
+      receivers: '17V-X',
+      transportPattern: 'INDIRECT',
+      validFrom: '',
+      validTo: '',
+      validUntil: '',
+    }];
+
+    const { components } = builder.buildFromCdCsv(cdComponentRows as any, cdPathRows);
+    const brokers = components.filter((c) => c.eic === '17V-BROKER-KNOWN');
+    expect(brokers).toHaveLength(1);
   });
 });

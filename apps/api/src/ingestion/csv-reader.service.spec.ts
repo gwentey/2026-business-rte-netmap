@@ -33,7 +33,7 @@ describe('CsvReaderService', () => {
     });
   });
 
-  describe('readMessagePaths', () => {
+  describe('readEndpointMessagePaths', () => {
     it('parses allowedSenders wildcard, DIRECT transport, and validity range', () => {
       const csv = Buffer.from(
         [
@@ -41,7 +41,7 @@ describe('CsvReaderService', () => {
           '"*";true;NULL_VALUE_PLACEHOLDER;NULL_VALUE_PLACEHOLDER;BUSINESS;"*";"17V000000498771C";false;ACTIVE;DIRECT;"2025-01-01T00:00:00.000000000";"2026-01-01T00:00:00.000000000"',
         ].join('\n'),
       );
-      const rows = service.readMessagePaths(csv, []);
+      const rows = service.readEndpointMessagePaths(csv, []);
       expect(rows).toHaveLength(1);
       expect(rows[0]!.allowedSenders).toBe('*');
       expect(rows[0]!.applied).toBe(true);
@@ -87,13 +87,64 @@ describe('CsvReaderService', () => {
     it('pushes CSV_PARSE_ERROR warning when CSV is malformed', () => {
       const malformed = Buffer.from('header1;header2\nonly-one-col\n');
       const warnings: Warning[] = [];
-      const rows = service.readMessagePaths(malformed, warnings);
+      const rows = service.readEndpointMessagePaths(malformed, warnings);
       expect(rows).toEqual([]);
       expect(warnings).toHaveLength(1);
       expect(warnings[0]).toMatchObject({
         code: 'CSV_PARSE_ERROR',
         context: { fileName: 'message_path.csv' },
       });
+    });
+  });
+
+  describe('readMessagePaths (CD dump)', () => {
+    it('parses a valid CD message_path.csv with headers', () => {
+      const csv = [
+        'allowedSenders;intermediateBrokerCode;intermediateComponent;messageType;receivers;transportPattern;validFrom;validTo;validUntil',
+        '17V-A;;;A06;17V-X;DIRECT;2026-01-01T00:00:00.000Z;;',
+        '17V-B|17V-C;BROKER-1;;A07;17V-Y|17V-Z;INDIRECT;2026-01-01T00:00:00.000Z;2026-12-31T23:59:59.000Z;',
+      ].join('\n');
+
+      const extracted = { 'message_path.csv': Buffer.from(csv) };
+      const warnings: Warning[] = [];
+
+      const rows = service.readMessagePaths(extracted as any, warnings);
+
+      expect(rows).toHaveLength(2);
+      expect(rows[0]!.allowedSenders).toBe('17V-A');
+      expect(rows[0]!.messageType).toBe('A06');
+      expect(rows[0]!.transportPattern).toBe('DIRECT');
+      expect(rows[0]!.receivers).toBe('17V-X');
+      expect(rows[1]!.allowedSenders).toBe('17V-B|17V-C');
+      expect(rows[1]!.intermediateBrokerCode).toBe('BROKER-1');
+      expect(rows[1]!.receivers).toBe('17V-Y|17V-Z');
+      expect(rows[1]!.validTo).toBe('2026-12-31T23:59:59.000Z');
+      expect(warnings).toHaveLength(0);
+    });
+
+    it('returns empty array when message_path.csv is absent', () => {
+      const extracted = {};
+      const warnings: Warning[] = [];
+      expect(service.readMessagePaths(extracted as any, warnings)).toEqual([]);
+      expect(warnings).toHaveLength(0);
+    });
+
+    it('returns empty array when message_path.csv has only header', () => {
+      const csv = 'allowedSenders;intermediateBrokerCode;intermediateComponent;messageType;receivers;transportPattern;validFrom;validTo;validUntil';
+      const extracted = { 'message_path.csv': Buffer.from(csv) };
+      const warnings: Warning[] = [];
+      expect(service.readMessagePaths(extracted as any, warnings)).toEqual([]);
+    });
+
+    it('emits CSV_PARSE_ERROR warning on malformed content', () => {
+      const csv = [
+        'allowedSenders;intermediateBrokerCode;intermediateComponent;messageType;receivers;transportPattern;validFrom;validTo;validUntil',
+        '17V-A;;;"unterminated;17V-X;DIRECT;;;',
+      ].join('\n');
+      const extracted = { 'message_path.csv': Buffer.from(csv) };
+      const warnings: Warning[] = [];
+      service.readMessagePaths(extracted as any, warnings);
+      expect(warnings.some((w) => w.code === 'CSV_PARSE_ERROR')).toBe(true);
     });
   });
 });

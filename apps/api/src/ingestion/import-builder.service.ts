@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { Warning } from '@carto-ecp/shared';
 import type { BuiltImportedComponent, BuiltImportedMessagingStat, BuiltImportedPath, MadesComponent, MadesTree } from './types.js';
+import { CsvPathReaderService } from './csv-path-reader.service.js';
+import type { CdMessagePathRow } from './csv-reader.service.js';
 
 type LocalCsvRow = {
   eic: string;
@@ -18,6 +20,7 @@ type LocalCsvRow = {
 
 @Injectable()
 export class ImportBuilderService {
+  constructor(private readonly csvPathReader: CsvPathReaderService) {}
   buildFromLocalCsv(rows: LocalCsvRow[]): {
     components: BuiltImportedComponent[];
     warnings: Warning[];
@@ -157,6 +160,85 @@ export class ImportBuilderService {
   private inferType(row: LocalCsvRow): BuiltImportedComponent['type'] {
     if (row.componentCode === row.eic) return 'COMPONENT_DIRECTORY';
     return 'ENDPOINT';
+  }
+
+  buildFromCdCsv(
+    cdComponentRows: ReadonlyArray<{
+      id: string;
+      componentCode: string;
+      organization?: string | null;
+      directoryContent?: string | null;
+    }>,
+    cdPathRows: ReadonlyArray<CdMessagePathRow>,
+  ): {
+    components: BuiltImportedComponent[];
+    paths: BuiltImportedPath[];
+    warnings: Warning[];
+  } {
+    const warnings: Warning[] = [];
+    const components: BuiltImportedComponent[] = [];
+    const knownEics = new Set<string>();
+
+    for (const row of cdComponentRows) {
+      if (!row.id) {
+        warnings.push({
+          code: 'CSV_ROW_MISSING_EIC',
+          message: `CD row skipped: ${row.componentCode ?? '<no code>'}`,
+        });
+        continue;
+      }
+      const type = row.componentCode === row.id ? 'COMPONENT_DIRECTORY' : 'ENDPOINT';
+      components.push({
+        eic: row.id,
+        type,
+        organization: nonEmpty(row.organization),
+        personName: null,
+        email: null,
+        phone: null,
+        homeCdCode: null,
+        networksCsv: null,
+        displayName: null,
+        country: null,
+        lat: null,
+        lng: null,
+        isDefaultPosition: true,
+        sourceType: 'LOCAL_CSV',
+        creationTs: null,
+        modificationTs: null,
+        urls: [],
+      });
+      knownEics.add(row.id);
+    }
+
+    const pathResult = this.csvPathReader.readCdMessagePaths(cdPathRows, warnings);
+
+    // Stubs BROKER pour intermediateBrokerEic inconnus
+    for (const p of pathResult.paths) {
+      if (p.intermediateBrokerEic && !knownEics.has(p.intermediateBrokerEic)) {
+        components.push({
+          eic: p.intermediateBrokerEic,
+          type: 'BROKER',
+          organization: null,
+          personName: null,
+          email: null,
+          phone: null,
+          homeCdCode: null,
+          networksCsv: null,
+          displayName: null,
+          country: null,
+          lat: null,
+          lng: null,
+          isDefaultPosition: true,
+          sourceType: 'LOCAL_CSV',
+          creationTs: null,
+          modificationTs: null,
+          urls: [],
+        });
+        knownEics.add(p.intermediateBrokerEic);
+      }
+    }
+
+    return { components, paths: pathResult.paths, warnings };
   }
 }
 

@@ -1,4 +1,4 @@
-import type { GraphResponse, ImportDetail, ImportSummary } from '@carto-ecp/shared';
+import type { GraphResponse, ImportDetail, ImportSummary, InspectResult } from '@carto-ecp/shared';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -27,13 +27,22 @@ export const api = {
     envName: string,
     label: string,
     dumpType?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER',
+    replaceImportId?: string,
   ): Promise<ImportDetail> {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('envName', envName);
     fd.append('label', label);
     if (dumpType) fd.append('dumpType', dumpType);
+    if (replaceImportId) fd.append('replaceImportId', replaceImportId);
     return request<ImportDetail>('/api/imports', { method: 'POST', body: fd });
+  },
+
+  async inspectBatch(files: File[], envName?: string): Promise<InspectResult[]> {
+    const fd = new FormData();
+    for (const f of files) fd.append('files', f);
+    if (envName) fd.append('envName', envName);
+    return request<InspectResult[]>('/api/imports/inspect', { method: 'POST', body: fd });
   },
 
   async deleteImport(id: string): Promise<void> {

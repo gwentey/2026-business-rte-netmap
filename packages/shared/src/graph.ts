@@ -89,3 +89,20 @@ export type ImportDetail = ImportSummary & {
     messagingStatsCount: number;
   };
 };
+
+export type InspectResult = {
+  fileName: string;
+  fileSize: number;
+  fileHash: string;
+  sourceComponentEic: string | null;
+  sourceDumpTimestamp: string | null;
+  dumpType: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  confidence: 'HIGH' | 'FALLBACK';
+  reason: string;
+  duplicateOf: {
+    importId: string;
+    label: string;
+    uploadedAt: string;
+  } | null;
+  warnings: Warning[];
+};

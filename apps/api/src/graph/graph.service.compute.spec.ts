@@ -40,12 +40,12 @@ describe('GraphService.getGraph — compute on read', () => {
   });
 
   it('computes graph from 1 import with non-empty nodes + edges', async () => {
-    // Le CD fixture produit des composants mais tous ses paths ont senderEic='*'.
-    // On crée l'import puis on injecte manuellement un path non-wildcard pour tester
+    // L'ENDPOINT fixture produit des composants via le pipeline XML (nombreux nodes).
+    // On injecte manuellement un path non-wildcard pour tester
     // que buildEdges agrège correctement les edges.
-    const zip = buildZipFromFixture(CD_FIXTURE);
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
     const detail = await imports.createImport({
-      file: { originalname: `${CD_FIXTURE}.zip`, buffer: zip },
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
       envName: 'TEST_GS_A',
       label: 'single',
     });

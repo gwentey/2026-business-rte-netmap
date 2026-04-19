@@ -9,17 +9,23 @@ import {
   Post,
   Query,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
-import type { ImportDetail, ImportSummary } from '@carto-ecp/shared';
+import type { ImportDetail, ImportSummary, InspectResult } from '@carto-ecp/shared';
 import { ImportsService } from './imports.service.js';
 
 const CreateImportSchema = z.object({
   envName: z.string().min(1).max(64),
   label: z.string().min(1).max(256),
   dumpType: z.enum(['ENDPOINT', 'COMPONENT_DIRECTORY', 'BROKER']).optional(),
+  replaceImportId: z.string().uuid().optional(),
+});
+
+const InspectBodySchema = z.object({
+  envName: z.string().min(1).max(64).optional(),
 });
 
 const MAX_SIZE = 50 * 1024 * 1024;
@@ -63,7 +69,31 @@ export class ImportsController {
       envName: parsed.data.envName,
       label: parsed.data.label,
       dumpType: parsed.data.dumpType,
+      replaceImportId: parsed.data.replaceImportId,
     });
+  }
+
+  @Post('inspect')
+  @UseInterceptors(FilesInterceptor('files', 20, { limits: { fileSize: MAX_SIZE } }))
+  async inspect(
+    @Body() body: unknown,
+    @Query('envName') envNameQuery: string | undefined,
+    @UploadedFiles() files: Array<{ originalname: string; buffer: Buffer; mimetype?: string }>,
+  ): Promise<InspectResult[]> {
+    const parsed = InspectBodySchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      throw new BadRequestException({ code: 'INVALID_BODY', errors: parsed.error.issues });
+    }
+    if (!files || files.length === 0) {
+      throw new BadRequestException({ code: 'INVALID_UPLOAD', message: 'Au moins un fichier requis' });
+    }
+    for (const f of files) {
+      if (f.mimetype && f.mimetype !== 'application/zip' && f.mimetype !== 'application/x-zip-compressed') {
+        throw new BadRequestException({ code: 'INVALID_MIME', message: `MIME invalide : ${f.mimetype} (${f.originalname})` });
+      }
+    }
+    const envName = parsed.data.envName ?? envNameQuery;
+    return this.imports.inspectBatch(files, envName);
   }
 
   @Get()
