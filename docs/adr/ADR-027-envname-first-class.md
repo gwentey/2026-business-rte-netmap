@@ -24,7 +24,7 @@ La question est de savoir à quel niveau appliquer la frontière `envName` : uni
 | Option | Description | Effort estimé | Avantages | Inconvénients |
 |--------|-------------|---------------|-----------|---------------|
 | A — Scope `envName` sur imports uniquement ; overrides/ENTSO-E/registry globaux | `Import.envName` est obligatoire et conditionne l'inclusion dans `GraphService.getGraph(env)`. `ComponentOverride`, `EntsoeEntry` et registry RTE sont globaux (cross-env) | S | Pas de duplication des overrides par env, configuration de référence partagée cohérente, modèle mental simple | Les overrides cross-env peuvent masquer une différence de comportement réelle entre envs (rare mais possible) |
-| B — Scope `envName` partout | `ComponentOverride` et `EntsoeEntry` ont un champ `envName` | L | Surcharge admin pour maintenir les mêmes overrides dans chaque env ; duplique les tables de référence | — |
+| B — Scope `envName` partout | `ComponentOverride` et `EntsoeEntry` ont un champ `envName` obligatoire | L | Capture explicite des différences par env si elles existent vraiment | Surcharge admin à répliquer dans chaque env, duplication des tables de référence, PK composite partout, zéro bénéfice observé sur les cas réels ECP |
 | C — Pas de frontière | Tous les imports fusionnés dans une vue globale, pas de sélecteur d'env | XS | Trivial | Mélange des réseaux physiquement distincts, incorrect sémantiquement |
 
 ## Décision retenue

@@ -39,7 +39,7 @@ En v2.0, `dumpType` est un champ explicite dans `Import` et doit être détermin
 - La logique d'heuristique est isolée dans un service dédié, facile à remplacer en 2b.
 
 ### Négatives
-- Un dump BROKER uploadé sans override sera classé COMPONENT_DIRECTORY et parsé avec le parser CD — comportement défini (erreur contrôlée) mais à documenter.
+- Un dump BROKER uploadé sans override sera classé `COMPONENT_DIRECTORY` et parsé avec le parser CD. Attendu : le parser échoue proprement (lignes sans `ecp.componentCode` reconnaissable → warnings dans `Import.warningsJson`, `components` et `paths` vides pour ce dump). L'admin peut alors réassigner le `dumpType` (slice 2c) ou re-uploader avec override manuel.
 - L'admin doit connaître le type de son dump si l'heuristique 2a est insuffisante.
 
 ### Ce qu'on s'interdit désormais
