@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import type { Warning } from '@carto-ecp/shared';
-import type { BuiltImportedComponent, BuiltImportedPath, MadesComponent, MadesTree } from './types.js';
+import type { BuiltImportedComponent, BuiltImportedMessagingStat, BuiltImportedPath, MadesComponent, MadesTree } from './types.js';
 
 type LocalCsvRow = {
   eic: string;
@@ -102,6 +102,34 @@ export class ImportBuilderService {
     }
 
     return { components, paths, warnings };
+  }
+
+  private static readonly SENSITIVE_KEY_REGEX = /password|secret|keystore\.password|privateKey|credentials/i;
+
+  buildMessagingStats(rows: Array<{
+    sourceEndpointCode: string;
+    remoteComponentCode: string;
+    connectionStatus?: string | null;
+    lastMessageUp?: string | null;
+    lastMessageDown?: string | null;
+    sumMessagesUp?: number | string | null;
+    sumMessagesDown?: number | string | null;
+    deleted?: boolean | string | null;
+  }>): BuiltImportedMessagingStat[] {
+    return rows.map((r) => ({
+      sourceEndpointCode: r.sourceEndpointCode,
+      remoteComponentCode: r.remoteComponentCode,
+      connectionStatus: nonEmpty(r.connectionStatus ?? null),
+      lastMessageUp: parseDateOrNull(r.lastMessageUp ?? null),
+      lastMessageDown: parseDateOrNull(r.lastMessageDown ?? null),
+      sumMessagesUp: Number(r.sumMessagesUp ?? 0),
+      sumMessagesDown: Number(r.sumMessagesDown ?? 0),
+      deleted: r.deleted === true || r.deleted === 'true',
+    }));
+  }
+
+  buildAppProperties(rows: Array<{ key: string; value: string }>): Array<{ key: string; value: string }> {
+    return rows.filter((r) => !ImportBuilderService.SENSITIVE_KEY_REGEX.test(r.key));
   }
 
   private fromXmlComponent(c: MadesComponent): BuiltImportedComponent {

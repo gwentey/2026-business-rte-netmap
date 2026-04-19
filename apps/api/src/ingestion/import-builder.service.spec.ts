@@ -214,3 +214,61 @@ describe('ImportBuilderService — XML', () => {
     expect(stub!.organization).toBeNull();
   });
 });
+
+describe('ImportBuilderService — stats & app properties', () => {
+  let builder: ImportBuilderService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ImportBuilderService],
+    }).compile();
+    builder = moduleRef.get(ImportBuilderService);
+  });
+
+  it('extracts messaging stats with correct parsing of dates, numbers, and deleted flag', () => {
+    const rows = [{
+      sourceEndpointCode: '17V...A',
+      remoteComponentCode: '10X...Z',
+      connectionStatus: 'CONNECTED',
+      lastMessageUp: '2026-04-17T10:00:00.000Z',
+      lastMessageDown: null,
+      sumMessagesUp: '42',
+      sumMessagesDown: '0',
+      deleted: 'false',
+    }];
+    const result = builder.buildMessagingStats(rows);
+    expect(result).toHaveLength(1);
+    const s = result[0]!;
+    expect(s.sourceEndpointCode).toBe('17V...A');
+    expect(s.remoteComponentCode).toBe('10X...Z');
+    expect(s.connectionStatus).toBe('CONNECTED');
+    expect(s.lastMessageUp?.toISOString()).toBe('2026-04-17T10:00:00.000Z');
+    expect(s.lastMessageDown).toBeNull();
+    expect(s.sumMessagesUp).toBe(42);
+    expect(s.sumMessagesDown).toBe(0);
+    expect(s.deleted).toBe(false);
+  });
+
+  it('handles "true" string and boolean true for deleted field', () => {
+    const rows = [
+      { sourceEndpointCode: 'A', remoteComponentCode: 'B', deleted: 'true' },
+      { sourceEndpointCode: 'C', remoteComponentCode: 'D', deleted: true },
+      { sourceEndpointCode: 'E', remoteComponentCode: 'F', deleted: 'false' },
+    ];
+    const result = builder.buildMessagingStats(rows);
+    expect(result.map((s) => s.deleted)).toEqual([true, true, false]);
+  });
+
+  it('filters sensitive keys from app properties (case-insensitive)', () => {
+    const rows = [
+      { key: 'keystore.password', value: 'secret' },
+      { key: 'ecp.version', value: '4.5.0' },
+      { key: 'private.credentials', value: 'X' },
+      { key: 'normal.key', value: 'ok' },
+      { key: 'KEYSTORE.PASSWORD', value: 'SECRET-UPPER' },
+      { key: 'USER.PRIVATEKEY', value: 'pem' },
+    ];
+    const result = builder.buildAppProperties(rows);
+    expect(result.map((r) => r.key).sort()).toEqual(['ecp.version', 'normal.key']);
+  });
+});
