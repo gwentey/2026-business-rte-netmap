@@ -315,13 +315,30 @@ export class ImportsService {
     return null;
   }
 
-  async listImports(envFilter?: string): Promise<ImportSummary[]> {
+  async listImports(envFilter?: string): Promise<ImportDetail[]> {
     const where = envFilter ? { envName: envFilter } : {};
     const rows = await this.prisma.import.findMany({
       where,
       orderBy: { effectiveDate: 'desc' },
+      include: {
+        _count: {
+          select: {
+            importedComponents: true,
+            importedPaths: true,
+            importedStats: true,
+          },
+        },
+      },
     });
-    return rows.map((r) => this.toSummary(r));
+    return rows.map((r) => ({
+      ...this.toSummary(r),
+      warnings: JSON.parse(r.warningsJson) as Warning[],
+      stats: {
+        componentsCount: r._count.importedComponents,
+        pathsCount: r._count.importedPaths,
+        messagingStatsCount: r._count.importedStats,
+      },
+    }));
   }
 
   async deleteImport(id: string): Promise<void> {

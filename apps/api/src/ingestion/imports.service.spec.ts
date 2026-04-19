@@ -281,6 +281,63 @@ describe('ImportsService.createImport — routing par dumpType', () => {
   });
 });
 
+describe('ImportsService.listImports — retourne ImportDetail[]', () => {
+  let service: ImportsService;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ImportsService, ZipExtractorService, CsvReaderService, XmlMadesParserService,
+        ImportBuilderService, CsvPathReaderService, RawPersisterService, PrismaService,
+      ],
+    }).compile();
+    await moduleRef.init();
+    service = moduleRef.get(ImportsService);
+    prisma = moduleRef.get(PrismaService);
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_LIST_DETAIL' } } });
+  });
+
+  afterEach(async () => {
+    const rows = await prisma.import.findMany({ where: { envName: { startsWith: 'TEST_LIST_DETAIL' } } });
+    const { existsSync, unlinkSync } = await import('node:fs');
+    for (const r of rows) {
+      if (existsSync(r.zipPath)) { try { unlinkSync(r.zipPath); } catch {} }
+    }
+    await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_LIST_DETAIL' } } });
+  });
+
+  it('includes stats and warnings in each row', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_LIST_DETAIL_A',
+      label: 'with-stats',
+    });
+
+    const list = await service.listImports('TEST_LIST_DETAIL_A');
+    expect(list).toHaveLength(1);
+    expect(list[0]!.stats).toBeDefined();
+    expect(list[0]!.stats.componentsCount).toBeGreaterThan(0);
+    expect(list[0]!.stats.pathsCount).toBeGreaterThanOrEqual(0);
+    expect(list[0]!.stats.messagingStatsCount).toBeGreaterThanOrEqual(0);
+    expect(list[0]!.warnings).toBeInstanceOf(Array);
+  });
+
+  it('preserves ordering by effectiveDate desc (unchanged behavior)', async () => {
+    const zipA = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const zipB = buildZipFromFixture(CD_FIXTURE);
+    await service.createImport({ file: { originalname: 'early.zip', buffer: zipA }, envName: 'TEST_LIST_DETAIL_SORT', label: 'early' });
+    // Force sourceDumpTimestamp différence via filename canonique ECP
+    await service.createImport({ file: { originalname: '17V000002014106G_2030-12-31T12_00_00Z.zip', buffer: zipB }, envName: 'TEST_LIST_DETAIL_SORT', label: 'late' });
+
+    const list = await service.listImports('TEST_LIST_DETAIL_SORT');
+    expect(list).toHaveLength(2);
+    expect(list[0]!.label).toBe('late');
+    expect(list[1]!.label).toBe('early');
+  });
+});
+
 describe('ImportsService.createImport — replaceImportId', () => {
   let service: ImportsService;
   let prisma: PrismaService;
