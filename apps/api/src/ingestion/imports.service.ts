@@ -1,7 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { existsSync, unlinkSync } from 'node:fs';
-import type { ImportDetail, ImportSummary } from '@carto-ecp/shared';
+import type { ImportDetail, ImportSummary, InspectResult, Warning } from '@carto-ecp/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ZipExtractorService } from './zip-extractor.service.js';
 import { CsvReaderService } from './csv-reader.service.js';
@@ -12,13 +12,13 @@ import { detectDumpType } from './dump-type-detector.js';
 import { parseDumpFilename } from './filename-parser.js';
 import type { DumpType } from './dump-type-detector.js';
 import type { BuiltImport, BuiltImportedComponent, BuiltImportedPath } from './types.js';
-import type { Warning } from '@carto-ecp/shared';
 
 export type CreateImportInput = {
   file: { originalname: string; buffer: Buffer };
   envName: string;
   label: string;
   dumpType?: DumpType;
+  replaceImportId?: string;
 };
 
 type ImportRow = {
@@ -46,6 +46,24 @@ export class ImportsService {
   ) {}
 
   async createImport(input: CreateImportInput): Promise<ImportDetail> {
+    // Handle replace: validate and delete old import BEFORE pipeline
+    if (input.replaceImportId) {
+      const old = await this.prisma.import.findUnique({ where: { id: input.replaceImportId } });
+      if (!old) {
+        throw new BadRequestException({
+          code: 'IMPORT_NOT_FOUND',
+          message: `Import ${input.replaceImportId} not found`,
+        });
+      }
+      if (old.envName !== input.envName) {
+        throw new BadRequestException({
+          code: 'REPLACE_IMPORT_MISMATCH',
+          message: `Cannot replace import ${input.replaceImportId} (env=${old.envName}) from env=${input.envName}`,
+        });
+      }
+      await this.deleteImport(input.replaceImportId);
+    }
+
     const { file, envName, label } = input;
     const { sourceComponentEic, sourceDumpTimestamp } = parseDumpFilename(file.originalname);
     const fileHash = createHash('sha256').update(file.buffer).digest('hex');
@@ -57,10 +75,10 @@ export class ImportsService {
     const cdBuffer = extracted.files.get('component_directory.csv')!;
     const cdRows = this.csvReader.readComponentDirectory(cdBuffer, warnings);
 
-    // Detect dump type from XML blobs in directoryContent
-    // ComponentDirectoryRow has `directoryContent` (XML) and `id` (EIC)
-    const rowsForDetection = cdRows.map((r) => ({ xml: r.directoryContent }));
-    const dumpType = detectDumpType(rowsForDetection, input.dumpType);
+    // Detect dump type via zip entries (T3 API: zipEntries, not cdRows)
+    const zipEntries = this.zipExtractor.listEntries(file.buffer);
+    const detection = detectDumpType(zipEntries, input.dumpType);
+    const dumpType = detection.dumpType;
 
     // Build components from CSV — ComponentDirectoryRow.id is the EIC
     const csvComponentRows = cdRows.map((r) => ({
@@ -155,6 +173,97 @@ export class ImportsService {
 
     const persisted = await this.persister.persist(built, file.buffer);
     return this.toDetail(persisted.id);
+  }
+
+  async inspectBatch(
+    files: Array<{ originalname: string; buffer: Buffer }>,
+    envName: string | undefined,
+  ): Promise<InspectResult[]> {
+    const results: InspectResult[] = [];
+    for (const file of files) {
+      const result = await this.inspectOne(file, envName);
+      results.push(result);
+    }
+    return results;
+  }
+
+  private async inspectOne(
+    file: { originalname: string; buffer: Buffer },
+    envName: string | undefined,
+  ): Promise<InspectResult> {
+    const { sourceComponentEic, sourceDumpTimestamp } = parseDumpFilename(file.originalname);
+    const fileHash = createHash('sha256').update(file.buffer).digest('hex');
+
+    let dumpType: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+    let confidence: 'HIGH' | 'FALLBACK';
+    let reason: string;
+    const warnings: Warning[] = [];
+    try {
+      const entries = this.zipExtractor.listEntries(file.buffer);
+      const detection = detectDumpType(entries);
+      dumpType = detection.dumpType;
+      confidence = detection.confidence;
+      reason = detection.reason;
+    } catch (err) {
+      warnings.push({ code: 'INVALID_ZIP', message: (err as Error).message });
+      dumpType = 'COMPONENT_DIRECTORY';
+      confidence = 'FALLBACK';
+      reason = 'ZIP invalide';
+    }
+
+    const duplicateOf = await this.findDuplicateForInspect({
+      sourceComponentEic,
+      sourceDumpTimestamp,
+      fileHash,
+      envName,
+    });
+
+    return {
+      fileName: file.originalname,
+      fileSize: file.buffer.length,
+      fileHash,
+      sourceComponentEic,
+      sourceDumpTimestamp: sourceDumpTimestamp?.toISOString() ?? null,
+      dumpType,
+      confidence,
+      reason,
+      duplicateOf,
+      warnings,
+    };
+  }
+
+  private async findDuplicateForInspect(args: {
+    sourceComponentEic: string | null;
+    sourceDumpTimestamp: Date | null;
+    fileHash: string;
+    envName: string | undefined;
+  }): Promise<InspectResult['duplicateOf']> {
+    const baseWhere: Record<string, unknown> = {};
+    if (args.envName) baseWhere['envName'] = args.envName;
+
+    // Priority 1: match by (sourceComponentEic, sourceDumpTimestamp) if both available
+    if (args.sourceComponentEic && args.sourceDumpTimestamp) {
+      const match = await this.prisma.import.findFirst({
+        where: {
+          ...baseWhere,
+          sourceComponentEic: args.sourceComponentEic,
+          sourceDumpTimestamp: args.sourceDumpTimestamp,
+        },
+      });
+      if (match) {
+        return { importId: match.id, label: match.label, uploadedAt: match.uploadedAt.toISOString() };
+      }
+    }
+
+    // Priority 2: fallback on fileHash
+    const hashMatch = await this.prisma.import.findFirst({
+      where: { ...baseWhere, fileHash: args.fileHash },
+    });
+    if (hashMatch) {
+      return { importId: hashMatch.id, label: hashMatch.label, uploadedAt: hashMatch.uploadedAt.toISOString() };
+    }
+
+    return null;
   }
 
   async listImports(envFilter?: string): Promise<ImportSummary[]> {
