@@ -174,6 +174,73 @@ describe('ImportsController.inspect', () => {
   });
 });
 
+describe('ImportsController.update', () => {
+  let ctrl: ImportsController;
+  const updateSpy = vi.fn(async () => ({
+    id: 'updated-id', envName: 'X', label: 'new-label', fileName: 'f.zip',
+    dumpType: 'ENDPOINT' as const,
+    sourceComponentEic: null, sourceDumpTimestamp: null,
+    uploadedAt: '2026-04-19T00:00:00.000Z',
+    effectiveDate: '2030-01-15T10:00:00.000Z',
+    warnings: [], stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
+  }));
+
+  beforeEach(async () => {
+    updateSpy.mockClear();
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ImportsController],
+      providers: [
+        {
+          provide: ImportsService,
+          useValue: {
+            updateImport: updateSpy,
+            createImport: async () => ({}),
+            inspectBatch: async () => [],
+            listImports: async () => [],
+            deleteImport: async () => undefined,
+          },
+        },
+      ],
+    }).compile();
+    ctrl = moduleRef.get(ImportsController);
+  });
+
+  it('forwards valid body with label only to service', async () => {
+    const result = await ctrl.update('abc-id', { label: 'new-label' });
+    expect(result.label).toBe('new-label');
+    expect(updateSpy).toHaveBeenCalledWith('abc-id', { label: 'new-label' });
+  });
+
+  it('forwards valid body with effectiveDate only', async () => {
+    await ctrl.update('abc-id', { effectiveDate: '2030-01-15T10:00:00.000Z' });
+    expect(updateSpy).toHaveBeenCalledWith('abc-id', { effectiveDate: '2030-01-15T10:00:00.000Z' });
+  });
+
+  it('rejects extra fields via zod strict (dumpType)', async () => {
+    await expect(
+      ctrl.update('abc-id', { dumpType: 'CD' } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects extra fields via zod strict (envName)', async () => {
+    await expect(
+      ctrl.update('abc-id', { envName: 'OTHER' } as any),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects invalid effectiveDate format', async () => {
+    await expect(
+      ctrl.update('abc-id', { effectiveDate: 'not-a-date' }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects empty body', async () => {
+    await expect(
+      ctrl.update('abc-id', {}),
+    ).rejects.toThrow(BadRequestException);
+  });
+});
+
 describe('ImportsController.create — replaceImportId', () => {
   let ctrl: ImportsController;
   const createSpy = vi.fn(async () => ({
