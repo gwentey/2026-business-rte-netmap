@@ -8,7 +8,7 @@
 | Auteur(s)  | Anthony + Claude                                                            |
 | Owner      | Anthony                                                                     |
 | Décideurs  | Anthony                                                                     |
-| Contexte   | Refonte v2.0 — slice 2a fondations                                          |
+| Contexte   | Slice v2.0-2a Fondations                                                    |
 | Remplace   | —                                                                           |
 | Features   | *                                                                           |
 | App        | api, web                                                                    |
