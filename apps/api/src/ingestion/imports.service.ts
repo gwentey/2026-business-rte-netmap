@@ -315,13 +315,47 @@ export class ImportsService {
     return null;
   }
 
-  async listImports(envFilter?: string): Promise<ImportSummary[]> {
+  async listImports(envFilter?: string): Promise<ImportDetail[]> {
     const where = envFilter ? { envName: envFilter } : {};
     const rows = await this.prisma.import.findMany({
       where,
       orderBy: { effectiveDate: 'desc' },
+      include: {
+        _count: {
+          select: {
+            importedComponents: true,
+            importedPaths: true,
+            importedStats: true,
+          },
+        },
+      },
     });
-    return rows.map((r) => this.toSummary(r));
+    return rows.map((r) => ({
+      ...this.toSummary(r),
+      warnings: JSON.parse(r.warningsJson) as Warning[],
+      stats: {
+        componentsCount: r._count.importedComponents,
+        pathsCount: r._count.importedPaths,
+        messagingStatsCount: r._count.importedStats,
+      },
+    }));
+  }
+
+  async updateImport(
+    id: string,
+    patch: { label?: string; effectiveDate?: string },
+  ): Promise<ImportDetail> {
+    const existing = await this.prisma.import.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException({ code: 'IMPORT_NOT_FOUND', message: `Import ${id} not found` });
+    }
+
+    const data: { label?: string; effectiveDate?: Date } = {};
+    if (patch.label !== undefined) data.label = patch.label;
+    if (patch.effectiveDate !== undefined) data.effectiveDate = new Date(patch.effectiveDate);
+
+    await this.prisma.import.update({ where: { id }, data });
+    return this.toDetail(id);
   }
 
   async deleteImport(id: string): Promise<void> {

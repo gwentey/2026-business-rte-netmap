@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { GraphResponse, ImportSummary } from '@carto-ecp/shared';
+import type { GraphResponse, ImportDetail } from '@carto-ecp/shared';
 import { api } from '../lib/api.js';
 
 type DumpType = 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
@@ -28,7 +28,7 @@ type UploadBatchItem = {
 type AppState = {
   activeEnv: string | null;
   envs: string[];
-  imports: ImportSummary[];
+  imports: ImportDetail[];
   graph: GraphResponse | null;
   selectedNodeEic: string | null;
   selectedEdgeId: string | null;

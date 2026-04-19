@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   Param,
+  Patch,
   Post,
   Query,
   UploadedFile,
@@ -27,6 +28,11 @@ const CreateImportSchema = z.object({
 const InspectBodySchema = z.object({
   envName: z.string().min(1).max(64).optional(),
 });
+
+const UpdateImportSchema = z.object({
+  label: z.string().min(1).max(256).optional(),
+  effectiveDate: z.string().datetime().optional(),
+}).strict();
 
 const MAX_SIZE = 50 * 1024 * 1024;
 const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
@@ -105,5 +111,20 @@ export class ImportsController {
   @HttpCode(204)
   async delete(@Param('id') id: string): Promise<void> {
     await this.imports.deleteImport(id);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: unknown,
+  ): Promise<ImportDetail> {
+    const parsed = UpdateImportSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestException({ code: 'INVALID_BODY', errors: parsed.error.issues });
+    }
+    if (Object.keys(parsed.data).length === 0) {
+      throw new BadRequestException({ code: 'INVALID_BODY', message: 'Au moins un champ à modifier requis' });
+    }
+    return this.imports.updateImport(id, parsed.data);
   }
 }
