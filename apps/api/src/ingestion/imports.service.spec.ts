@@ -6,6 +6,7 @@ import { ZipExtractorService } from './zip-extractor.service.js';
 import { CsvReaderService } from './csv-reader.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
 import { ImportBuilderService } from './import-builder.service.js';
+import { CsvPathReaderService } from './csv-path-reader.service.js';
 import { RawPersisterService } from './raw-persister.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE } from '../../test/fixtures-loader.js';
@@ -22,6 +23,7 @@ describe('ImportsService', () => {
         CsvReaderService,
         XmlMadesParserService,
         ImportBuilderService,
+        CsvPathReaderService,
         RawPersisterService,
         PrismaService,
       ],
