@@ -170,6 +170,8 @@
     "rteClusterLat": 48.8918,
     "rteClusterLng": 2.2378,
     "rteClusterOffsetDeg": 0.6,
-    "rteClusterProximityDeg": 0.01
+    "rteClusterProximityDeg": 0.01,
+    "defaultLat": 50.8503,
+    "defaultLng": 4.3517
   }
 }

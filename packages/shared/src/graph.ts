@@ -58,6 +58,8 @@ export type MapConfig = {
   rteClusterLng: number;
   rteClusterOffsetDeg: number;
   rteClusterProximityDeg: number;
+  defaultLat: number;
+  defaultLng: number;
 };
 
 export type GraphResponse = {

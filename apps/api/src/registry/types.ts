@@ -36,6 +36,8 @@ export type RteOverlay = {
     rteClusterLng: number;
     rteClusterOffsetDeg: number;
     rteClusterProximityDeg: number;
+    defaultLat: number;
+    defaultLng: number;
   };
 };
 

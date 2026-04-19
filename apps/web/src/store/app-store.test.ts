@@ -44,7 +44,7 @@ describe('app-store — loadSnapshots bascule activeSnapshotId invalide', () => 
       nodes: [],
       edges: [],
       bounds: { north: 0, south: 0, east: 0, west: 0 },
-      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01 },
+      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01, defaultLat: 50.8503, defaultLng: 4.3517 },
     });
 
     const useStore = await freshStore();
@@ -75,7 +75,7 @@ describe('app-store — loadSnapshots bascule activeSnapshotId invalide', () => 
       nodes: [],
       edges: [],
       bounds: { north: 0, south: 0, east: 0, west: 0 },
-      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01 },
+      mapConfig: { rteClusterLat: 48.8918, rteClusterLng: 2.2378, rteClusterOffsetDeg: 0.6, rteClusterProximityDeg: 0.01, defaultLat: 50.8503, defaultLng: 4.3517 },
     });
 
     const useStore = await freshStore();

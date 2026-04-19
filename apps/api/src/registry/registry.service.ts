@@ -100,6 +100,59 @@ export class RegistryService implements OnModuleInit {
     };
   }
 
+  resolveEic(eic: string): {
+    displayName?: string | null;
+    organization?: string | null;
+    country?: string | null;
+    lat?: number | null;
+    lng?: number | null;
+    type?: string | null;
+    process?: string | null;
+  } | null {
+    // Level 1 : RTE endpoints overlay
+    const rteEndpoint = this.overlay.rteEndpoints.find((e) => e.eic === eic);
+    if (rteEndpoint) {
+      return {
+        displayName: rteEndpoint.displayName,
+        organization: 'RTE',
+        country: 'FR',
+        lat: rteEndpoint.lat,
+        lng: rteEndpoint.lng,
+        type: 'ENDPOINT',
+        process: rteEndpoint.process ?? null,
+      };
+    }
+
+    // Level 2 : RTE component directory overlay
+    if (this.overlay.rteComponentDirectory.eic === eic) {
+      return {
+        displayName: this.overlay.rteComponentDirectory.displayName,
+        organization: 'RTE',
+        country: 'FR',
+        lat: this.overlay.rteComponentDirectory.lat,
+        lng: this.overlay.rteComponentDirectory.lng,
+        type: 'COMPONENT_DIRECTORY',
+        process: null,
+      };
+    }
+
+    // Level 3 : ENTSO-E index — return fields without coords (cascade will add coords)
+    const entsoe = this.eicIndex.get(eic);
+    if (entsoe) {
+      return {
+        displayName: entsoe.displayName,
+        organization: null,
+        country: entsoe.country ?? null,
+        lat: null,
+        lng: null,
+        type: null,
+        process: null,
+      };
+    }
+
+    return null;
+  }
+
   classifyMessageType(messageType: string): ProcessKey {
     if (!messageType || messageType === '*') return 'UNKNOWN';
     const exact = this.overlay.messageTypeClassification.exact[messageType];
