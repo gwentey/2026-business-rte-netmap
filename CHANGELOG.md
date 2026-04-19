@@ -7,6 +7,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.4 — Slice 2c-1 Admin panel onglet Imports (2026-04-19)
+
+**Panneau d'administration** accessible via le lien `Admin` du header. Répond à la demande du gros spec fonctionnel : *« Un panneau d'administration centralise upload, surcharge des données, gestion du registry, purge »*.
+
+Cette slice livre uniquement **l'onglet Imports** (les 4 autres onglets sont visibles mais désactivés avec tooltip vers leur slice d'origine). Split original de la slice 2c en **2c-1 (imports)** et **2c-2 (composants surcharge — à venir)**.
+
+**Highlights :**
+
+- **Route `/admin`** avec `AdminTabs` à 5 onglets (Imports actif + 4 stubs désactivés).
+- **`ImportsAdminTable`** : liste complète des imports avec filtre par `envName`, recherche texte client-side (label / fileName / sourceEic), édition inline du `label` (debounced 500ms) et de `effectiveDate` (onBlur), delete avec modale de confirmation custom.
+- **Nouveau endpoint `PATCH /api/imports/:id`** : zod strict à 2 champs (`label`, `effectiveDate`), refuse tout extra (`dumpType`, `envName`, etc.) et body vide. Code `INVALID_BODY` sur erreur.
+- **`GET /api/imports` étendu** : retourne désormais `ImportDetail[]` (superset de `ImportSummary`, ajoute `stats` et `warnings`) — évite un 2e fetch côté admin. Rétrocompatible côté callers existants.
+- **Header** : lien `+ Importer` remplacé par `Admin`. L'upload reste accessible via le bouton « + Importer des dumps » dans `/admin`.
+- **ADR-035** : `dumpType` immutable post-ingest (corriger un type mal détecté = delete + re-upload).
+
+**Tests :**
+- Backend : 2 tests `listImports` (stats + ordering) + 4 tests `updateImport` (label, date, combined, not found) + 6 tests `controller.update` (happy path × 2, reject extras × 2, reject invalid date, reject empty body) = 12 nouveaux tests API
+- Frontend : 3 tests `AdminTabs`, 1 test `AdminPage` smoke, 5 tests `ImportsAdminTable`, 3 tests `debounce` = 12 nouveaux tests web
+
+**Breaking changes :** aucun. L'élargissement de `listImports` vers `ImportDetail[]` est rétrocompatible.
+
 ### v2.0-alpha.3 — Slice 2f Icônes différenciées + badge isDefaultPosition (2026-04-19)
 
 **Icônes cartographiques différenciées par type de composant ECP.** Répond à la demande initiale n°4 de l'utilisateur : distinguer visuellement broker / CD / endpoint sur la carte (plus juste un rond uniforme).
