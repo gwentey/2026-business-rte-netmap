@@ -3,7 +3,12 @@ import type { AdminComponentRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { ComponentOverrideModal } from './ComponentOverrideModal.js';
 
-export function ComponentsAdminTable(): JSX.Element {
+type Props = {
+  autoOpenEic?: string | null;
+  onAutoOpenHandled?: () => void;
+};
+
+export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props = {}): JSX.Element {
   const [rows, setRows] = useState<AdminComponentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,6 +30,35 @@ export function ComponentsAdminTable(): JSX.Element {
   };
 
   useEffect(() => { void reload(); }, []);
+
+  useEffect(() => {
+    if (!autoOpenEic || rows.length === 0) return;
+    const match = rows.find((r) => r.eic === autoOpenEic);
+    if (match) {
+      setEditing(match);
+      setSearch(autoOpenEic);
+    } else {
+      // EIC pas dans les imports — on pré-remplit le filtre pour montrer l'absence,
+      // et on ouvre une ligne synthétique pour permettre la surcharge directe.
+      const synthetic: AdminComponentRow = {
+        eic: autoOpenEic,
+        current: {
+          displayName: autoOpenEic,
+          type: 'ENDPOINT',
+          organization: 'RTE',
+          country: 'FR',
+          lat: 0,
+          lng: 0,
+          isDefaultPosition: true,
+        },
+        override: null,
+        importsCount: 0,
+      };
+      setEditing(synthetic);
+      setSearch(autoOpenEic);
+    }
+    onAutoOpenHandled?.();
+  }, [autoOpenEic, rows, onAutoOpenHandled]);
 
   const filtered = useMemo(() => {
     let result = rows;
