@@ -5,7 +5,6 @@ import { parse as parseCsv } from 'csv-parse/sync';
 import type { MapConfig, ProcessKey } from '@carto-ecp/shared';
 import type {
   EntsoeEntry,
-  ResolvedLocation,
   RteOverlay,
 } from './types.js';
 
@@ -39,65 +38,6 @@ export class RegistryService implements OnModuleInit {
 
   lookupEntsoe(eic: string): EntsoeEntry | null {
     return this.eicIndex.get(eic) ?? null;
-  }
-
-  resolveComponent(eic: string, organization: string): ResolvedLocation {
-    const rteEndpoint = this.overlay.rteEndpoints.find((e) => e.eic === eic);
-    if (rteEndpoint) {
-      return {
-        displayName: rteEndpoint.displayName,
-        country: 'FR',
-        lat: rteEndpoint.lat,
-        lng: rteEndpoint.lng,
-        isDefaultPosition: false,
-      };
-    }
-
-    if (this.overlay.rteComponentDirectory.eic === eic) {
-      return {
-        displayName: this.overlay.rteComponentDirectory.displayName,
-        country: 'FR',
-        lat: this.overlay.rteComponentDirectory.lat,
-        lng: this.overlay.rteComponentDirectory.lng,
-        isDefaultPosition: false,
-      };
-    }
-
-    const entsoe = this.eicIndex.get(eic);
-    if (entsoe) {
-      const orgGeo = this.overlay.organizationGeocode[organization];
-      if (orgGeo) {
-        return {
-          displayName: entsoe.displayName,
-          country: orgGeo.country,
-          lat: orgGeo.lat,
-          lng: orgGeo.lng,
-          isDefaultPosition: false,
-        };
-      }
-      if (entsoe.country) {
-        const ctryGeo = this.overlay.countryGeocode[entsoe.country];
-        if (ctryGeo) {
-          return {
-            displayName: entsoe.displayName,
-            country: entsoe.country,
-            lat: ctryGeo.lat,
-            lng: ctryGeo.lng,
-            isDefaultPosition: false,
-          };
-        }
-      }
-    }
-
-    const def = this.overlay.countryGeocode['DEFAULT'];
-    if (!def) throw new Error('Registry overlay missing countryGeocode.DEFAULT');
-    return {
-      displayName: entsoe?.displayName ?? organization ?? eic,
-      country: entsoe?.country ?? null,
-      lat: def.lat,
-      lng: def.lng,
-      isDefaultPosition: true,
-    };
   }
 
   resolveEic(eic: string): {

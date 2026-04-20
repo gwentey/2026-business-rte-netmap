@@ -151,7 +151,7 @@ Corps de la réponse HTTP construit par NestJS :
 | `MissingRequiredCsvException` | `MISSING_REQUIRED_CSV` | 400 | `{ fileName: string }` |
 | `UnknownMadesNamespaceException` | `UNKNOWN_MADES_NAMESPACE` | 400 | `{ namespace: string \| null }` |
 | `PayloadTooLargeException` | `PAYLOAD_TOO_LARGE` | 413 | `{ sizeBytes: number }` |
-| `SnapshotNotFoundException` | `SNAPSHOT_NOT_FOUND` | 404 | `{ snapshotId: string }` |
+| `ImportNotFoundException` | `IMPORT_NOT_FOUND` | 404 | `{ id: string }` |
 
 ---
 
@@ -173,7 +173,7 @@ Corps de la réponse HTTP construit par NestJS :
 | `apps/api/src/ingestion/xml-mades-parser.service.ts` | `parseEcpDate` |
 | `apps/api/src/ingestion/zip-extractor.service.ts` | `MissingRequiredCsvException`, `InvalidUploadException`, `PayloadTooLargeException` |
 | `apps/api/src/ingestion/xml-mades-parser.service.ts` | `UnknownMadesNamespaceException` |
-| `apps/api/src/ingestion/imports.service.ts` | `SnapshotNotFoundException` (code IMPORT_NOT_FOUND, usage interne) |
+| `apps/api/src/ingestion/imports.service.ts` | `ImportNotFoundException` |
 
 ---
 

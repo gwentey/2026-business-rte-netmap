@@ -34,11 +34,11 @@ En v2.0, le registry est le niveau 3 de la cascade dans GraphService (après les
 
 ## Règles métier
 
-1. **Cascade de résolution géographique à 4 niveaux** (`resolveComponent`, utilisé par l'ingestion v1) et **`resolveEic`** (utilisé par le graphe v2 comme niveau 3 de la cascade) :
-   - Niveau 1 : overlay RTE endpoints (coordonnées précises)
+1. **`resolveEic(eic)`** — niveau 3 de la cascade du GraphService v2 :
+   - Niveau 1 : overlay RTE endpoints (coordonnées précises, `isRte=true`)
    - Niveau 2 : overlay RTE CD
    - Niveau 3 : index ENTSO-E statique (displayName, country — sans coords)
-   - Null si inconnu
+   - Retourne `null` si inconnu (laisse la main aux niveaux suivants de la cascade)
 
 2. **Classification messageType** : exact -> regex -> UNKNOWN. Les regexes sont compilées au boot.
 
@@ -76,4 +76,4 @@ GraphService appelle `classifyMessageType(messageType)` pour chaque chemin merge
 
 - **packages/registry** — données sources (CSV + JSON)
 - **api/graph** — consommateur principal
-- **api/ingestion** — consomme `resolveComponent`, `classifyMessageType`
+- **api/ingestion** — consomme `classifyMessageType` uniquement (pas de résolution géo à l'ingestion en v2)
