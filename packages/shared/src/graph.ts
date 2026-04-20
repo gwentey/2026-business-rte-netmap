@@ -1,4 +1,4 @@
-import type { ProcessKey } from './registry.js';
+import type { ProcessColorMap, ProcessKey } from './registry.js';
 import type { Warning } from './snapshot.js';
 
 export type NodeKind =
@@ -60,6 +60,7 @@ export type MapConfig = {
   rteClusterProximityDeg: number;
   defaultLat: number;
   defaultLng: number;
+  processColors: ProcessColorMap;
 };
 
 export type GraphResponse = {
