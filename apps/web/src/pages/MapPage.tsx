@@ -75,7 +75,7 @@ export function MapPage(): JSX.Element {
       </div>
 
       <footer className="flex items-center gap-4 border-t bg-white px-4 py-2 text-xs text-gray-600">
-        {Object.entries(PROCESS_COLORS).map(([process, color]) => (
+        {Object.entries(graph.mapConfig.processColors ?? PROCESS_COLORS).map(([process, color]) => (
           <span key={process} className="flex items-center gap-1">
             <span
               className="inline-block h-3 w-3 rounded"

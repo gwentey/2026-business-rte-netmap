@@ -11,7 +11,10 @@ export const PROCESS_COLORS: ProcessColorMap = {
   UNKNOWN: '#9ca3af',
 };
 
-export function colorFor(process: ProcessKey | null | undefined): string {
-  if (!process) return PROCESS_COLORS.UNKNOWN;
-  return PROCESS_COLORS[process];
+export function colorFor(
+  process: ProcessKey | null | undefined,
+  colors: ProcessColorMap = PROCESS_COLORS,
+): string {
+  if (!process) return colors.UNKNOWN;
+  return colors[process];
 }
