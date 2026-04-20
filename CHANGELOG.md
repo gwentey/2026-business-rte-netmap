@@ -7,6 +7,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### Maintenance — Cleanup dette tech v2.0 (2026-04-20, PR #14)
+
+Trois incohérences détectées lors de la sync doc post-implémentation sont corrigées.
+
+- **`ImportsController.list()`** : type de retour public corrigé (`Promise<ImportSummary[]>` -> `Promise<ImportDetail[]>`). Aucun changement wire-format — le service renvoyait déjà `ImportDetail[]` et le frontend le typait correctement.
+- **`RegistryService.resolveComponent()`** supprimé : méthode morte (aucun appelant runtime depuis slice 2a, seuls les tests la consommaient). Type `ResolvedLocation` et 5 tests associés supprimés.
+- **Specs `api/common/`** alignées : `SnapshotNotFoundException` / `SNAPSHOT_NOT_FOUND` -> `ImportNotFoundException` / `IMPORT_NOT_FOUND` (le code avait été renommé dès 2a, seule la doc restait désynchronisée).
+
+**Impact tests :** 208 -> 203 API (5 tests `resolveComponent` supprimés), 78/78 web inchangés, typecheck PASS.
+**Breaking changes :** aucun. Contrat API externe inchangé.
+
+### Docs — Sync post-implémentation v2.0 (2026-04-20, PR #13)
+
+Réécriture complète de `docs/specs/` pour refléter le code v2.0 mergé via PRs #6-#12.
+
+- **16 specs créées** : `api/imports`, `api/overrides`, `api/admin`, `api/envs`, `web/admin`, `web/timeline-slider`, `web/env-selector`, `web/upload-batch-table` (spec-technique + spec-fonctionnel chacune).
+- **12 specs réécrites** (v1 -> v2) : `api/ingestion` (pipeline v2 + DumpTypeDetector + routing 3 types), `api/graph` (compute-on-read + cascade 5 niveaux), `api/registry` (resolveEic, rteEicSet, mapConfig), `web/map` (divIcons Lucide + Polyline Bézier + timeline), `web/upload` (multi-file + inspect + batch), `shared/types`.
+- **4 specs mises à jour mineur** : `api/common`, `web/detail-panel` (version 2.0.0 + références BDD v2).
+- **4 specs supprimés** (obsolètes) : `api/snapshots/`, `web/snapshot-selector/`.
+- **2 nouveaux documents d'architecture** : `docs/architecture/database/schema.md` (7 tables Prisma v2 + diagramme ASCII), `VERSIONNING.md` (historique versions v1.0 -> v2.0-alpha.7).
+
 ### v2.0-alpha.7 — Slice 2e Zone danger + Annuaire ENTSO-E (2026-04-20)
 
 Deux onglets admin activés : **⚠ Zone danger** (3 purges avec typing-to-confirm) et **Annuaire ENTSO-E** (upload CSV officiel).
