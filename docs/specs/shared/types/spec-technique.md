@@ -1,75 +1,177 @@
 # Spec Technique — shared/types
 
-| Champ         | Valeur              |
-|---------------|---------------------|
-| Module        | shared/types        |
-| Version       | 0.1.0               |
-| Date          | 2026-04-17          |
-| Source        | Rétro-ingénierie    |
+| Champ  | Valeur                          |
+|--------|---------------------------------|
+| Module | shared/types                    |
+| Version| 2.0.0                           |
+| Date   | 2026-04-20                      |
+| Source | v2.0 post-implémentation        |
 
-## Architecture du module
+---
 
-Le package `@carto-ecp/shared` est un package TypeScript pur sans étape de compilation. Il expose trois modules sources re-exportés via un barrel `index.ts` :
+## Architecture
 
-- `registry.ts` — clés de processus métier et types dérivés
-- `snapshot.ts` — contrats de l'API snapshots (liste + détail)
-- `graph.ts` — contrats de l'API graphe (nœuds, edges, bounds)
+`packages/shared/src/` contient les types TypeScript partagés entre `apps/api` et `apps/web`. Aucun build step — consommé directement via `main: ./src/index.ts`. Aucune dépendance npm externe.
 
-Il n'y a aucune dépendance de production, aucun fichier `.js` compilé, aucun `dist/`. Les deux applications consommatrices (`api` via ts-node/SWC, `web` via Vite) résolvent directement les fichiers `.ts` sources.
+### Fichiers
 
-La seule référence croisée interne est `graph.ts → registry.ts` : `GraphNode.process` et `GraphEdge.process` utilisent `ProcessKey` importé de `registry.ts`.
+| Fichier | Contenu |
+|---------|---------|
+| `index.ts` | Réexporte tout depuis `registry.ts`, `snapshot.ts`, `graph.ts` |
+| `registry.ts` | `PROCESS_KEYS`, `ProcessKey`, `ProcessColorMap` |
+| `snapshot.ts` | `ComponentType`, `Warning` |
+| `graph.ts` | Types GraphResponse, nodes, edges, imports, overrides, admin, entsoe |
 
-## Fichiers impactés
+---
 
-| Fichier | Rôle | Lignes |
-|---------|------|--------|
-| `packages/shared/src/registry.ts` | Constante `PROCESS_KEYS as const`, type `ProcessKey` dérivé, type `ProcessColorMap` | ~15 |
-| `packages/shared/src/snapshot.ts` | Types `ComponentType`, `Warning`, `SnapshotSummary`, `SnapshotDetail` | ~29 |
-| `packages/shared/src/graph.ts` | Types `NodeKind`, `EdgeDirection`, `GraphNode`, `GraphEdge`, `GraphBounds`, `GraphResponse` | ~60 |
-| `packages/shared/src/index.ts` | Barrel re-export (`export * from`) | ~3 |
-| `packages/shared/package.json` | Config workspace : `main`/`types`/`exports` → `./src/index.ts`, pas de build | ~17 |
+## Types exportés
 
-## Schéma BDD (si applicable)
+### `registry.ts`
 
-Ce package ne touche pas la base de données. Il définit les types des réponses HTTP — les mappers entre entités Prisma et ces types vivent dans `apps/api`.
+```typescript
+const PROCESS_KEYS = ['TP', 'UK-CC-IN', 'CORE', 'MARI', 'PICASSO', 'VP', 'MIXTE', 'UNKNOWN'] as const;
+type ProcessKey = typeof PROCESS_KEYS[number];
+type ProcessColorMap = Record<ProcessKey, string>;
+```
 
-Correspondances indicatives entre les types partagés et le modèle Prisma :
+### `snapshot.ts`
 
-| Type partagé | Table(s) Prisma source |
-|---|---|
-| `GraphNode` | `Component`, `ComponentUrl` |
-| `GraphEdge` | `MessagePath`, `MessagingStatistic` |
-| `GraphBounds` | Calculé à partir des coordonnées de `Component` |
-| `GraphResponse` | Agrégation `Component` + `MessagePath` + `MessagingStatistic` |
-| `SnapshotSummary` | `Snapshot` (champs scalaires + `_count` Prisma) |
-| `SnapshotDetail` | `Snapshot` + `Warning[]` (décodage `warningsJson`) |
+```typescript
+type ComponentType = 'ENDPOINT' | 'COMPONENT_DIRECTORY';
 
-## API / Endpoints (si applicable)
+type Warning = {
+  code: string;
+  message: string;
+  context?: Record<string, unknown>;
+}
+```
 
-Ce package ne définit pas de routes. Il définit les types de réponse des routes suivantes (documentées dans `apps/api`) :
+### `graph.ts`
 
-| Méthode | Route | Type retourné |
-|---------|-------|---------------|
-| GET | `/api/snapshots` | `SnapshotSummary[]` |
-| GET | `/api/snapshots/:id` | `SnapshotDetail` |
-| GET | `/api/snapshots/:id/graph` | `GraphResponse` |
+#### Nœuds et edges
 
-## Patterns identifiés
+```typescript
+type NodeKind = 'RTE_ENDPOINT' | 'RTE_CD' | 'BROKER' | 'EXTERNAL_CD' | 'EXTERNAL_ENDPOINT';
+type EdgeDirection = 'IN' | 'OUT';
 
-- **`as const` + type dérivé** : `PROCESS_KEYS` est déclaré `as const` pour obtenir un tuple de littéraux. `ProcessKey` est ensuite dérivé par `(typeof PROCESS_KEYS)[number]`, évitant toute duplication entre valeur runtime et type statique. Ce pattern permet aussi d'itérer sur `PROCESS_KEYS` à l'exécution (ex. pour construire `ProcessColorMap`).
+type GraphNode = {
+  id: string; eic: string; kind: NodeKind;
+  displayName: string; organization: string; country: string | null;
+  lat: number; lng: number; isDefaultPosition: boolean;
+  networks: string[]; process: ProcessKey | null;
+  urls: { network: string; url: string }[];
+  creationTs: string; modificationTs: string;
+}
 
-- **Barrel export** : `index.ts` agrège les trois modules par `export *`. Les consommateurs importent depuis `@carto-ecp/shared` sans connaître la structure interne du package.
+type GraphEdge = {
+  id: string; fromEic: string; toEic: string;
+  direction: EdgeDirection; process: ProcessKey;
+  messageTypes: string[]; transportPatterns: ('DIRECT' | 'INDIRECT')[];
+  intermediateBrokerEic: string | null;
+  activity: {
+    connectionStatus: string | null;
+    lastMessageUp: string | null;
+    lastMessageDown: string | null;
+    isRecent: boolean;
+  };
+  validFrom: string; validTo: string | null;
+}
 
-- **Import `type`** : `graph.ts` utilise `import type { ProcessKey }` pour importer depuis `registry.ts`. Ceci est obligatoire dans un contexte TS `"type": "module"` avec des extensions `.js` dans les imports (convention TypeScript ESM) — l'import `type` est effacé à la compilation et n'introduit pas de dépendance circulaire runtime.
+type GraphBounds = { north: number; south: number; east: number; west: number; }
 
-- **Extension de type par intersection** : `SnapshotDetail` est défini comme `SnapshotSummary & { organization, stats, warnings }` plutôt que par héritage d'interface. Ce pattern est idiomatique en TypeScript pour étendre des types objet sans déclarer d'interface.
+type MapConfig = {
+  rteClusterLat: number; rteClusterLng: number;
+  rteClusterOffsetDeg: number; rteClusterProximityDeg: number;
+  defaultLat: number; defaultLng: number;
+}
 
-- **TypeScript-only workspace sans build** : `package.json` expose `main`, `types` et `exports["."]` pointant tous vers `./src/index.ts`. Ce pattern exploite le fait que Vite (web) et les outils NestJS basés SWC/ts-node (api) peuvent consommer du TypeScript source directement en mode développement. Voir RETRO-019.
+type GraphResponse = { bounds: GraphBounds; nodes: GraphNode[]; edges: GraphEdge[]; mapConfig: MapConfig; }
+```
 
-## Tests existants
+#### Imports
 
-| Fichier | Ce qu'il teste | Statut |
-|---------|---------------|--------|
-| — | Aucun test dédié au package shared | Absent |
+```typescript
+type ImportSummary = {
+  id: string; envName: string; label: string; fileName: string;
+  dumpType: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  sourceComponentEic: string | null; sourceDumpTimestamp: string | null;
+  uploadedAt: string; effectiveDate: string;
+}
 
-> Note : l'absence de tests est cohérente avec la nature du package — il ne contient que des déclarations de types, qui sont vérifiées statiquement par le `typecheck` global (`pnpm typecheck` via `tsc --noEmit`). Il n'y a aucun comportement d'exécution à tester.
+type ImportDetail = ImportSummary & {
+  warnings: Warning[];
+  stats: { componentsCount: number; pathsCount: number; messagingStatsCount: number; }
+}
+
+type InspectResult = {
+  fileName: string; fileSize: number; fileHash: string;
+  sourceComponentEic: string | null; sourceDumpTimestamp: string | null;
+  dumpType: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  confidence: 'HIGH' | 'FALLBACK'; reason: string;
+  duplicateOf: { importId: string; label: string; uploadedAt: string; } | null;
+  warnings: Warning[];
+}
+```
+
+#### Admin / Overrides
+
+```typescript
+type AdminComponentRow = {
+  eic: string;
+  current: { displayName: string; type: string; organization: string | null;
+             country: string | null; lat: number; lng: number; isDefaultPosition: boolean; };
+  override: {
+    displayName: string | null; type: string | null; organization: string | null;
+    country: string | null; lat: number | null; lng: number | null;
+    tagsCsv: string | null; notes: string | null; updatedAt: string;
+  } | null;
+  importsCount: number;
+}
+
+type OverrideUpsertInput = {
+  displayName?: string | null; type?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER' | 'BA' | null;
+  organization?: string | null; country?: string | null;
+  lat?: number | null; lng?: number | null;
+  tagsCsv?: string | null; notes?: string | null;
+}
+```
+
+#### Admin ENTSO-E / Purges
+
+```typescript
+type EntsoeStatus = { count: number; refreshedAt: string | null; }
+type PurgeResult = { deletedCount: number; }
+type ResetAllResult = { imports: number; overrides: number; entsoe: number; }
+```
+
+---
+
+## Types supprimés par rapport à v1
+
+Les types suivants ont été supprimés et ne sont plus exportés :
+
+| Type supprimé | Remplacé par |
+|---------------|-------------|
+| `SnapshotSummary` | `ImportSummary` |
+| `SnapshotDetail` | `ImportDetail` |
+| `SnapshotIngestionResult` | intégré dans `ImportDetail` |
+
+---
+
+## Dépendances
+
+Aucune dépendance npm externe. Consommé en tant que workspace `@carto-ecp/shared` par `apps/api` et `apps/web`.
+
+---
+
+## Invariants
+
+1. Aucun build step — les fichiers TypeScript sont importés directement.
+2. Les types de ce package ne contiennent aucune logique (fonctions, classes) — uniquement des types et constantes.
+3. `PROCESS_KEYS` comme `as const` permet à TypeScript d'inférer le type union `ProcessKey` directement depuis le tableau.
+
+---
+
+## Tests
+
+Pas de tests directs dans ce package (types uniquement). La cohérence est vérifiée par le typecheck (`pnpm typecheck`).

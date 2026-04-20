@@ -1,137 +1,125 @@
 # Spec Technique — web/upload
 
-| Champ         | Valeur              |
-|---------------|---------------------|
-| Module        | web/upload          |
-| Version       | 0.2.0               |
-| Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 2 remédiation |
+| Champ  | Valeur                          |
+|--------|---------------------------------|
+| Module | web/upload                      |
+| Version| 2.0.0                           |
+| Date   | 2026-04-20                      |
+| Source | v2.0 post-implémentation        |
 
 ---
 
-## Architecture du module
+## Architecture
 
-Le module est constitué d'un unique composant React (`UploadPage`) qui orchestre trois couches distinctes :
+Le module `upload` est la page de dépôt de fichiers ZIP. En v2.0, elle supporte le multi-upload batch avec inspection préalable (dry-run) et gestion des doublons. La logique d'état du batch est entièrement dans le store Zustand (`uploadBatch`, `uploadInProgress`, `addBatchFiles`, `submitBatch`, `clearBatch`).
 
-1. **Zone de dépôt** — `react-dropzone` fournit les props `getRootProps` / `getInputProps` / `isDragActive` permettant de transformer un `<div>` en cible drag & drop. La validation (type MIME + taille) est effectuée par la librairie avant tout appel réseau.
+### Composants et fichiers
 
-2. **Formulaire de métadonnées** — Deux champs texte non contrôlés via `useState` local : `label` (chaîne vide par défaut, requis) et `envName` (initialisé à `"OPF"`, requis). Pas de validation côté client au-delà de `.trim()` non vide.
+| Fichier | Rôle |
+|---------|------|
+| `pages/UploadPage.tsx` | Page principale : dropzone, champ env, boutons submit/clear, résumé final |
+| `components/UploadBatchTable/UploadBatchTable.tsx` | Table du batch (voir [web/upload-batch-table](../upload-batch-table/spec-technique.md)) |
+| `store/app-store.ts` | État `uploadBatch`, `uploadInProgress` + actions `addBatchFiles`, `submitBatch`, `clearBatch`, `removeBatchItem`, `updateBatchItem` |
+| `lib/api.ts` | `api.inspectBatch(files, envName)` et `api.createImport(file, envName, label, dumpType?, replaceImportId?)` |
 
-3. **Couche réseau** — `api.createSnapshot` dans `apps/web/src/lib/api.ts` construit un `FormData` avec trois entrées (`zip`, `label`, `envName`) et effectue un `POST /api/snapshots` sans en-tête `Content-Type` explicite (le navigateur le pose automatiquement avec boundary multipart). La réponse est désérialisée via `parseJson<SnapshotDetail>` qui lève une `Error` sur tout statut HTTP non-2xx.
+---
 
-4. **Store global** — `useAppStore` (Zustand + persist) expose `setActiveSnapshot(id)` qui déclenche `GET /api/snapshots/:id/graph` et stocke le `GraphResponse` en mémoire. L'`activeSnapshotId` est persisté dans `localStorage` (clé `carto-ecp-store`, via `partialize`).
+## Interfaces
 
-**Flux de données :**
+### `UploadPage`
+
+Props : aucune.
+
+Sources de données Zustand :
+- `uploadBatch: UploadBatchItem[]`
+- `uploadInProgress: boolean`
+- Actions : `addBatchFiles`, `submitBatch`, `clearBatch`
+
+Champs UI :
+- Champ `envName` (string) — initialisé depuis `?env=` en query param si présent, sinon `'OPF'`
+- Dropzone react-dropzone : accept `.zip`, multiple=true, maxFiles=20, maxSize=50 MB
+- Bouton "Importer tout (N prêts)" — disabled si `uploadInProgress || actionable === 0 || !envName.trim()`
+- Bouton "Vider le batch" — disabled si `uploadInProgress || batch.length === 0`
+- Résumé final affiché quand batch terminé (done + skipped + errors + lien "Voir sur la carte")
+
+### Flux d'upload
 
 ```
-[Drop zone]  →  useState(file)
-[Form]       →  useState(label, envName)
-[Submit]     →  api.createSnapshot(file, label, envName)
-                  → POST /api/snapshots (multipart/form-data)
-                  ← SnapshotDetail
-             →  useState(result)
-[Voir carte] →  store.setActiveSnapshot(result.id)
-                  → GET /api/snapshots/:id/graph
-                  ← GraphResponse → store.graph
-             →  navigate('/map')
+1. Utilisateur dépose N fichiers ZIP
+2. addBatchFiles(files) :
+   a. Crée des items 'pending-inspect' dans uploadBatch
+   b. Appelle api.inspectBatch(files, activeEnv)
+   c. Met à jour chaque item avec les résultats inspect (dumpType, confidence, duplicateOf, label auto-généré)
+   d. Items passent à l'état 'inspected'
+3. Utilisateur ajuste labels/types, coche "Remplacer" pour les doublons
+4. submitBatch(envName) :
+   a. Pour chaque item 'inspected' :
+      - Si doublon et forceReplace=false -> état 'skipped'
+      - Sinon -> état 'uploading'
+      - Appelle api.createImport(file, envName, label, overrideDumpType ?? dumpType, replaceImportId?)
+      - Succès -> état 'done', createdImportId stocké
+      - Erreur -> état 'error', errorCode + errorMessage extraits
+   b. Best-effort : un échec n'annule pas les fichiers suivants (ADR-033)
+   c. loadEnvs() appelé en fin de batch pour rafraîchir la liste des envs
 ```
 
----
+### Type `UploadBatchItem` (store interne)
 
-## Fichiers impactés
-
-| Fichier | Rôle | Lignes |
-|---------|------|--------|
-| `apps/web/src/pages/UploadPage.tsx` | Composant React principal — drop zone, formulaire, affichage résultat et warnings | ~146 |
-| `apps/web/src/lib/api.ts` | Client HTTP typé — encapsule tous les appels `fetch` vers `/api/*` | ~30 |
-| `apps/web/src/store/app-store.ts` | Store Zustand — `setActiveSnapshot` charge le graphe et persiste l'`activeSnapshotId` | ~64 |
-| `packages/shared/src/snapshot.ts` | DTOs `SnapshotDetail`, `SnapshotSummary`, `Warning`, `ComponentType` | ~29 |
-
----
-
-## Schéma BDD (si applicable)
-
-Ce module ne lit pas directement la base de données. Il consomme le résultat de `POST /api/snapshots` qui écrit en base via le pipeline d'ingestion backend (`SnapshotPersister`).
-
-La table `Snapshot` est indirectement produite par ce module. Sa structure complète est documentée dans la spec technique de `api/snapshots`.
-
----
-
-## API / Endpoints (si applicable)
-
-| Méthode | Route | Description | Auth |
-|---------|-------|-------------|------|
-| POST | `/api/snapshots` | Upload du zip + label + envName. Corps : `multipart/form-data` avec champs `zip` (File), `label` (string), `envName` (string). Retourne `SnapshotDetail`. | Aucune (hors scope slice #1) |
-| GET | `/api/snapshots/:id/graph` | Chargé immédiatement après upload via `setActiveSnapshot`. Retourne `GraphResponse`. | Aucune |
-
----
-
-## Patterns identifiés
-
-- **Local state React (`useState`)** pour la gestion du cycle de vie du formulaire (file, label, envName, loading, error, result). Pas de formulaire géré (`react-hook-form` ou équivalent) — gestion manuelle minimaliste.
-- **Controlled dropzone** via `react-dropzone` en mode non-React-controlled (les props sont posées sur un `<div>` arbitraire, pas sur un composant Form).
-- **Fetch sans librairie** (`axios`, `react-query`, etc. non utilisés) — appels `fetch` natifs encapsulés dans un objet `api` simple avec gestion d'erreur centralisée dans `parseJson`.
-- **Zustand + persist** pour partager l'`activeSnapshotId` entre UploadPage et MapPage via localStorage, sans prop drilling ni Context React.
-- **Tailwind CSS** pour tout le style. La couleur accent `bg-rte` correspond à `#e30613` (rouge RTE, défini dans la config Tailwind). La zone de drop change de style selon `isDragActive` (`border-rte bg-red-50` vs `border-gray-300 bg-gray-50`).
-- **HTML natif `<details>`/`<summary>`** pour l'accordéon de warnings — pas de composant UI tiers (Radix/shadcn non utilisé ici).
-
----
-
-## État local du composant
-
-| État | Type | Valeur initiale | Rôle |
-|------|------|-----------------|------|
-| `file` | `File \| null` | `null` | Fichier sélectionné via la drop zone |
-| `label` | `string` | `''` | Label saisi par l'opérateur |
-| `envName` | `string` | `'OPF'` | Environnement saisi par l'opérateur |
-| `loading` | `boolean` | `false` | Indique si la requête POST est en cours |
-| `error` | `string \| null` | `null` | Message d'erreur à afficher |
-| `result` | `SnapshotDetail \| null` | `null` | Réponse API après upload réussi |
-
----
-
-## Constante notable
-
-```ts
-const MAX_UPLOAD = 50 * 1024 * 1024; // 52 428 800 octets
-```
-
-Cette constante est définie au niveau module dans `UploadPage.tsx`. Elle est passée à `react-dropzone` via `maxSize`. La même limite est appliquée côté serveur via `multer` (voir design §11.1).
-
----
-
-## Comportement de `api.createSnapshot`
-
-```ts
-createSnapshot: async (file: File, label: string, envName: string): Promise<SnapshotDetail> => {
-  const form = new FormData();
-  form.append('zip', file);       // champ attendu par multer côté API
-  form.append('label', label);
-  form.append('envName', envName);
-  const res = await fetch('/api/snapshots', { method: 'POST', body: form });
-  return parseJson<SnapshotDetail>(res);
+```typescript
+{
+  id: string;                 // UUID local (non persisté)
+  file: File;
+  fileName: string;
+  fileSize: number;
+  fileHash?: string;
+  sourceComponentEic?: string | null;
+  sourceDumpTimestamp?: string | null;
+  dumpType?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  confidence?: 'HIGH' | 'FALLBACK';
+  label: string;
+  overrideDumpType?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+  duplicateOf?: { importId: string; label: string } | null;
+  forceReplace: boolean;
+  state: 'pending-inspect' | 'inspected' | 'uploading' | 'done' | 'skipped' | 'error';
+  errorCode?: string;
+  errorMessage?: string;
+  createdImportId?: string;
 }
 ```
 
-`parseJson` lève `new Error(err.message ?? 'HTTP <status>')` si le statut n'est pas 2xx, remontant ainsi le message NestJS (`UploadValidationException`, etc.) directement dans la bannière d'erreur de `UploadPage`.
+### Libellé auto-généré
+
+Si `result.sourceComponentEic` est présent : `"{EIC} · {sourceDumpTimestamp.slice(0,10)}"`.
+Sinon : `"{fileName sans .zip}"`.
 
 ---
 
-## Comportement de `setActiveSnapshot`
+## Dépendances
 
-`setActiveSnapshot(id)` dans le store Zustand :
-1. Remet à zéro `selectedNodeEic` et `selectedEdgeId` (efface la sélection carte courante).
-2. Appelle `GET /api/snapshots/:id/graph`.
-3. Met à jour `activeSnapshotId` et `graph` dans le store.
-4. En cas d'erreur : positionne `store.error` mais ne lève pas d'exception — `UploadPage` ne capte pas cet état d'erreur.
+- `react-dropzone` — dropzone multi-fichiers
+- `react-router-dom` — navigation post-upload + lecture `?env=` query param
+- `@carto-ecp/shared` — types `ImportDetail`, `InspectResult`
+- Zustand store — état du batch
+- `lib/api.ts` — appels HTTP
+- `UploadBatchTable` — affichage du tableau
 
 ---
 
-## Tests existants
+## Invariants
 
-| Fichier | Ce qu'il teste | Statut |
-|---------|---------------|--------|
-| `apps/web/e2e/upload-to-map.spec.ts` | Flux E2E complet : dépôt du zip fixture Endpoint via `setInputFiles`, saisie du label, clic "Envoyer", attente du bouton "Voir sur la carte", navigation vers `/map`, vérification que la carte Leaflet est visible | Existant (Playwright) |
-| `apps/web/e2e/snapshot-switch.spec.ts` | Bascule entre deux snapshots (implique deux uploads préalables via l'UI) | Existant (Playwright) |
+1. L'inspection est déclenchée automatiquement dès que des fichiers sont déposés. Elle ne requiert pas d'action utilisateur explicite.
+2. `submitBatch` est best-effort par fichier (ADR-033) : une erreur sur un fichier ne bloque pas les suivants.
+3. Les fichiers dont l'état est `'error'`, `'done'` ou `'skipped'` sont ignorés par `submitBatch`.
+4. Le batch (uploadBatch) est conservé dans le store même après navigation. `clearBatch` réinitialise explicitement.
+5. Le `file: File` (référence navigateur) n'est pas sérialisable et n'est pas persisté dans localStorage.
+6. La limite est 20 fichiers par batch et 50 MB par fichier (cohérent avec le backend).
 
-| `apps/web/src/pages/UploadPage.test.tsx` | **[P2-4]** Soumission OK (mock `api.createSnapshot` résout), état loading pendant la requête, affichage bannière erreur API, affichage section warnings si `warnings.length > 0`, bouton Envoyer désactivé sans fichier sélectionné, affichage bouton "Voir sur la carte" après succès | Ajouté Phase 2 |
+---
+
+## Tests
+
+| Fichier spec | Couverture |
+|-------------|-----------|
+| `UploadPage.test.tsx` | Dropzone, submit avec envName, état disabled, navigation post-submit |
+
+Ref. croisées : [web/upload-batch-table](../upload-batch-table/spec-technique.md), [api/imports](../../api/imports/spec-technique.md).

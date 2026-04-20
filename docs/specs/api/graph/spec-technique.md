@@ -1,192 +1,191 @@
 # Spec Technique — api/graph
 
-| Champ         | Valeur              |
-|---------------|---------------------|
-| Module        | api/graph           |
-| Version       | 0.3.0               |
-| Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 2 + Phase 3 remédiation |
+| Champ  | Valeur                          |
+|--------|---------------------------------|
+| Module | api/graph                       |
+| Version| 2.0.0                           |
+| Date   | 2026-04-20                      |
+| Source | v2.0 post-implémentation        |
 
-## Architecture du module
+---
 
-Le module `graph` est un module NestJS autonome composé de trois éléments :
+## Architecture
 
-- **`GraphController`** : contrôleur REST mince. Reçoit `GET /snapshots/:id/graph`,
-  délègue immédiatement à `GraphService.getGraph()` et retourne le résultat sérialisé.
-  Aucune transformation, aucune validation de requête (le snapshot ID est passé tel
-  quel au service).
+Le module `graph` expose une route GET qui calcule à la volée le graphe réseau pour un environnement et une date de référence. Il n'y a plus de table de graphe pré-calculée (suppression des anciennes tables globales Snapshot/Component/MessagePath de v1). Le calcul se fait en plusieurs étapes : chargement des imports filtrés, merge des composants, cascade 5 niveaux, merge des chemins, construction des edges.
 
-- **`GraphService`** : service métier principal. Contient deux méthodes publiques :
-  - `getGraph(snapshotId)` : méthode async qui charge les données depuis Prisma puis
-    appelle `buildGraph`. C'est le point d'entrée pour les requêtes HTTP.
-  - `buildGraph(snapshot, components, paths, stats)` : méthode synchrone pure qui
-    exécute toute la logique d'agrégation. Exposée `public` pour être testable
-    unitairement sans DI Prisma.
+### Fichiers
 
-  Méthodes privées :
-  - `parseThreshold()` : **[P3-2]** lit `process.env['ISRECENT_THRESHOLD_MS']` (défaut : `86400000`) dans le constructeur.
-  - `toNode(component)` : mappe un `Component` Prisma en `GraphNode` DTO.
-  - `kindOf(component)` : détermine le `NodeKind` depuis `component.type` et
-    `component.organization`.
-  - `computeBounds(nodes)` : calcule les bornes géographiques avec padding.
+| Fichier | Rôle |
+|---------|------|
+| `graph.controller.ts` | Route GET /api/graph?env=&refDate= |
+| `graph.service.ts` | Orchestrateur du calcul compute-on-read |
+| `apply-cascade.ts` | Fonction `applyCascade` : cascade 5 niveaux par champ |
+| `merge-components.ts` | Fonction `mergeComponentsLatestWins` : dédupliquer composants par EIC |
+| `merge-paths.ts` | Fonction `mergePathsLatestWins` : dédupliquer chemins par clé 5-champs |
 
-- **`GraphModule`** : module NestJS déclarant le controller et le service, exportant
-  `GraphService` (potentiellement consommé par d'autres modules futurs). Il importe
-  implicitement `PrismaService` et `RegistryService` via le `AppModule` global —
-  ces dépendances ne sont pas explicitement listées dans les imports du module.
+---
 
-## Fichiers impactés
+## Interfaces
 
-| Fichier | Rôle | Lignes |
-|---------|------|--------|
-| `apps/api/src/graph/graph.service.ts` | Logique d'agrégation — `buildGraph`, `toNode`, `kindOf`, `computeBounds` | ~173 |
-| `apps/api/src/graph/graph.controller.ts` | Endpoint REST `GET :id/graph` | ~12 |
-| `apps/api/src/graph/graph.module.ts` | Déclaration NestJS du module | ~10 |
-| `apps/api/src/graph/graph.service.spec.ts` | Tests unitaires `buildGraph` | ~139 |
-| `packages/shared/src/graph.ts` | Types DTO partagés : `GraphNode`, `GraphEdge`, `GraphBounds`, `GraphResponse`, `NodeKind`, `EdgeDirection` | ~59 |
+### Route
 
-## Schéma BDD
+```
+GET /api/graph?env={envName}&refDate={ISO8601}
+```
 
-Tables lues en lecture seule par ce module :
+| Paramètre | Type | Requis | Description |
+|-----------|------|--------|-------------|
+| env | string | Oui | Nom de l'environnement |
+| refDate | ISO 8601 | Non | Date de coupure. Défaut : maintenant |
 
-| Table | Colonnes utilisées | Rôle |
-|-------|-------------------|------|
-| `Snapshot` | `id`, `uploadedAt` | Référence du snapshot, point temporel pour `isRecent` |
-| `Component` | `eic`, `type`, `organization`, `displayName`, `country`, `lat`, `lng`, `isDefaultPosition`, `networksCsv`, `process`, `creationTs`, `modificationTs` | Données des nœuds |
-| `ComponentUrl` | `network`, `url` | URLs AMQPS/HTTPS incluses dans chaque nœud |
-| `MessagePath` | `direction`, `senderEicOrWildcard`, `receiverEic`, `process`, `messageType`, `transportPattern`, `intermediateBrokerEic`, `validFrom`, `validTo` | Source des edges avant agrégation |
-| `MessagingStatistic` | `sourceEndpointCode`, `remoteComponentCode`, `connectionStatus`, `lastMessageUp`, `lastMessageDown` | Données d'activité des edges |
+Réponse 200 : `GraphResponse` (`@carto-ecp/shared`).
 
-Aucune écriture en base dans ce module.
+### Types de réponse (`@carto-ecp/shared`)
 
-## API / Endpoints
-
-| Méthode | Route | Description | Auth |
-|---------|-------|-------------|------|
-| GET | `/api/snapshots/:id/graph` | Retourne `GraphResponse` pour le snapshot `id` | Aucune (hors scope slice #1) |
-
-**Réponses :**
-- `200 OK` — `GraphResponse` JSON
-- `404 Not Found` — `SnapshotNotFoundException` si le snapshot n'existe pas
-
-**Payload de réponse (`GraphResponse`) :**
-```ts
-{
-  bounds: { north: number; south: number; east: number; west: number };
+```typescript
+GraphResponse = {
+  bounds: GraphBounds;
   nodes: GraphNode[];
   edges: GraphEdge[];
-  mapConfig: MapConfig;  // [P3-4] parisLat, parisLng, offsetDeg, proximityThresholdDeg
+  mapConfig: MapConfig;
 }
-```
 
-**Détail `GraphNode` :**
-```ts
-{
-  id: string;           // = eic
-  eic: string;
-  kind: 'RTE_ENDPOINT' | 'RTE_CD' | 'BROKER' | 'EXTERNAL_CD' | 'EXTERNAL_ENDPOINT';
-  displayName: string;
-  organization: string;
-  country: string | null;
-  lat: number;
-  lng: number;
-  isDefaultPosition: boolean;
-  networks: string[];
-  process: ProcessKey | null;
+GraphNode = {
+  id: string; eic: string; kind: NodeKind;
+  displayName: string; organization: string; country: string | null;
+  lat: number; lng: number; isDefaultPosition: boolean;
+  networks: string[]; process: ProcessKey | null;
   urls: { network: string; url: string }[];
-  creationTs: string;   // ISO 8601
-  modificationTs: string;
+  creationTs: string; modificationTs: string;
 }
-```
 
-**Détail `GraphEdge` :**
-```ts
-{
-  id: string;           // SHA-1 hex tronqué 16 chars de "fromEic|toEic|process"
-  fromEic: string;
-  toEic: string;
-  direction: 'IN' | 'OUT';
-  process: ProcessKey;  // VP | CORE | MARI | PICASSO | TP | UK-CC-IN | MIXTE | UNKNOWN
-  messageTypes: string[];
-  transportPatterns: ('DIRECT' | 'INDIRECT')[];
+GraphEdge = {
+  id: string; fromEic: string; toEic: string;
+  direction: 'IN' | 'OUT'; process: ProcessKey;
+  messageTypes: string[]; transportPatterns: ('DIRECT' | 'INDIRECT')[];
   intermediateBrokerEic: string | null;
-  activity: {
-    connectionStatus: string | null;
-    lastMessageUp: string | null;   // ISO 8601
-    lastMessageDown: string | null;
-    isRecent: boolean;
-  };
-  validFrom: string;    // ISO 8601, fallback new Date(0)
-  validTo: string | null;
+  activity: { connectionStatus: string | null; lastMessageUp: string | null;
+               lastMessageDown: string | null; isRecent: boolean; };
+  validFrom: string; validTo: string | null;
+}
+
+NodeKind = 'RTE_ENDPOINT' | 'RTE_CD' | 'BROKER' | 'EXTERNAL_CD' | 'EXTERNAL_ENDPOINT'
+
+MapConfig = {
+  rteClusterLat: number; rteClusterLng: number;
+  rteClusterOffsetDeg: number; rteClusterProximityDeg: number;
+  defaultLat: number; defaultLng: number;
 }
 ```
 
-## Algorithme `buildGraph` — détail
+---
+
+## Algorithme compute-on-read (`GraphService.getGraph`)
+
+### Étape 1 — Chargement des imports filtrés
 
 ```
-1. Mapper components → GraphNode[] via toNode()
-2. Construire statsMap : Map<"source::remote", MessagingStatistic>
-3. Pour chaque MessagePath p :
-   a. Calculer fromEic / toEic selon direction (IN : sender→receiver, OUT : receiver→sender)
-   b. Si fromEic === '*' ou toEic === '*' → skip
-   c. Clé = "fromEic::toEic"
-   d. Si groupe existant : ajouter process, messageType, transportPattern au Set
-   e. Sinon : créer un nouveau groupe
-4. Pour chaque groupe → créer GraphEdge :
-   a. process = 'MIXTE' si |processes| >= 2, sinon unique process
-   b. id = sha1("fromEic|toEic|process").slice(0,16)
-   c. Chercher stat = statsMap("fromEic::toEic") ?? statsMap("toEic::fromEic")
-   d. isRecent = stat.lastMessageUp != null
-                 && uploadedAt - lastMessageUp < isRecentThreshold  // [P3-2] configurable via ISRECENT_THRESHOLD_MS (défaut: 86400000ms)
-                 && uploadedAt - lastMessageUp >= 0
-5. Retourner { bounds: computeBounds(nodes), nodes, edges, mapConfig: this.registry.getMapConfig() }
+SELECT * FROM Import
+WHERE envName = :env AND effectiveDate <= :refDate
+ORDER BY effectiveDate ASC
 ```
 
-**`kindOf(component)` :**
-```
-if type === 'BROKER'              → 'BROKER'
-if type === 'COMPONENT_DIRECTORY'
-  if org === 'RTE' && eic.startsWith('17V') → 'RTE_CD'
-  else                            → 'EXTERNAL_CD'
-else (ENDPOINT)
-  if org === 'RTE' && eic.startsWith('17V') → 'RTE_ENDPOINT'
-  else                            → 'EXTERNAL_ENDPOINT'
-```
+Inclut les `importedComponents` (avec urls), `importedPaths` et `importedStats`.
 
-**`computeBounds(nodes)` :**
-```
-if nodes.length === 0 → { north: 60, south: 40, east: 20, west: -10 }
-else :
-  Parcourir tous les nœuds pour trouver min/max lat et lng
-  Retourner { north: max_lat+2, south: min_lat-2, east: max_lng+2, west: min_lng-2 }
-```
+### Étape 2 — Merge des composants par EIC (latest-wins)
 
-## Patterns identifiés
+`mergeComponentsLatestWins(rows)` : pour chaque EIC, conserve uniquement le composant dont l'import a la `effectiveDate` la plus récente. Retourne `Map<eic, MergedComponent>`.
 
-- **Thin Controller** : `GraphController` ne fait aucun traitement, délègue tout au service.
-- **Pure function testable** : `buildGraph` est une méthode synchrone sans side-effects,
-  testable unitairement en instanciant le service avec des mocks Prisma vides.
-- **Map-based aggregation** : l'agrégation des paths utilise une `Map<string, Group>`
-  avec la clé string `"fromEic::toEic"`, évitant toute double boucle.
-- **Set pour déduplication** : les `processes`, `messageTypes` et `transports` sont
-  accumulés dans des `Set<>` pendant l'agrégation, puis convertis en tableaux.
-- **Recherche bidirectionnelle des stats** : la lookup `statsMap` tente les deux
-  orientations `(A,B)` puis `(B,A)` pour absorber les asymétries de nommage entre
-  `sourceEndpointCode` et `remoteComponentCode`.
-- **Identifiant déterministe** : le hash SHA-1 sur `fromEic|toEic|process` rend
-  l'id stable entre deux appels successifs du même snapshot (utile pour le state
-  `selectedEdgeId` côté frontend Zustand).
+### Étape 3 — Cascade 5 niveaux par champ (`applyCascade`)
 
-## Tests existants
+Pour chaque EIC, construit un `GlobalComponent` en appliquant la priorité champ par champ (ADR-024) :
 
-| Fichier | Ce qu'il teste | Statut |
-|---------|---------------|--------|
-| `apps/api/src/graph/graph.service.spec.ts` | Agrégation 2 paths → 1 edge | Existant |
-| | Skip des paths wildcard (`*`) | Existant |
-| | Détection MIXTE (2 processes → MIXTE) | Existant |
-| | `isRecent = true` si `lastMessageUp < 24h` du snapshot | Existant |
-| | `computeBounds` avec padding 2° | Existant |
-| `apps/api/test/full-graph-endpoint.spec.ts` | **[P2-3]** Test d'intégration contre les fixtures réelles (Endpoint + CD) : HTTP 200, présence `nodes` et `edges`, cohérence `bounds` (lat/lng finis), HTTP 404 sur snapshot inexistant | Ajouté Phase 2 |
-| `apps/api/src/graph/graph.service.spec.ts` | **[P3-2]** `ISRECENT_THRESHOLD_MS` env var : test avec seuil à 0ms → `isRecent = false` même pour un message très récent | Ajouté Phase 3 |
-| | **[P3-4]** `mapConfig` inclus dans le retour de `buildGraph` | Ajouté Phase 3 |
-| Tests E2E Playwright | Affichage carte (smoke test) — couverture indirecte | Existant (partiel) |
+| Niveau | Source | Champs |
+|--------|--------|--------|
+| 1 | `ComponentOverride` (BDD) | displayName, type, organization, country, lat, lng, tagsCsv, notes |
+| 2 | `EntsoeEntry` (BDD, uploadée via /api/entsoe/upload) | displayName, organization, country |
+| 3 | Registry overlay RTE (JSON, boot) | displayName, organization, country, lat, lng, type, process |
+| 4 | `MergedComponent` (import latest-wins) | tous les champs restants |
+| 5 | Défaut Brussels (`mapConfig.defaultLat/defaultLng`) | lat, lng si aucun niveau n'a fourni de coords |
+
+`isDefaultPosition = true` si lat/lng proviennent du niveau 5.
+
+### Étape 4 — Merge des chemins par clé 5-champs (latest-wins)
+
+Clé : `(receiverEic, senderEic, messageType, transportPattern, intermediateBrokerEic)`.
+
+`mergePathsLatestWins(rows)` : conserve le chemin de l'import avec la `effectiveDate` la plus récente.
+
+### Étape 5 — Construction des edges
+
+Pour chaque chemin merged :
+- Sauter les wildcards (`receiverEic === '*'` ou `senderEic === '*'`)
+- `direction` : `IN` si `receiverEic` dans `rteEicSet`, sinon `OUT`
+- `fromEic` = senderEic si direction IN, sinon receiverEic
+- `toEic` = receiverEic si direction IN, sinon senderEic
+- Agrégation par clé `{fromEic}::{toEic}`
+- `process = 'MIXTE'` si >= 2 processus distincts sur la paire
+
+### Étape 6 — Statistiques et isRecent
+
+Stats de messagerie : latest-wins par `(sourceEndpointCode, remoteComponentCode)`.
+
+`isRecent = lastMessageUp != null`
+  `&& (refTime - lastMessageUp.getTime()) < isRecentThreshold`
+  `&& (refTime - lastMessageUp.getTime()) >= 0`
+
+`refTime` = `effectiveDate` du dernier import chargé.
+`isRecentThreshold` = env var `ISRECENT_THRESHOLD_MS` (défaut : 86 400 000 ms = 24h).
+
+### Étape 7 — ID d'edge déterministe
+
+`SHA1("{fromEic}|{toEic}|{process}").slice(0, 16)`.
+
+### Étape 8 — Bounds
+
+`min/max(lat/lng)` des nodes + padding de 2 degrés. Défaut si aucun nœud : `{ north: 60, south: 40, east: 20, west: -10 }`.
+
+---
+
+## NodeKind
+
+| Kind | Condition |
+|------|-----------|
+| `RTE_ENDPOINT` | `type = 'ENDPOINT'` et EIC dans rteEicSet |
+| `RTE_CD` | `type = 'COMPONENT_DIRECTORY'` et EIC dans rteEicSet |
+| `BROKER` | `type = 'BROKER'` |
+| `EXTERNAL_CD` | `type = 'COMPONENT_DIRECTORY'` et EIC hors rteEicSet |
+| `EXTERNAL_ENDPOINT` | `type = 'ENDPOINT'` et EIC hors rteEicSet |
+
+---
+
+## Dépendances
+
+- `PrismaService` — lecture Import, ImportedComponent, ImportedPath, ImportedMessagingStat, ComponentOverride, EntsoeEntry
+- `RegistryService` — `resolveEic(eic)`, `classifyMessageType(messageType)`, `getRteEicSet()`, `getMapConfig()`
+- `@carto-ecp/shared` — types `GraphResponse`, `GraphNode`, `GraphEdge`, `NodeKind`, `ProcessKey`, `MapConfig`
+
+---
+
+## Invariants
+
+1. L'ensemble des nœuds est exclusivement déterminé par les composants importés dans l'envName. Les ComponentOverride et EntsoeEntry enrichissent mais ne créent pas de nœuds.
+2. `rteEicSet` = `overlay.rteEndpoints[*].eic` ∪ `{overlay.rteComponentDirectory.eic}`. Immuable à chaud.
+3. Les edges n'incluent pas les chemins wildcard.
+4. `isRecent` est calculé relativement à `effectiveDate` du dernier import (reproductibilité historique, ADR-010).
+5. `ISRECENT_THRESHOLD_MS` est configurable par variable d'environnement.
+6. La classification `messageType -> ProcessKey` est effectuée à la lecture (via `RegistryService.classifyMessageType`) et non à l'ingestion en v2.
+
+---
+
+## Tests
+
+| Fichier spec | Couverture |
+|-------------|-----------|
+| `graph.controller.spec.ts` | Validation param env requis, parsing refDate |
+| `graph.service.compute.spec.ts` | Algorithme compute-on-read : merge, cascade, edges, isRecent, MIXTE |
+| `apply-cascade.spec.ts` | Cascade 5 niveaux par champ, priorités, isDefaultPosition |
+| `merge-components.spec.ts` | Latest-wins par EIC sur plusieurs imports |
+| `merge-paths.spec.ts` | Latest-wins par clé 5-champs |
+
+Ref. croisées : [api/imports](../imports/spec-technique.md) — données brutes. [api/registry](../registry/spec-technique.md) — niveau 3 cascade. [api/overrides](../overrides/spec-technique.md) — niveau 1 cascade. [api/admin](../admin/spec-technique.md) — niveau 2 cascade (EntsoeEntry).
