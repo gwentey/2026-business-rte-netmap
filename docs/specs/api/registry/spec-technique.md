@@ -27,7 +27,6 @@ Le module `registry` charge au démarrage les données de référence statiques 
 
 | Méthode | Signature | Description |
 |---------|-----------|-------------|
-| `resolveComponent` | `(eic, organization) -> ResolvedLocation` | Cascade 4 niveaux pour l'ingestion (v1, toujours présente) |
 | `resolveEic` | `(eic) -> RegistryInput \| null` | Retourne les données registry pour un EIC (niveau 3 de la cascade v2) |
 | `classifyMessageType` | `(messageType) -> ProcessKey` | Classe un messageType en processus métier |
 | `getRteEicSet` | `() -> Set<string>` | Ensemble des EICs RTE autoritatifs (endpoints + CD) |
@@ -150,4 +149,4 @@ MapConfig = {
 |-------------|-----------|
 | `registry.service.spec.ts` | resolveEic (4 niveaux), classifyMessageType (exact, regex, UNKNOWN, wildcard), getRteEicSet, getMapConfig |
 
-Ref. croisées : [api/graph](../graph/spec-technique.md) — consommateur principal (niveaux 3 de la cascade, rteEicSet, classifyMessageType, mapConfig). [api/ingestion](../ingestion/spec-technique.md) — consomme resolveComponent et classifyMessageType.
+Ref. croisées : [api/graph](../graph/spec-technique.md) — consommateur principal (niveau 3 de la cascade via `resolveEic`, rteEicSet, classifyMessageType, mapConfig). [api/ingestion](../ingestion/spec-technique.md) — consomme `classifyMessageType` (pas de résolution géo à l'ingestion en v2, calcul à la lecture).

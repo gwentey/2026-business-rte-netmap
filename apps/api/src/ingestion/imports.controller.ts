@@ -15,7 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
-import type { ImportDetail, ImportSummary, InspectResult } from '@carto-ecp/shared';
+import type { ImportDetail, InspectResult } from '@carto-ecp/shared';
 import { ImportsService } from './imports.service.js';
 
 const CreateImportSchema = z.object({
@@ -103,7 +103,7 @@ export class ImportsController {
   }
 
   @Get()
-  async list(@Query('env') env?: string): Promise<ImportSummary[]> {
+  async list(@Query('env') env?: string): Promise<ImportDetail[]> {
     return this.imports.listImports(env);
   }
 

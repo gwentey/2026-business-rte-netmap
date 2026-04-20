@@ -60,12 +60,12 @@ Le module `common` regroupe les utilitaires transverses partagés par les servic
 | `MissingRequiredCsvException` | `MISSING_REQUIRED_CSV` | 400 Bad Request |
 | `UnknownMadesNamespaceException` | `UNKNOWN_MADES_NAMESPACE` | 400 Bad Request |
 | `PayloadTooLargeException` | `PAYLOAD_TOO_LARGE` | 413 Payload Too Large |
-| `SnapshotNotFoundException` | `SNAPSHOT_NOT_FOUND` | 404 Not Found |
+| `ImportNotFoundException` | `IMPORT_NOT_FOUND` | 404 Not Found |
 
 11. `MissingRequiredCsvException` injecte le nom du fichier manquant dans le contexte.
 12. `UnknownMadesNamespaceException` accepte `null` comme valeur de namespace (cas où l'attribut XML est absent).
 13. `PayloadTooLargeException` injecte la taille en octets du fichier refusé.
-14. `SnapshotNotFoundException` injecte l'identifiant du snapshot introuvable.
+14. `ImportNotFoundException` injecte l'identifiant de l'import introuvable.
 
 ---
 

@@ -40,11 +40,3 @@ export type RteOverlay = {
     defaultLng: number;
   };
 };
-
-export type ResolvedLocation = {
-  displayName: string;
-  country: string | null;
-  lat: number;
-  lng: number;
-  isDefaultPosition: boolean;
-};
