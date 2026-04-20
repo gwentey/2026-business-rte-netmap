@@ -136,3 +136,9 @@ model EntsoeEntry {
   function       String?
   refreshedAt    DateTime  // Écrit par refresh batch en 2e, null pour 2a (table vide)
 }
+
+model ProcessColorOverride {
+  process   String   @id
+  color     String
+  updatedAt DateTime @updatedAt
+}
