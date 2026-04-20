@@ -5,11 +5,21 @@ import type {
   RegistryColorRow,
   RegistryRteEndpointRow,
 } from '@carto-ecp/shared';
-import { PROCESS_KEYS } from '@carto-ecp/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegistryService } from '../registry/registry.service.js';
 
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+
+const PROCESS_KEYS = [
+  'TP',
+  'UK-CC-IN',
+  'CORE',
+  'MARI',
+  'PICASSO',
+  'VP',
+  'MIXTE',
+  'UNKNOWN',
+] as const satisfies readonly ProcessKey[];
 
 @Injectable()
 export class RegistrySettingsService {
