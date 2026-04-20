@@ -6,7 +6,10 @@ import type {
   AdminComponentRow,
   OverrideUpsertInput,
   EntsoeStatus,
+  ProcessKey,
   PurgeResult,
+  RegistryColorRow,
+  RegistryRteEndpointRow,
   ResetAllResult,
 } from '@carto-ecp/shared';
 
@@ -115,5 +118,27 @@ export const api = {
     const qs = new URLSearchParams({ env });
     if (refDate) qs.set('refDate', refDate.toISOString());
     return request<GraphResponse>(`/api/graph?${qs.toString()}`);
+  },
+
+  async getProcessColors(): Promise<RegistryColorRow[]> {
+    return request<RegistryColorRow[]>('/api/registry/process-colors');
+  },
+
+  async setProcessColor(process: ProcessKey, color: string): Promise<void> {
+    await request<void>(`/api/registry/process-colors/${encodeURIComponent(process)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ color }),
+    });
+  },
+
+  async resetProcessColor(process: ProcessKey): Promise<void> {
+    await request<void>(`/api/registry/process-colors/${encodeURIComponent(process)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getRteEndpoints(): Promise<RegistryRteEndpointRow[]> {
+    return request<RegistryRteEndpointRow[]>('/api/registry/rte-endpoints');
   },
 };
