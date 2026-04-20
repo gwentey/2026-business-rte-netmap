@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | api/common          |
-| Version       | 0.1.0               |
-| Date          | 2026-04-17          |
-| Source        | Rétro-ingénierie    |
+| Version       | 2.0.0               |
+| Date          | 2026-04-20          |
+| Source        | v2.0 post-implémentation |
 
 ---
 
@@ -173,7 +173,7 @@ Corps de la réponse HTTP construit par NestJS :
 | `apps/api/src/ingestion/xml-mades-parser.service.ts` | `parseEcpDate` |
 | `apps/api/src/ingestion/zip-extractor.service.ts` | `MissingRequiredCsvException`, `InvalidUploadException`, `PayloadTooLargeException` |
 | `apps/api/src/ingestion/xml-mades-parser.service.ts` | `UnknownMadesNamespaceException` |
-| `apps/api/src/snapshots/snapshots.service.ts` | `SnapshotNotFoundException` |
+| `apps/api/src/ingestion/imports.service.ts` | `SnapshotNotFoundException` (code IMPORT_NOT_FOUND, usage interne) |
 
 ---
 

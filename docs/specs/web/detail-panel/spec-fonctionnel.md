@@ -3,11 +3,9 @@
 | Champ      | Valeur              |
 |------------|---------------------|
 | Module     | web/detail-panel    |
-| Version    | 0.1.0               |
-| Date       | 2026-04-17          |
-| Auteur     | retro-documenter    |
-| Statut     | DRAFT               |
-| Source     | Rétro-ingénierie    |
+| Version    | 2.0.0               |
+| Date       | 2026-04-20          |
+| Source     | v2.0 post-implémentation |
 
 > **[DRAFT — à valider par le dev]** Cette spec a été générée par rétro-ingénierie
 > à partir du code existant. Elle doit être relue et validée par un développeur

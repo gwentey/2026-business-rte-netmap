@@ -1,182 +1,162 @@
 # Spec Technique — api/ingestion
 
-| Champ         | Valeur              |
-|---------------|---------------------|
-| Module        | api/ingestion       |
-| Version       | 0.3.0               |
-| Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 1 + Phase 2 + Phase 3 remédiation |
+| Champ  | Valeur                          |
+|--------|---------------------------------|
+| Module | api/ingestion                   |
+| Version| 2.0.0                           |
+| Date   | 2026-04-20                      |
+| Source | v2.0 post-implémentation        |
 
 ---
 
-## Architecture du module
+## Architecture
 
-Le module `ingestion` est un pipeline stateless de 5 services NestJS chaînés, orchestré par `IngestionService`. Chaque service a une responsabilité unique et ne partage pas d'état entre les appels.
+Le module `ingestion` gère l'ensemble du pipeline d'import de dumps ECP. En v2.0, il expose directement les routes HTTP (le contrôleur est dans ce module), orchestre la détection de type, route vers le bon parser selon le `dumpType`, construit le modèle brut et persiste les données. Il n'y a plus de table Snapshot globale : chaque import persiste ses données brutes dans `Import`, `ImportedComponent`, `ImportedPath`, `ImportedMessagingStat` et `ImportedAppProperty`.
+
+### Services et responsabilités
+
+| Service | Fichier | Rôle |
+|---------|---------|------|
+| `ImportsController` | `imports.controller.ts` | Routes HTTP : POST, POST inspect, GET, DELETE, PATCH |
+| `ImportsService` | `imports.service.ts` | Orchestrateur : détection type, routing parsers, construction BuiltImport, délégation à RawPersister |
+| `DumpTypeDetector` (fonction) | `dump-type-detector.ts` | Détection heuristique type de dump par fichiers CSV présents dans le ZIP |
+| `ZipExtractorService` | `zip-extractor.service.ts` | Extraction ZIP en mémoire, whitelist, exclusion sensibles |
+| `CsvReaderService` | `csv-reader.service.ts` | Parsing CSV : application_property, component_directory, message_path, messaging_statistics |
+| `CsvPathReaderService` | `csv-path-reader.service.ts` | Parsing chemins de messages dans un dump CD (explode senders x receivers) |
+| `XmlMadesParserService` | `xml-mades-parser.service.ts` | Parsing blob XML MADES (namespace ENTSO-E) : composants, brokers, chemins |
+| `ImportBuilderService` | `import-builder.service.ts` | Construction `BuiltImport` : `buildFromLocalCsv`, `buildFromXml`, `buildFromCdCsv`, `buildAppProperties`, `buildMessagingStats` |
+| `RawPersisterService` | `raw-persister.service.ts` | Repackage ZIP (sans sensibles), écriture disque, transaction Prisma atomique |
+| `FilenameParser` (fonction) | `filename-parser.ts` | Extraction `sourceComponentEic` + `sourceDumpTimestamp` depuis le nom de fichier |
+
+### Routing par dumpType
 
 ```
-IngestionService.ingest(IngestionInput)
-  │
-  ├─ 1. ZipExtractorService.extract(buffer)         → ExtractedZip
-  │       └─ Map<filename, Buffer> (whitelist appliquée, sensibles exclus)
-  │
-  ├─ 2. CsvReaderService.readApplicationProperties() → AppPropertyRow[]
-  │   CsvReaderService.readComponentDirectory()      → ComponentDirectoryRow[]
-  │       └─ Extraction du blob XML (colonne directoryContent[0])
-  │
-  ├─ 3. XmlMadesParserService.parse(xmlBlob)         → MadesTree
-  │       └─ { cdCode, brokers[], endpoints[], componentDirectories[] }
-  │          Chaque MadesComponent contient paths[], urls[], certificates[]
-  │
-  ├─ 4. CsvReaderService.readMessagePaths()          → MessagePathRow[]  (optionnel)
-  │   CsvReaderService.readMessagingStatistics()     → MessagingStatisticRow[] (optionnel)
-  │
-  ├─ 5. NetworkModelBuilderService.build(BuilderInput) → NetworkSnapshot
-  │       ├─ Détection componentType (ENDPOINT vs COMPONENT_DIRECTORY)
-  │       ├─ Enrichissement registry (resolveComponent par EIC)
-  │       ├─ Classification messageType (classifyMessageType)
-  │       ├─ Calcul direction IN/OUT (basé sur rteEicSet)
-  │       └─ Calcul isExpired (validTo vs Date.now())
-  │
-  └─ 6. SnapshotPersisterService.persist(snapshot, zipBuffer, label)
-          ├─ Re-packaging zip (retrait fichiers sensibles) [P3-1]
-          ├─ Écriture zip assaini sur disque (storage/snapshots/{uuid}.zip)
-          └─ Transaction Prisma : Snapshot + Components + ComponentUrls
-                                  + MessagePaths + MessagingStatistics
-                                  + AppProperties (filtrées)
+ZIP reçu
+  -> ZipExtractorService.listEntries()
+  -> detectDumpType(entries, overrideOptional)
+       ENDPOINT          -> extract() -> CSV (component_directory + app_property + messaging_stats optionnel)
+                           + XML blobs MADES dans chaque ligne component_directory.csv
+       COMPONENT_DIRECTORY -> extract() -> CSV (component_directory + message_path + app_property)
+       BROKER            -> metadata-only (aucune extraction, warning BROKER_DUMP_METADATA_ONLY)
+  -> ImportBuilderService (3 méthodes selon type)
+  -> RawPersisterService.persist(builtImport, zipBuffer)
 ```
 
-### Dépendances injectées
+### Détection du type de dump (`detectDumpType`)
 
-`NetworkModelBuilderService` dépend de `RegistryService` (module `registry`, exporté via `RegistryModule`). `SnapshotPersisterService` dépend de `PrismaService`. Les trois autres services (`ZipExtractorService`, `CsvReaderService`, `XmlMadesParserService`) n'ont aucune dépendance injectée — ce sont des services purs.
+Heuristique par fichiers exclusifs présents dans le ZIP (ADR-031) :
 
-`IngestionModule` exporte uniquement `IngestionService` pour les consumers externes (typiquement `SnapshotsController`).
-
----
-
-## Fichiers impactés
-
-| Fichier | Rôle | Lignes |
-|---------|------|--------|
-| `apps/api/src/ingestion/ingestion.service.ts` | Orchestrateur du pipeline — chaîne les 5 services | ~60 |
-| `apps/api/src/ingestion/ingestion.module.ts` | Module NestJS — déclare et exporte les providers | ~21 |
-| `apps/api/src/ingestion/zip-extractor.service.ts` | Extraction et validation du zip (whitelist, sensibles, taille) | ~64 |
-| `apps/api/src/ingestion/csv-reader.service.ts` | Parsing des 4 CSV typés (appProperties, componentDirectory, messagePaths, stats) | ~115 |
-| `apps/api/src/ingestion/xml-mades-parser.service.ts` | Parsing du blob XML MADES (fast-xml-parser) | ~130 |
-| `apps/api/src/ingestion/network-model-builder.service.ts` | Business logic : détection type, enrichissement, classification, direction | ~163 |
-| `apps/api/src/ingestion/snapshot-persister.service.ts` | Écriture zip + transaction Prisma + filtrage AppProperty sensibles | ~136 |
-| `apps/api/src/ingestion/types.ts` | Contrats TypeScript internes au pipeline | ~180 |
-| `apps/api/src/common/date-parser.ts` | Parser de dates ECP (nanosecondes CSV + millisecondes XML) | ~17 |
-| `apps/api/src/common/null-value-normalizer.ts` | Normalisation `NULL_VALUE_PLACEHOLDER` → `null` | ~8 |
-| `apps/api/src/common/errors/ingestion-errors.ts` | Hiérarchie d'exceptions typées (5 classes héritant de `IngestionError`) | ~65 |
-| `apps/api/src/ingestion/zip-extractor.service.spec.ts` | Tests unitaires ZipExtractor (6 cas) | ~72 |
-| `apps/api/src/ingestion/csv-reader.service.spec.ts` | Tests unitaires CsvReader | ~variable |
-| `apps/api/src/ingestion/xml-mades-parser.service.spec.ts` | Tests unitaires XmlMadesParser | ~variable |
-| `apps/api/src/ingestion/network-model-builder.service.spec.ts` | Tests unitaires NetworkModelBuilder (6 cas) | ~193 |
-| `apps/api/test/full-ingestion-endpoint.spec.ts` | Test d'intégration end-to-end backup Endpoint réel | ~69 |
-| `apps/api/test/full-ingestion-cd.spec.ts` | Test d'intégration end-to-end backup CD réel | ~55 |
-| `apps/api/test/fixtures-loader.ts` | Construction dynamique des zips de fixture à partir des dossiers réels | ~variable |
+| Fichier présent | Type | Confiance |
+|----------------|------|-----------|
+| `synchronized_directories.csv` | COMPONENT_DIRECTORY | HIGH |
+| `component_statistics.csv` | COMPONENT_DIRECTORY | HIGH |
+| `pending_edit_directories.csv` ou `pending_removal_directories.csv` | COMPONENT_DIRECTORY | HIGH |
+| `messaging_statistics.csv` | ENDPOINT | HIGH |
+| `message_upload_route.csv` | ENDPOINT | HIGH |
+| `broker.xml` ou `bootstrap.xml` | BROKER | HIGH |
+| `component_directory.csv` seul | COMPONENT_DIRECTORY | FALLBACK |
+| Aucune signature reconnue | COMPONENT_DIRECTORY | FALLBACK |
+| Override explicite via body `dumpType` | Valeur fournie | HIGH |
 
 ---
 
-## Schéma BDD (tables écrites par ce module)
+## Interfaces
 
-| Table | Créations par ingestion | Clé primaire |
-|-------|------------------------|--------------|
-| `Snapshot` | 1 ligne par ingestion | `id` (UUID v4) |
-| `Component` | N lignes (brokers + endpoints + CDs du MADES) | `id` (auto) + FK `snapshotId` |
-| `ComponentUrl` | M lignes (URLs AMQPS/HTTPS par composant) | `id` (auto) + FK `componentId` |
-| `MessagePath` | P lignes (XML_CD_PATHS + LOCAL_CSV_PATHS) | `id` (auto) + FK `snapshotId` |
-| `MessagingStatistic` | Q lignes (depuis `messaging_statistics.csv`) | `id` (auto) + FK `snapshotId` |
-| `AppProperty` | R lignes (depuis `application_property.csv`, clés sensibles filtrées) | `id` (auto) + FK `snapshotId` |
+### Routes HTTP (préfixe `/api`)
 
-Champs notables sur `Snapshot` : `warningsJson` (JSON sérialisé), `componentType` (enum `ENDPOINT` | `COMPONENT_DIRECTORY`), `cdCode` (nullable), `zipPath` (chemin absolu sur disque).
+| Méthode | Chemin | Description | Réponse |
+|---------|--------|-------------|---------|
+| POST | /api/imports | Import un ZIP (1 fichier) | `ImportDetail` |
+| POST | /api/imports/inspect | Inspecte N ZIPs sans persister | `InspectResult[]` |
+| GET | /api/imports | Liste les imports (`?env=` optionnel) | `ImportDetail[]` |
+| DELETE | /api/imports/:id | Supprime un import + ZIP sur disque | 204 |
+| PATCH | /api/imports/:id | Modifie label ou effectiveDate | `ImportDetail` |
 
----
+### Body POST /api/imports (multipart/form-data)
 
-## API / Endpoints (point d'entrée du pipeline)
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| file | File (ZIP, max 50 MB) | Oui | Le dump ECP |
+| envName | string (1-64) | Oui | Nom de l'environnement |
+| label | string (1-256) | Oui | Label libre |
+| dumpType | 'ENDPOINT' \| 'COMPONENT_DIRECTORY' \| 'BROKER' | Non | Override de détection |
+| replaceImportId | UUID | Non | Remplacer un import existant (même env obligatoire) |
 
-| Méthode | Route | Description | Auth |
-|---------|-------|-------------|------|
-| POST | `/api/snapshots` | Upload multipart : champ `zip` (fichier), `label` (string), `envName` (string). Déclenche `IngestionService.ingest()`. | Aucune |
+Validations supplémentaires : MIME `application/zip` ou `application/x-zip-compressed`, magic bytes `50 4B 03 04`.
 
-Réponse 201 : `IngestionResult` = `{ snapshotId, componentType, sourceComponentCode, cdCode, warnings[], stats }`.
+### Body POST /api/imports/inspect (multipart/form-data)
 
----
+| Champ | Type | Requis | Description |
+|-------|------|--------|-------------|
+| files | File[] (ZIP, max 20 x 50 MB) | Oui | Dumps à inspecter |
+| envName | string | Non | Pour détecter les doublons dans cet env |
 
-## Patterns identifiés
+### Body PATCH /api/imports/:id (JSON strict)
 
-- **Pipeline pattern stateless** : chaque service reçoit une entrée pure et retourne une sortie pure. Pas d'état partagé entre les étapes. L'orchestrateur (`IngestionService`) est le seul à détenir la séquence.
-- **Fail-fast sur erreurs bloquantes, tolérance sur erreurs non bloquantes** : la hiérarchie `IngestionError` (sous-classes typées par code) est levée immédiatement pour les erreurs structurelles. Les anomalies métier (EIC inconnu, messageType non classé) produisent des warnings accumulés dans un tableau. Depuis **Phase 1 (P1-4)**, le cas `component_directory.csv` vide lève une `InvalidUploadException` (HTTP 400 / `INVALID_UPLOAD`) au lieu d'une `Error` native (qui produisait un HTTP 500 opaque).
-- **Whitelist de fichiers** : constantes exportées depuis `types.ts` (`REQUIRED_CSV_FILES`, `USABLE_CSV_FILES`, `IGNORED_CSV_FILES`, `SENSITIVE_CSV_FILES`) — la liste est la source de vérité unique utilisée par `ZipExtractorService`.
-- **Typed row parsing** : `CsvReaderService` expose des méthodes spécialisées par CSV retournant des types structurés (`AppPropertyRow`, `MessagePathRow`, etc.), avec des helpers privés `str()`, `bool()`, `num()`, `date()` qui normalisent les valeurs nulles et invalides. Depuis **Phase 2 (P2-8)**, la méthode interne `readRaw(fileName, files)` retourne `{ rows, parseError }` au lieu de lever une exception — les 4 méthodes publiques acceptent un paramètre `warnings: Warning[]` et appellent `pushCsvWarning` si `parseError` est non nul. `IngestionService` collecte les warnings CSV via un tableau `extractionWarnings` fusionné dans `networkSnapshot.warnings` avant persistance.
-- **Enum validation à la lecture** : les valeurs textuelles à domaine fini (`messagePathType`, `transportPattern`) sont validées lors du parsing CSV et nullifiées si hors domaine, plutôt qu'en post-traitement.
-- **Re-packaging zip sans sensibles [P3-1]** : avant écriture sur disque, `repackageWithoutSensitive(buffer)` reconstruit le zip en omettant `SENSITIVE_CSV_FILES`. Le zip persisté dans `storage/snapshots/` ne contient plus de clés privées ni d'inventaires ECP.
-- **Transaction compensatoire** : si la transaction Prisma échoue après écriture du zip, le zip est supprimé via `unlink()` avec log d'avertissement en cas d'échec du nettoyage.
-- **isArray forcé sur fast-xml-parser** : les éléments XML pouvant être singletons ou tableaux (`broker`, `endpoint`, `componentDirectory`, `network`, `url`, `certificate`, `path`) sont systématiquement forcés en tableau via le callback `isArray`.
+Au moins un champ parmi : `label` (string 1-256), `effectiveDate` (ISO 8601 datetime).
 
----
-
-## Détail des types internes (`types.ts`)
-
-### Contrats d'entrée/sortie du pipeline
+### Types internes (`ingestion/types.ts`)
 
 | Type | Rôle |
 |------|------|
-| `IngestionInput` | Entrée de `IngestionService.ingest()` : `{ zipBuffer, label, envName }` |
-| `ExtractedZip` | Sortie de `ZipExtractorService` : `{ files: Map<string, Buffer> }` |
-| `MadesTree` | Sortie de `XmlMadesParserService` : arbre MADES décodé |
-| `MadesComponent` | Un composant MADES (broker/endpoint/CD) avec ses paths, urls, certificates |
-| `MadesPath` | Un chemin de message XML : senderComponent, messageType, transportPattern, brokerCode, validity |
-| `NetworkSnapshot` | Sortie de `NetworkModelBuilderService` : modèle réseau enrichi complet |
-| `ComponentRecord` | Un composant enrichi (EIC + géocode + displayName + process) |
-| `MessagePathRecord` | Un chemin de message résolu (direction, process, isExpired, source) |
-| `IngestionResult` | Sortie de `SnapshotPersisterService.persist()` : IDs + warnings |
+| `DumpType` | `'ENDPOINT' \| 'COMPONENT_DIRECTORY' \| 'BROKER'` |
+| `BuiltImport` | Objet complet avant persistance (components, paths, messagingStats, appProperties, warnings) |
+| `BuiltImportedComponent` | Composant brut avant cascade géographique (lat/lng peuvent être null) |
+| `BuiltImportedPath` | Chemin de message brut (receiverEic, senderEic, messageType, transportPattern...) |
+| `BuiltImportedMessagingStat` | Statistique de connexion (sourceEndpointCode, remoteComponentCode, lastMessageUp...) |
+| `MadesTree` | Arbre MADES décodé (cdCode, brokers, endpoints, componentDirectories) |
+| `MadesComponent` | Composant MADES avec paths, urls, certificates |
 
-### Constantes de whitelist
+Constantes de whitelist :
 
 | Constante | Contenu |
 |-----------|---------|
 | `REQUIRED_CSV_FILES` | `application_property.csv`, `component_directory.csv` |
-| `USABLE_CSV_FILES` | Les 2 requis + `message_path.csv`, `messaging_statistics.csv` — **[P3-7]** `message_type.csv` et `message_upload_route.csv` retirés (aucun service lecteur associé) |
+| `USABLE_CSV_FILES` | Les 2 requis + `message_path.csv`, `messaging_statistics.csv` |
 | `IGNORED_CSV_FILES` | `component_statistics.csv`, `synchronized_directories.csv`, `pending_edit_directories.csv`, `pending_removal_directories.csv` |
 | `SENSITIVE_CSV_FILES` | `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv` |
 
 ---
 
-## Hiérarchie d'erreurs
+## Dépendances
 
-```
-HttpException
-  └─ IngestionError (code: string, context?: Record<string, unknown>)
-       ├─ InvalidUploadException       → HTTP 400, code INVALID_UPLOAD
-       ├─ MissingRequiredCsvException  → HTTP 400, code MISSING_REQUIRED_CSV
-       ├─ UnknownMadesNamespaceException → HTTP 400, code UNKNOWN_MADES_NAMESPACE
-       ├─ PayloadTooLargeException     → HTTP 413, code PAYLOAD_TOO_LARGE
-       └─ SnapshotNotFoundException    → HTTP 404, code SNAPSHOT_NOT_FOUND
-```
-
-Toutes les erreurs incluent un champ `timestamp` ISO dans le corps de réponse.
+- `PrismaService` — accès SQLite (via RawPersisterService)
+- `RegistryService` — résolution géographique (via ImportBuilderService)
+- `adm-zip` — extraction et repackage du ZIP
+- `csv-parse/sync` — parsing CSV (délimiteur `;`)
+- `fast-xml-parser` — parsing XML MADES
+- `node:crypto` — SHA256 du ZIP brut pour déduplication
+- `@carto-ecp/shared` — types `ImportDetail`, `ImportSummary`, `InspectResult`, `Warning`
 
 ---
 
-## Tests existants
+## Invariants
 
-| Fichier | Ce qu'il teste | Statut |
-|---------|---------------|--------|
-| `apps/api/src/ingestion/zip-extractor.service.spec.ts` | 6 cas unitaires : whitelist, exclusion sensibles, fichiers manquants, zip corrompu, taille max | Existant |
-| `apps/api/src/ingestion/csv-reader.service.spec.ts` | Parsing des 4 types de CSV | Existant |
-| `apps/api/src/ingestion/xml-mades-parser.service.spec.ts` | Parsing XML MADES (namespace, paths, isArray) | Existant |
-| `apps/api/src/ingestion/network-model-builder.service.spec.ts` | 6 cas : détection type, enrichissement RTE, direction IN/OUT, classification, warnings, isExpired | Existant |
-| `apps/api/test/full-ingestion-endpoint.spec.ts` | Test d'intégration end-to-end contre le backup réel ECP-INTERNET-2 (Endpoint) | Existant |
-| `apps/api/test/full-ingestion-cd.spec.ts` | Test d'intégration end-to-end contre le backup réel RTE CD | Existant |
-| `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | **[P2-2]** Cas nominal (zip écrit + transaction Prisma OK), échec transaction (zip supprimé), échec cleanup (log warning émis) | Ajouté Phase 2 |
-| `apps/api/src/ingestion/csv-reader.service.spec.ts` | **[P2-8]** Cas `CSV_PARSE_ERROR` : parsing d'un CSV optionnel mal formé → warning structuré retourné, pas d'exception levée | Ajouté Phase 2 |
-| `apps/api/src/ingestion/zip-extractor.service.spec.ts` | **[P3-7]** Whitelist cleanup : `message_type.csv` et `message_upload_route.csv` ne sont plus extraits du zip | Ajouté Phase 3 |
-| `apps/api/src/ingestion/snapshot-persister.service.spec.ts` | **[P3-1]** `repackageWithoutSensitive` : zip archivé ne contient plus les 3 fichiers sensibles (`local_key_store.csv`, `registration_store.csv`, `registration_requests.csv`) | Ajouté Phase 3 |
+1. Les fichiers `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv` ne sont jamais chargés en mémoire ni persistés. Le ZIP repackagé sur disque en exclut également le contenu.
+2. Les clés AppProperty correspondant à `/password|secret|keystore\.password|privateKey|credentials/i` sont filtrées avant `createMany`.
+3. La transaction Prisma est atomique : en cas d'échec, le ZIP déjà écrit sur disque est supprimé (best effort, avec log si `unlinkSync` échoue).
+4. Un import BROKER est accepté sans extraire composants/paths (tables `importedComponents` et `importedPaths` restent vides pour cet import, warning `BROKER_DUMP_METADATA_ONLY` produit).
+5. `effectiveDate` = `sourceDumpTimestamp` (extrait du nom de fichier si pattern `{EIC}_{TIMESTAMP}Z`) ou `new Date()` si le nom ne correspond pas au pattern.
+6. Déduplication dans inspect : priorité `(sourceComponentEic, sourceDumpTimestamp)` dans l'env puis fallback `fileHash`.
+7. `replaceImportId` doit appartenir au même `envName` sinon erreur `REPLACE_IMPORT_MISMATCH`.
+8. Déduplication CSV vs XML pour les composants ENDPOINT : XML prend la priorité par EIC (données plus riches).
+9. Pour un dump ENDPOINT, les composants XML vus dans les blobs MADES de chaque ligne `component_directory.csv` sont mergés ; les blobs non-XML sont ignorés silencieusement.
 
-### Particularités des tests d'intégration
+---
 
-- Utilisent `fileParallelism: false` (vitest config) car ils partagent le fichier SQLite `dev.db`.
-- Le cleanup en `beforeAll` et `afterAll` est scopé au `sourceComponentCode` du backup testé, évitant les interférences cross-test.
-- `fixtures-loader.ts` reconstruit dynamiquement un zip à partir des dossiers de fixtures réels (`tests/fixtures/17V.../`), en excluant les fichiers sensibles gitignorés.
-- Les tests d'intégration vérifient : componentType détecté, codes EIC corrects, présence d'au moins un node dans le graphe, coordonnées géographiques finies, absence de clés sensibles en base.
+## Tests
+
+| Fichier spec | Couverture |
+|-------------|-----------|
+| `imports.controller.spec.ts` | Validation body/MIME/magic bytes, routing, réponses HTTP |
+| `imports.service.spec.ts` | Orchestration, doublons, replace, BROKER metadata-only |
+| `dump-type-detector.spec.ts` | Toutes les heuristiques (HIGH + FALLBACK, override) |
+| `csv-path-reader.service.spec.ts` | Parsing chemins CD depuis CSV |
+| `import-builder.service.spec.ts` | buildFromLocalCsv, buildFromXml, buildFromCdCsv, buildAppProperties |
+| `raw-persister.service.spec.ts` | Transaction atomique, repackage ZIP, nettoyage compensatoire |
+| `zip-extractor.service.spec.ts` | Whitelist, exclusion sensibles, listEntries |
+| `xml-mades-parser.service.spec.ts` | Parsing namespace MADES, brokers/endpoints/CDs/paths |
+| `filename-parser.spec.ts` | Extraction EIC + timestamp depuis noms de fichiers |
+| `csv-reader.service.spec.ts` | Parsing CSV tolérant, NULL_VALUE_PLACEHOLDER, formats dates |
+
+Ref. croisées : [api/imports](../imports/spec-technique.md) est le module consommateur des routes exposées ici (ils partagent le même dossier src/ingestion). [api/graph](../graph/spec-technique.md) consomme les données persistées.

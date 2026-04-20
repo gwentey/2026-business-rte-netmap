@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | web/detail-panel    |
-| Version       | 0.2.0               |
-| Date          | 2026-04-18          |
-| Source        | Rétro-ingénierie + Phase 2 remédiation |
+| Version       | 2.0.0               |
+| Date          | 2026-04-20          |
+| Source        | v2.0 post-implémentation |
 
 ---
 
@@ -46,14 +46,14 @@ Le DetailPanel ne fait aucun appel réseau direct. Il consomme les données du g
 
 | Type affiché | Entités Prisma sources |
 |---|---|
-| `GraphNode` | `Component` + `ComponentUrl` |
-| `GraphEdge` | `MessagePath` + `MessagingStatistic` (agrégés par `GraphService`) |
+| `GraphNode` | `ImportedComponent` (merged + cascade 5 niveaux via GraphService) |
+| `GraphEdge` | `ImportedPath` + `ImportedMessagingStat` (agrégés compute-on-read par GraphService) |
 
 ---
 
 ## API / Endpoints (si applicable)
 
-Aucun appel API direct depuis ce module. Le graphe est chargé par `setActiveSnapshot` dans le store (`GET /api/snapshots/:id/graph`) et stocké en mémoire. Le DetailPanel consomme uniquement le store.
+Aucun appel API direct depuis ce module. Le graphe est chargé par `loadGraph(env, refDate?)` dans le store (`GET /api/graph?env=&refDate=`) et stocké en mémoire. Le DetailPanel consomme uniquement le store.
 
 ---
 
