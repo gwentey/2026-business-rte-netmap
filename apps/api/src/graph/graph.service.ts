@@ -10,6 +10,7 @@ import type {
 } from '@carto-ecp/shared';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { RegistryService } from '../registry/registry.service.js';
+import { RegistrySettingsService } from '../registry-settings/registry-settings.service.js';
 import {
   mergeComponentsLatestWins,
   type ImportedComponentWithImport,
@@ -37,6 +38,7 @@ export class GraphService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: RegistryService,
+    private readonly registrySettings: RegistrySettingsService,
   ) {}
 
   async getGraph(envName: string, refDate?: Date): Promise<GraphResponse> {
@@ -52,9 +54,10 @@ export class GraphService {
       },
     });
 
-    const [overrides, entsoeEntries] = await Promise.all([
+    const [overrides, entsoeEntries, processColors] = await Promise.all([
       this.prisma.componentOverride.findMany(),
       this.prisma.entsoeEntry.findMany(),
+      this.registrySettings.getEffectiveProcessColors(),
     ]);
 
     // 1. Merge ImportedComponent par EIC (T12)
@@ -85,7 +88,8 @@ export class GraphService {
     // 2. Cascade 5 niveaux (T13)
     const overrideByEic = new Map(overrides.map((o) => [o.eic, o]));
     const entsoeByEic = new Map(entsoeEntries.map((e) => [e.eic, e]));
-    const mapConfig = this.registry.getMapConfig();
+    const baseMapConfig = this.registry.getMapConfig();
+    const mapConfig = { ...baseMapConfig, processColors };
     const defaultFallback = {
       lat: mapConfig.defaultLat,
       lng: mapConfig.defaultLng,

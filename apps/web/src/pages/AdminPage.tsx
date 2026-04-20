@@ -4,9 +4,16 @@ import { ImportsAdminTable } from '../components/Admin/ImportsAdminTable.js';
 import { ComponentsAdminTable } from '../components/Admin/ComponentsAdminTable.js';
 import { EntsoeAdminTab } from '../components/Admin/EntsoeAdminTab.js';
 import { DangerZoneTab } from '../components/Admin/DangerZoneTab.js';
+import { RegistryAdminTab } from '../components/Admin/RegistryAdminTab.js';
 
 export function AdminPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<AdminTabId>('imports');
+  const [pendingComponentEic, setPendingComponentEic] = useState<string | null>(null);
+
+  const handleEditComponentFromRegistry = (eic: string): void => {
+    setPendingComponentEic(eic);
+    setActiveTab('components');
+  };
 
   return (
     <div className="mx-auto max-w-6xl p-6">
@@ -14,8 +21,16 @@ export function AdminPage(): JSX.Element {
       <AdminTabs active={activeTab} onChange={setActiveTab} />
       <div className="mt-4">
         {activeTab === 'imports' ? <ImportsAdminTable /> : null}
-        {activeTab === 'components' ? <ComponentsAdminTable /> : null}
+        {activeTab === 'components' ? (
+          <ComponentsAdminTable
+            autoOpenEic={pendingComponentEic}
+            onAutoOpenHandled={() => setPendingComponentEic(null)}
+          />
+        ) : null}
         {activeTab === 'entsoe' ? <EntsoeAdminTab /> : null}
+        {activeTab === 'registry' ? (
+          <RegistryAdminTab onEditComponent={handleEditComponentFromRegistry} />
+        ) : null}
         {activeTab === 'danger' ? <DangerZoneTab /> : null}
       </div>
     </div>

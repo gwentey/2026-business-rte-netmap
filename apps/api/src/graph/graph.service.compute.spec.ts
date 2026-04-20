@@ -7,6 +7,7 @@ import { ImportsService } from '../ingestion/imports.service.js';
 import { IngestionModule } from '../ingestion/ingestion.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RegistryModule } from '../registry/registry.module.js';
+import { RegistrySettingsModule } from '../registry-settings/registry-settings.module.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE, CD_FIXTURE } from '../../test/fixtures-loader.js';
 
 describe('GraphService.getGraph — compute on read', () => {
@@ -16,7 +17,7 @@ describe('GraphService.getGraph — compute on read', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule, RegistryModule, IngestionModule],
+      imports: [PrismaModule, RegistryModule, RegistrySettingsModule, IngestionModule],
       providers: [GraphService],
     }).compile();
     await moduleRef.init();
@@ -25,11 +26,13 @@ describe('GraphService.getGraph — compute on read', () => {
     prisma = moduleRef.get(PrismaService);
     await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_GS' } } });
     await prisma.componentOverride.deleteMany({ where: { eic: { startsWith: '17V000000' } } });
+    await prisma.processColorOverride.deleteMany();
   });
 
   afterEach(async () => {
     await prisma.import.deleteMany({ where: { envName: { startsWith: 'TEST_GS' } } });
     await prisma.componentOverride.deleteMany({ where: { eic: { startsWith: '17V000000' } } });
+    await prisma.processColorOverride.deleteMany();
   });
 
   it('returns empty graph when no import in env', async () => {
@@ -116,6 +119,16 @@ describe('GraphService.getGraph — compute on read', () => {
     const after = await graph.getGraph('TEST_GS_OV');
     const node = after.nodes.find((n) => n.eic === eicToOverride);
     expect(node?.displayName).toBe('ADMIN_OVERRIDDEN');
+  });
+
+  it('includes effective processColors from RegistrySettings in mapConfig (override wins)', async () => {
+    await prisma.processColorOverride.create({ data: { process: 'TP', color: '#abcdef' } });
+    const g = await graph.getGraph('TEST_GS_COLORS');
+    expect(g.mapConfig.processColors).toBeDefined();
+    expect(g.mapConfig.processColors.TP).toBe('#abcdef');
+    // Other process keys should still carry default overlay color (not undefined)
+    expect(g.mapConfig.processColors.CORE).toMatch(/^#[0-9a-fA-F]{6}$/);
+    expect(g.mapConfig.processColors.CORE).not.toBe('#abcdef');
   });
 
   it('isDefaultPosition true for EIC with no coord source, false for EIC with explicit coord', async () => {

@@ -2,6 +2,7 @@ import { Polyline } from 'react-leaflet';
 import type { LatLngTuple } from 'leaflet';
 import type { GraphEdge, GraphNode } from '@carto-ecp/shared';
 import { colorFor } from '../../lib/process-colors.js';
+import { useAppStore } from '../../store/app-store.js';
 
 const SAMPLES = 20;
 
@@ -30,6 +31,7 @@ export function sampleBezier(
 }
 
 export function EdgePath({ edge, nodes, selected, onSelect }: Props): JSX.Element | null {
+  const processColors = useAppStore((s) => s.graph?.mapConfig.processColors);
   const from = nodes.get(edge.fromEic);
   const to = nodes.get(edge.toEic);
   if (!from || !to) return null;
@@ -49,7 +51,7 @@ export function EdgePath({ edge, nodes, selected, onSelect }: Props): JSX.Elemen
     <Polyline
       positions={positions}
       pathOptions={{
-        color: colorFor(edge.process),
+        color: colorFor(edge.process, processColors),
         weight: selected ? 4 : 2,
         opacity: 0.85,
         dashArray: edge.activity.isRecent ? undefined : '6 6',

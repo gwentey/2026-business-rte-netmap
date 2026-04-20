@@ -6,7 +6,7 @@ const TABS: TabDef[] = [
   { id: 'imports', label: 'Imports', enabled: true, tooltip: '' },
   { id: 'components', label: 'Composants', enabled: true, tooltip: '' },
   { id: 'entsoe', label: 'Annuaire ENTSO-E', enabled: true, tooltip: '' },
-  { id: 'registry', label: 'Registry RTE', enabled: false, tooltip: 'Reporté' },
+  { id: 'registry', label: 'Registry RTE', enabled: true, tooltip: '' },
   { id: 'danger', label: '⚠ Zone danger', enabled: true, tooltip: '' },
 ];
 

@@ -7,6 +7,54 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.8 — Slice 2g Registry admin UI (2026-04-20)
+
+Onglet **Registry RTE** activé dans `/admin` avec 2 sections opérationnelles :
+édition persistée des couleurs de process et vue read-only des endpoints RTE
+avec handoff vers l'onglet Composants.
+
+**Highlights :**
+
+- **Nouvelle table Prisma** `ProcessColorOverride { process @id, color, updatedAt }`
+  (migration `20260420185349_add_process_color_override`). L'overlay JSON reste
+  source par défaut ; une ligne DB prend le dessus via merge côté service.
+- **4 endpoints backend** sous `/api/registry/*` :
+  - `GET /api/registry/process-colors` : 8 process + flag isOverride
+  - `PUT /api/registry/process-colors/:process` : body `{ color }` (zod strict,
+    regex `^#[0-9a-fA-F]{6}$`, erreurs typées INVALID_PROCESS / INVALID_COLOR)
+  - `DELETE /api/registry/process-colors/:process` : 204, idempotent
+  - `GET /api/registry/rte-endpoints` : read-only, merge overlay.rteEndpoints
+    avec ComponentOverride (displayName / lat / lng prennent l'override si
+    présent, flag hasOverride exposé)
+- **`RegistrySettingsService`** (nouveau module `apps/api/src/registry-settings/`) :
+  5 méthodes (listProcessColors, getEffectiveProcessColors, upsertProcessColor,
+  resetProcessColor, listRteEndpoints).
+- **`GraphService` étendu** : inject `RegistrySettingsService`, `GraphResponse.mapConfig.processColors`
+  reflète désormais les surcharges DB. Aucun changement wire-format pour le
+  frontend (champ `processColors` ajouté à `MapConfig` côté shared).
+- **3 nouveaux composants frontend** : `RegistryAdminTab` (compose les 2
+  sections), `ProcessColorsEditor` (tableau + color picker html5 + boutons
+  Enregistrer / Réinitialiser, reload graph après save), `RteEndpointsTable`
+  (tableau read-only + bouton Modifier par ligne).
+- **Handoff UX** : click "Modifier" dans le tab Registry switche automatiquement
+  vers le tab Composants et ouvre le modal `ComponentOverrideModal` pré-rempli
+  avec l'EIC cible (rien de dupliqué — même modal que la slice 2c-2).
+- **`AdminTabs`** : `registry.enabled: true`, tooltip "Reporté" retiré.
+- **Refactor mineur `colorFor`** : accepte un param optionnel `colors: ProcessColorMap`,
+  EdgePath + MapPage légende lisent depuis `graph.mapConfig.processColors` avec
+  fallback sur la constante hardcoded pour le premier paint.
+- **Shared types** : `RegistryColorRow`, `RegistryRteEndpointRow`, `MapConfig.processColors`.
+
+**Tests :**
+- Backend : 12 `RegistrySettingsService` + 6 `RegistryAdminController` +
+  1 test intégration GraphService override colors = **19 nouveaux** (222/222 total)
+- Frontend : 3 `ProcessColorsEditor` + 2 `RteEndpointsTable` + 1 `RegistryAdminTab`
+  + 1 `AdminPage` (handoff registry → components) = **7 nouveaux** (85/85 total)
+
+**Breaking changes :** aucun. `MapConfig` gagne un champ `processColors` mais il
+est toujours rempli par le backend ; les anciens clients continuent à ignorer
+le champ.
+
 ### Maintenance — Cleanup dette tech v2.0 (2026-04-20, PR #14)
 
 Trois incohérences détectées lors de la sync doc post-implémentation sont corrigées.

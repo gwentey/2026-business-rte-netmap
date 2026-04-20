@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { parse as parseCsv } from 'csv-parse/sync';
-import type { MapConfig, ProcessKey } from '@carto-ecp/shared';
+import type { MapConfig, ProcessColorMap, ProcessKey } from '@carto-ecp/shared';
 import type {
   EntsoeEntry,
   RteOverlay,
@@ -112,7 +112,11 @@ export class RegistryService implements OnModuleInit {
   }
 
   getMapConfig(): MapConfig {
-    return this.overlay.mapConfig;
+    return { ...this.overlay.mapConfig, processColors: this.getProcessColorMap() };
+  }
+
+  getProcessColorMap(): ProcessColorMap {
+    return { ...this.overlay.processColors };
   }
 
   getOverlay(): RteOverlay {
