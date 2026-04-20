@@ -146,3 +146,20 @@ export type OverrideUpsertInput = {
 export type EntsoeStatus = { count: number; refreshedAt: string | null };
 export type PurgeResult = { deletedCount: number };
 export type ResetAllResult = { imports: number; overrides: number; entsoe: number };
+
+export type RegistryColorRow = {
+  process: ProcessKey;
+  color: string;
+  isOverride: boolean;
+  default: string;
+};
+
+export type RegistryRteEndpointRow = {
+  eic: string;
+  code: string;
+  displayName: string;
+  city: string;
+  lat: number;
+  lng: number;
+  hasOverride: boolean;
+};
