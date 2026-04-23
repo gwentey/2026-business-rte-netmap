@@ -1,8 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, beforeEach } from 'vitest';
-import { ImportBuilderService } from './import-builder.service.js';
+import { ImportBuilderService, maskPrivateIp } from './import-builder.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
 import { CsvPathReaderService } from './csv-path-reader.service.js';
+import type { SynchronizedDirectoryRow } from './types.js';
 import type { CdMessagePathRow } from './csv-reader.service.js';
 
 describe('ImportBuilderService — composants', () => {
@@ -367,5 +368,121 @@ describe('ImportBuilderService.buildFromCdCsv', () => {
     const { components } = builder.buildFromCdCsv(cdComponentRows as any, cdPathRows);
     const brokers = components.filter((c) => c.eic === '17V-BROKER-KNOWN');
     expect(brokers).toHaveLength(1);
+  });
+});
+
+describe('maskPrivateIp (slice 2m)', () => {
+  it('masks RFC 1918 10.x addresses', () => {
+    expect(maskPrivateIp('https://10.144.0.148:8443/ECP_MODULE/')).toBe(
+      'https://10.144.0.xxx:8443/ECP_MODULE/',
+    );
+  });
+
+  it('masks RFC 1918 192.168.x addresses', () => {
+    expect(maskPrivateIp('https://192.168.100.162:8443/ECP_MODULE')).toBe(
+      'https://192.168.100.xxx:8443/ECP_MODULE',
+    );
+  });
+
+  it('masks RFC 1918 172.16-31.x addresses', () => {
+    expect(maskPrivateIp('https://172.20.5.42:8443/ECP_MODULE')).toBe(
+      'https://172.20.5.xxx:8443/ECP_MODULE',
+    );
+  });
+
+  it('does NOT mask public IPs (20.x is Microsoft Azure, routable)', () => {
+    expect(maskPrivateIp('https://20.31.194.118:8443/ECP_MODULE/')).toBe(
+      'https://20.31.194.118:8443/ECP_MODULE/',
+    );
+  });
+
+  it('does NOT mask DNS-based URLs', () => {
+    expect(maskPrivateIp('https://csi.apg.at/ECP_MODULE')).toBe(
+      'https://csi.apg.at/ECP_MODULE',
+    );
+  });
+
+  it('returns null for null input', () => {
+    expect(maskPrivateIp(null)).toBeNull();
+  });
+});
+
+describe('ImportBuilderService.buildDirectorySyncs (slice 2m)', () => {
+  let builder: ImportBuilderService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ImportBuilderService, CsvPathReaderService],
+    }).compile();
+    builder = moduleRef.get(ImportBuilderService);
+  });
+
+  it('normalizes syncMode to ONE_WAY when value is unknown', () => {
+    const rows: SynchronizedDirectoryRow[] = [
+      {
+        directoryCode: '10V1001C--00282R',
+        directorySyncMode: 'WEIRD_MODE',
+        directoryType: 'COMMON',
+        directoryUrls: 'https://20.31.194.118:8443/ECP_MODULE/',
+        synchronizationStatus: 'SUCCESS',
+        synchronizationTimeStamp: new Date('2026-04-22T08:11:01Z'),
+      },
+    ];
+    const result = builder.buildDirectorySyncs(rows);
+    expect(result[0]!.directorySyncMode).toBe('ONE_WAY');
+  });
+
+  it('keeps TWO_WAY when explicitly provided', () => {
+    const rows: SynchronizedDirectoryRow[] = [
+      {
+        directoryCode: '26V000000000012T',
+        directorySyncMode: 'TWO_WAY',
+        directoryType: 'COMMON',
+        directoryUrls: 'https://193.108.204.195:8443/ECP_MODULE',
+        synchronizationStatus: 'SUCCESS',
+        synchronizationTimeStamp: null,
+      },
+    ];
+    const result = builder.buildDirectorySyncs(rows);
+    expect(result[0]!.directorySyncMode).toBe('TWO_WAY');
+  });
+
+  it('masks private IPs in directoryUrl before persistence', () => {
+    const rows: SynchronizedDirectoryRow[] = [
+      {
+        directoryCode: 'X',
+        directorySyncMode: 'ONE_WAY',
+        directoryType: 'COMMON',
+        directoryUrls: 'https://10.4.72.13:8443/ECP_MODULE',
+        synchronizationStatus: 'SUCCESS',
+        synchronizationTimeStamp: null,
+      },
+    ];
+    const result = builder.buildDirectorySyncs(rows);
+    expect(result[0]!.directoryUrl).toBe('https://10.4.72.xxx:8443/ECP_MODULE');
+  });
+
+  it('skips rows with empty directoryCode', () => {
+    const rows: SynchronizedDirectoryRow[] = [
+      {
+        directoryCode: '',
+        directorySyncMode: 'ONE_WAY',
+        directoryType: null,
+        directoryUrls: null,
+        synchronizationStatus: null,
+        synchronizationTimeStamp: null,
+      },
+      {
+        directoryCode: 'VALID',
+        directorySyncMode: 'ONE_WAY',
+        directoryType: null,
+        directoryUrls: null,
+        synchronizationStatus: null,
+        synchronizationTimeStamp: null,
+      },
+    ];
+    const result = builder.buildDirectorySyncs(rows);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.directoryCode).toBe('VALID');
   });
 });

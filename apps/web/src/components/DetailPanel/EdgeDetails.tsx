@@ -3,6 +3,63 @@ import { formatDateTime } from '../../lib/format.js';
 
 export function EdgeDetails({ edge }: { edge: GraphEdge }): JSX.Element {
   const { activity } = edge;
+
+  if (edge.kind === 'PEERING' && edge.peering != null) {
+    return (
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">Peering CD ↔ CD</h2>
+        <dl className="text-sm">
+          <div className="grid grid-cols-3 gap-2 py-1">
+            <dt className="text-gray-500">De</dt>
+            <dd className="col-span-2 font-mono">{edge.fromEic}</dd>
+          </div>
+          <div className="grid grid-cols-3 gap-2 py-1">
+            <dt className="text-gray-500">Vers</dt>
+            <dd className="col-span-2 font-mono">{edge.toEic}</dd>
+          </div>
+          <div className="grid grid-cols-3 gap-2 py-1">
+            <dt className="text-gray-500">Mode sync</dt>
+            <dd className="col-span-2">
+              <span
+                className={`inline-block rounded px-2 py-0.5 text-xs ${
+                  edge.peering.syncMode === 'TWO_WAY'
+                    ? 'bg-indigo-100 text-indigo-800'
+                    : 'bg-slate-100 text-slate-700'
+                }`}
+              >
+                {edge.peering.syncMode}
+              </span>
+            </dd>
+          </div>
+          {edge.peering.directoryType ? (
+            <div className="grid grid-cols-3 gap-2 py-1">
+              <dt className="text-gray-500">Type</dt>
+              <dd className="col-span-2">{edge.peering.directoryType}</dd>
+            </div>
+          ) : null}
+          {edge.peering.synchronizationStatus ? (
+            <div className="grid grid-cols-3 gap-2 py-1">
+              <dt className="text-gray-500">Statut sync</dt>
+              <dd className="col-span-2">{edge.peering.synchronizationStatus}</dd>
+            </div>
+          ) : null}
+          {edge.peering.directoryUrl ? (
+            <div className="grid grid-cols-3 gap-2 py-1">
+              <dt className="text-gray-500">URL partenaire</dt>
+              <dd className="col-span-2 font-mono text-xs break-all">
+                {edge.peering.directoryUrl}
+              </dd>
+            </div>
+          ) : null}
+          <div className="grid grid-cols-3 gap-2 py-1">
+            <dt className="text-gray-500">Dernier sync</dt>
+            <dd className="col-span-2">{formatDateTime(activity.lastMessageUp)}</dd>
+          </div>
+        </dl>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold">Flux {edge.process}</h2>

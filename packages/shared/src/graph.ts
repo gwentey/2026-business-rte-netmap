@@ -41,8 +41,12 @@ export type GraphNode = {
   modificationTs: string;
 };
 
+export type EdgeKind = 'BUSINESS' | 'PEERING';
+
 export type GraphEdge = {
   id: string;
+  /** Distingue les flux métier (message paths) du peering CD↔CD. */
+  kind: EdgeKind;
   fromEic: string;
   toEic: string;
   direction: EdgeDirection;
@@ -64,6 +68,13 @@ export type GraphEdge = {
   };
   validFrom: string;
   validTo: string | null;
+  /** Propriétés spécifiques aux edges de peering CD↔CD (null pour BUSINESS). */
+  peering: {
+    syncMode: 'ONE_WAY' | 'TWO_WAY';
+    directoryType: string | null;
+    directoryUrl: string | null;
+    synchronizationStatus: string | null;
+  } | null;
 };
 
 export type GraphBounds = {

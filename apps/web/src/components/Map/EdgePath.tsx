@@ -63,16 +63,26 @@ export function EdgePath({ edge, nodes, selected, onSelect }: Props): JSX.Elemen
     SAMPLES,
   );
 
+  const isPeering = edge.kind === 'PEERING';
   const volumeWeight = weightFromVolume(edge.activity.totalVolume);
+  const baseWeight = isPeering ? 1.5 : volumeWeight;
+  // Peering : gris neutre, dashArray dense (1 4) pour bien se distinguer du
+  // trait-plein "flux métier actif" et du dashArray '6 6' "flux inactif".
+  const color = isPeering ? '#6b7280' : colorFor(edge.process, processColors);
+  const dashArray = isPeering
+    ? '2 4'
+    : edge.activity.isRecent
+      ? undefined
+      : '6 6';
 
   return (
     <Polyline
       positions={positions}
       pathOptions={{
-        color: colorFor(edge.process, processColors),
-        weight: selected ? volumeWeight + 2 : volumeWeight,
-        opacity: 0.85,
-        dashArray: edge.activity.isRecent ? undefined : '6 6',
+        color,
+        weight: selected ? baseWeight + 2 : baseWeight,
+        opacity: isPeering ? 0.7 : 0.85,
+        dashArray,
       }}
       eventHandlers={{ click: () => onSelect(edge.id) }}
     />

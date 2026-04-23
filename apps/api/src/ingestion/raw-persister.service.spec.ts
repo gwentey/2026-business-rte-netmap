@@ -33,6 +33,7 @@ function makeBuilt(): BuiltImport {
     }],
     messagingStats: [],
     appProperties: [{ key: 'foo', value: 'bar' }],
+    directorySyncs: [],
     warnings: [],
   };
 }

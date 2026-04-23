@@ -6,6 +6,7 @@ import type { GraphEdge } from '@carto-ecp/shared';
 function baseEdge(overrides: Partial<GraphEdge> = {}): GraphEdge {
   return {
     id: 'eic1::eic2',
+    kind: 'BUSINESS',
     fromEic: '17V000000498771C',
     toEic: '10X1001A1001A345',
     process: 'TP',
@@ -24,6 +25,7 @@ function baseEdge(overrides: Partial<GraphEdge> = {}): GraphEdge {
     },
     validFrom: '2025-01-01T00:00:00Z',
     validTo: '2099-12-31T00:00:00Z',
+    peering: null,
     ...overrides,
   };
 }

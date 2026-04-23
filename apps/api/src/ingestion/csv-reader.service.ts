@@ -8,6 +8,7 @@ import type {
   ComponentDirectoryRow,
   MessagePathRow,
   MessagingStatisticRow,
+  SynchronizedDirectoryRow,
 } from './types.js';
 
 export type CdMessagePathRow = {
@@ -154,6 +155,22 @@ export class CsvReaderService {
       validFrom: (r['validFrom'] ?? '').trim(),
       validTo: (r['validTo'] ?? '').trim(),
       validUntil: (r['validUntil'] ?? '').trim(),
+    }));
+  }
+
+  readSynchronizedDirectories(
+    buffer: Buffer,
+    warnings: Warning[],
+  ): SynchronizedDirectoryRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'synchronized_directories.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'synchronized_directories.csv', parseError);
+    return rows.map((row) => ({
+      directoryCode: this.str(row, 'directoryCode') ?? '',
+      directorySyncMode: this.str(row, 'directorySyncMode') ?? 'ONE_WAY',
+      directoryType: this.str(row, 'directoryType'),
+      directoryUrls: this.str(row, 'directoryUrls'),
+      synchronizationStatus: this.str(row, 'synchronizationStatus'),
+      synchronizationTimeStamp: this.date(row, 'synchronizationTimeStamp'),
     }));
   }
 

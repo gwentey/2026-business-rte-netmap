@@ -1,8 +1,38 @@
 import { Injectable } from '@nestjs/common';
 import type { Warning } from '@carto-ecp/shared';
-import type { BuiltImportedComponent, BuiltImportedMessagingStat, BuiltImportedPath, MadesComponent, MadesTree } from './types.js';
+import type {
+  BuiltImportedComponent,
+  BuiltImportedDirectorySync,
+  BuiltImportedMessagingStat,
+  BuiltImportedPath,
+  MadesComponent,
+  MadesTree,
+  SynchronizedDirectoryRow,
+} from './types.js';
 import { CsvPathReaderService } from './csv-path-reader.service.js';
 import type { CdMessagePathRow } from './csv-reader.service.js';
+
+/**
+ * Regex d'IP privée RFC 1918 : 10.x / 172.16-31.x / 192.168.x.
+ * Usage : on masque le 4e octet pour ne pas exposer la topologie interne RTE
+ * dans les URLs des CDs partenaires persistées en base / exposées au frontend.
+ */
+const PRIVATE_IPV4_REGEX =
+  /\b(10\.\d{1,3}\.\d{1,3}\.)(\d{1,3})\b|\b(192\.168\.\d{1,3}\.)(\d{1,3})\b|\b(172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.)(\d{1,3})\b/g;
+
+/**
+ * Masque les derniers octets d'une IPv4 privée dans une URL.
+ * Les URLs publiques (IPs routables ou DNS) sont laissées intactes.
+ */
+export function maskPrivateIp(url: string | null): string | null {
+  if (url == null) return null;
+  return url.replace(PRIVATE_IPV4_REGEX, (_, a, _b, c, _d, e, _f) => {
+    if (a) return `${a}xxx`;
+    if (c) return `${c}xxx`;
+    if (e) return `${e}xxx`;
+    return 'xxx';
+  });
+}
 
 type LocalCsvRow = {
   eic: string;
@@ -134,6 +164,22 @@ export class ImportBuilderService {
 
   buildAppProperties(rows: Array<{ key: string; value: string }>): Array<{ key: string; value: string }> {
     return rows.filter((r) => !ImportBuilderService.SENSITIVE_KEY_REGEX.test(r.key));
+  }
+
+  buildDirectorySyncs(
+    rows: ReadonlyArray<SynchronizedDirectoryRow>,
+  ): BuiltImportedDirectorySync[] {
+    return rows
+      .filter((r) => r.directoryCode.length > 0)
+      .map((r) => ({
+        directoryCode: r.directoryCode,
+        directorySyncMode:
+          r.directorySyncMode === 'TWO_WAY' ? 'TWO_WAY' : 'ONE_WAY',
+        directoryType: r.directoryType,
+        directoryUrl: maskPrivateIp(r.directoryUrls),
+        synchronizationStatus: r.synchronizationStatus,
+        synchronizationTimestamp: r.synchronizationTimeStamp,
+      }));
   }
 
   private fromXmlComponent(c: MadesComponent): BuiltImportedComponent {

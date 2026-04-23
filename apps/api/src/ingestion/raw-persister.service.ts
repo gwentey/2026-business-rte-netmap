@@ -97,6 +97,20 @@ export class RawPersisterService {
             data: built.appProperties.map((p) => ({ importId: id, key: p.key, value: p.value })),
           });
         }
+
+        if (built.directorySyncs.length > 0) {
+          await tx.importedDirectorySync.createMany({
+            data: built.directorySyncs.map((d) => ({
+              importId: id,
+              directoryCode: d.directoryCode,
+              directorySyncMode: d.directorySyncMode,
+              directoryType: d.directoryType,
+              directoryUrl: d.directoryUrl,
+              synchronizationStatus: d.synchronizationStatus,
+              synchronizationTimestamp: d.synchronizationTimestamp,
+            })),
+          });
+        }
       });
     } catch (err) {
       try {

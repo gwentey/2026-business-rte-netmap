@@ -11,11 +11,11 @@ export const USABLE_CSV_FILES = [
   'component_directory.csv',
   'message_path.csv',
   'messaging_statistics.csv',
+  'synchronized_directories.csv',
 ] as const;
 
 export const IGNORED_CSV_FILES = [
   'component_statistics.csv',
-  'synchronized_directories.csv',
   'pending_edit_directories.csv',
   'pending_removal_directories.csv',
 ] as const;
@@ -220,6 +220,24 @@ export type BuiltImportedMessagingStat = {
   deleted: boolean;
 };
 
+export type SynchronizedDirectoryRow = {
+  directoryCode: string;
+  directorySyncMode: string;
+  directoryType: string | null;
+  directoryUrls: string | null;
+  synchronizationStatus: string | null;
+  synchronizationTimeStamp: Date | null;
+};
+
+export type BuiltImportedDirectorySync = {
+  directoryCode: string;
+  directorySyncMode: string;
+  directoryType: string | null;
+  directoryUrl: string | null;
+  synchronizationStatus: string | null;
+  synchronizationTimestamp: Date | null;
+};
+
 export type BuiltImport = {
   envName: string;
   label: string;
@@ -234,5 +252,6 @@ export type BuiltImport = {
   paths: BuiltImportedPath[];
   messagingStats: BuiltImportedMessagingStat[];
   appProperties: { key: string; value: string }[];
+  directorySyncs: BuiltImportedDirectorySync[];
   warnings: Warning[];
 };

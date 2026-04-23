@@ -52,6 +52,7 @@ export class GraphService {
         importedPaths: true,
         importedStats: true,
         importedProps: true,
+        importedDirSyncs: true,
       },
     });
 
@@ -122,17 +123,61 @@ export class GraphService {
       lng: mapConfig.defaultLng,
     };
 
-    // L'ensemble des EICs est déterminé exclusivement par les composants importés
-    // dans cet envName. Les overrides et entsoeEntries servent uniquement à enrichir,
-    // pas à créer de nouveaux nœuds.
-    const eicSet = new Set<string>(mergedByEic.keys());
+    // Slice 2m : les CDs partenaires référencés via synchronized_directories.csv
+    // sont ajoutés à l'ensemble des EICs même s'ils ne sont pas dumpés. Ils
+    // apparaîtront comme EXTERNAL_CD via la cascade (registry → fallback géographique).
+    const peeringByCd = new Map<
+      string,
+      Array<{
+        fromCdEic: string;
+        syncMode: 'ONE_WAY' | 'TWO_WAY';
+        directoryType: string | null;
+        directoryUrl: string | null;
+        synchronizationStatus: string | null;
+        timestamp: Date | null;
+        effective: Date;
+      }>
+    >();
+    const partnerCdEics = new Set<string>();
+    for (const imp of imports) {
+      if (!imp.sourceComponentEic) continue;
+      const fromCdEic = imp.sourceComponentEic;
+      for (const d of imp.importedDirSyncs) {
+        partnerCdEics.add(d.directoryCode);
+        const list = peeringByCd.get(d.directoryCode) ?? [];
+        list.push({
+          fromCdEic,
+          syncMode: d.directorySyncMode === 'TWO_WAY' ? 'TWO_WAY' : 'ONE_WAY',
+          directoryType: d.directoryType,
+          directoryUrl: d.directoryUrl,
+          synchronizationStatus: d.synchronizationStatus,
+          timestamp: d.synchronizationTimestamp,
+          effective: imp.effectiveDate,
+        });
+        peeringByCd.set(d.directoryCode, list);
+      }
+    }
+
+    // L'ensemble des EICs est déterminé par les composants importés dans cet
+    // envName, plus les CDs partenaires référencés en peering. Les overrides et
+    // entsoeEntries servent uniquement à enrichir, pas à créer de nouveaux nœuds.
+    const eicSet = new Set<string>([...mergedByEic.keys(), ...partnerCdEics]);
 
     const globalComponents = new Map<string, GlobalComponent>();
     for (const eic of eicSet) {
       const merged = mergedByEic.get(eic) ?? null;
       const override = overrideByEic.get(eic) ?? null;
       const entsoe = entsoeByEic.get(eic) ?? null;
-      const registryEntry = this.registry.resolveEic(eic);
+      let registryEntry = this.registry.resolveEic(eic);
+      // Slice 2m : les CDs partenaires (peering) doivent être typés COMPONENT_DIRECTORY
+      // s'ils n'apparaissent pas déjà comme composants dumpés.
+      if (
+        merged == null &&
+        partnerCdEics.has(eic) &&
+        registryEntry?.type == null
+      ) {
+        registryEntry = { ...(registryEntry ?? {}), type: 'COMPONENT_DIRECTORY' };
+      }
       const global = applyCascade(
         eic,
         merged,
@@ -161,6 +206,54 @@ export class GraphService {
     // 4. buildEdges : agrégation par (fromEic, toEic), MIXTE, direction, isRecent
     const rteEicSet = this.registry.getRteEicSet();
     const edges = this.buildEdges(Array.from(mergedPaths.values()), imports, rteEicSet);
+
+    // 4.bis. Edges de peering CD↔CD (slice 2m). Une edge par paire
+    // (sourceCdEic, partnerCdEic), direction visuelle FROM sourceCdEic TO partnerCdEic.
+    for (const [partnerEic, syncs] of peeringByCd) {
+      // On garde le sync le plus récent par CD source pour chaque partnerCdEic.
+      const syncsBySource = new Map<string, (typeof syncs)[number]>();
+      for (const s of syncs) {
+        const prev = syncsBySource.get(s.fromCdEic);
+        if (!prev || prev.effective < s.effective) {
+          syncsBySource.set(s.fromCdEic, s);
+        }
+      }
+      for (const [fromCdEic, s] of syncsBySource) {
+        if (fromCdEic === partnerEic) continue;
+        const hash = createHash('sha1')
+          .update(`PEERING|${fromCdEic}|${partnerEic}`)
+          .digest('hex')
+          .slice(0, 16);
+        edges.push({
+          id: hash,
+          kind: 'PEERING',
+          fromEic: fromCdEic,
+          toEic: partnerEic,
+          direction: 'OUT',
+          process: 'UNKNOWN' as ProcessKey,
+          messageTypes: [],
+          transportPatterns: [],
+          intermediateBrokerEic: null,
+          activity: {
+            connectionStatus: s.synchronizationStatus,
+            lastMessageUp: s.timestamp?.toISOString() ?? null,
+            lastMessageDown: null,
+            isRecent: false,
+            sumMessagesUp: 0,
+            sumMessagesDown: 0,
+            totalVolume: 0,
+          },
+          validFrom: new Date(0).toISOString(),
+          validTo: null,
+          peering: {
+            syncMode: s.syncMode,
+            directoryType: s.directoryType,
+            directoryUrl: s.directoryUrl,
+            synchronizationStatus: s.synchronizationStatus,
+          },
+        });
+      }
+    }
 
     // 5. Nodes + bounds
     const nodes: GraphNode[] = Array.from(globalComponents.values()).map((g) => {
@@ -334,6 +427,7 @@ export class GraphService {
 
       return {
         id: hash,
+        kind: 'BUSINESS' as const,
         fromEic: g.fromEic,
         toEic: g.toEic,
         direction: g.direction,
@@ -352,6 +446,7 @@ export class GraphService {
         },
         validFrom: (g.validFrom ?? new Date(0)).toISOString(),
         validTo: g.validTo?.toISOString() ?? null,
+        peering: null,
       };
     });
   }

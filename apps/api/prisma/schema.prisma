@@ -28,6 +28,7 @@ model Import {
   importedPaths         ImportedPath[]
   importedStats         ImportedMessagingStat[]
   importedProps         ImportedAppProperty[]
+  importedDirSyncs      ImportedDirectorySync[]
 
   @@index([envName, effectiveDate])
   @@index([fileHash])
@@ -115,6 +116,26 @@ model ImportedAppProperty {
   value      String
 
   @@index([importId])
+}
+
+model ImportedDirectorySync {
+  id                       String   @id @default(uuid())
+  importId                 String
+  import                   Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+  // EIC du CD partenaire (directoryCode CSV)
+  directoryCode            String
+  // ONE_WAY | TWO_WAY
+  directorySyncMode        String
+  // Type de synchronisation (COMMON, etc.)
+  directoryType            String?
+  // URL publique du CD partenaire (IPs privées masquées avant persistance)
+  directoryUrl             String?
+  // SUCCESS | PENDING | FAILED — statut local du dernier sync
+  synchronizationStatus    String?
+  synchronizationTimestamp DateTime?
+
+  @@index([importId])
+  @@index([directoryCode])
 }
 
 model ComponentOverride {

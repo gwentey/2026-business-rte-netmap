@@ -65,4 +65,39 @@ describe('Full ingestion CD v2 (integration)', () => {
       expect(validTypes).toContain(t);
     }
   }, 30_000);
+
+  it('slice 2m : persiste les 8 CDs partenaires depuis synchronized_directories.csv', async () => {
+    const zip = buildZipFromFixture(CD_FIXTURE);
+    const detail = await imports.createImport({
+      file: { originalname: `${CD_FIXTURE}.zip`, buffer: zip },
+      envName: 'INTEG_CD_V2_SYNC',
+      label: 'cd-sync',
+    });
+    try {
+      const syncs = await prisma.importedDirectorySync.findMany({
+        where: { importId: detail.id },
+      });
+      // Le dump PRFRI-CD1 contient 8 CDs partenaires.
+      expect(syncs.length).toBe(8);
+      const codes = new Set(syncs.map((s) => s.directoryCode));
+      expect(codes.has('10V1001C--00282R')).toBe(true);
+      expect(codes.has('14V-APG-CSI-CD-V')).toBe(true);
+      expect(codes.has('48V000000000032Z')).toBe(true);
+      // syncMode TWO_WAY vs ONE_WAY préservé
+      const twoWay = syncs.filter((s) => s.directorySyncMode === 'TWO_WAY');
+      expect(twoWay.length).toBeGreaterThanOrEqual(1);
+      // URLs privées masquées, URLs publiques préservées
+      const publicUrl = syncs.find((s) => s.directoryCode === '14V-APG-CSI-CD-V');
+      expect(publicUrl?.directoryUrl).toContain('csi.apg.at');
+    } finally {
+      const { existsSync, unlinkSync } = await import('node:fs');
+      const rows = await prisma.import.findMany({ where: { envName: 'INTEG_CD_V2_SYNC' } });
+      for (const r of rows) {
+        if (existsSync(r.zipPath)) {
+          try { unlinkSync(r.zipPath); } catch { /* best effort */ }
+        }
+      }
+      await prisma.import.deleteMany({ where: { envName: 'INTEG_CD_V2_SYNC' } });
+    }
+  }, 30_000);
 });

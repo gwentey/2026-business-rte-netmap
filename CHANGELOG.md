@@ -7,6 +7,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.14 — Slice 2m CDs partenaires en peering (synchronized_directories) (2026-04-23)
+
+La carte affiche désormais les **CDs partenaires** de chaque Component Directory RTE (TERNA, APG, NG-UK, …) — lus depuis `synchronized_directories.csv`. Ils apparaissent comme nodes `EXTERNAL_CD` reliés au CD source par des edges **PEERING** en pointillé gris, distincts des edges BUSINESS (flux de messages métier). Le popup de la edge peering affiche mode de sync (`ONE_WAY` / `TWO_WAY`), statut et URL du CD partenaire (IPs privées RTE masquées).
+
+**Highlights :**
+
+- **Prisma** : nouvelle table `ImportedDirectorySync` avec `directoryCode`, `directorySyncMode`, `directoryType`, `directoryUrl`, `synchronizationStatus`, `synchronizationTimestamp` (migration `add_imported_directory_sync`).
+- **`synchronized_directories.csv`** est retiré de `IGNORED_CSV_FILES` et ajouté à `USABLE_CSV_FILES`.
+- **`CsvReaderService.readSynchronizedDirectories`** : nouveau parser du CSV.
+- **`ImportBuilderService.buildDirectorySyncs`** : normalise `syncMode` à `ONE_WAY`/`TWO_WAY`, skip les lignes sans `directoryCode`, **masque les IPs privées RFC 1918** (10.x, 172.16-31.x, 192.168.x) dans `directoryUrl` via `maskPrivateIp()`. Les IPs publiques (Azure 20.x, neutre 90.x, etc.) et les DNS (csi.apg.at, ifa2ecptest.nationalgrid.com) sont préservés intacts.
+- **`ImportsService` (branche CD)** : lit le CSV (si présent) et persiste via `RawPersisterService`.
+- **`GraphService.getGraph`** :
+  - Construit un `peeringByCd` global à partir de tous les `ImportedDirectorySync` de l'env.
+  - Ajoute les `directoryCode` des CDs partenaires à l'`eicSet` → ils deviennent des nodes du graph même s'ils ne sont pas dumpés.
+  - Les CDs partenaires hérite de `type = 'COMPONENT_DIRECTORY'` via une injection dans la cascade Registry quand le composant n'a ni import local ni entrée registry explicite.
+  - Génère une edge `PEERING` par paire `(sourceCdEic, partnerCdEic)`, latest-wins.
+- **`GraphEdge`** (shared) gagne 2 champs : `kind: 'BUSINESS' | 'PEERING'` + `peering: { syncMode, directoryType, directoryUrl, synchronizationStatus } | null`.
+- **Frontend `EdgePath.tsx`** : les edges PEERING sont rendues en **gris neutre** (`#6b7280`), **dashArray `2 4`** (pointillé dense, distinct du `6 6` des flux BUSINESS inactifs), weight fixe 1.5 + opacité 0.7.
+- **Frontend `EdgeDetails.tsx`** : rendu dédié pour PEERING — header "Peering CD ↔ CD", mode de sync avec badge (indigo TWO_WAY / slate ONE_WAY), URL partenaire, dernier sync, statut.
+
+**Tests :**
+- API : 243 → **254/254** (+6 `maskPrivateIp`, +4 `buildDirectorySyncs`, +1 intégration CD full → 8 CDs partenaires persistés, IPs privées masquées, URLs publiques préservées, syncMode TWO_WAY reconnu).
+- Web : **94/94** inchangés (tests existants mis à jour avec `kind: 'BUSINESS'` + `peering: null` dans les fixtures `GraphEdge`).
+
+**Breaking changes :** aucun pour le contrat fonctionnel. `GraphEdge` gagne 2 champs obligatoires dans le wire-format : les clients qui typent strict doivent intégrer `kind` et `peering`. Les edges legacy (avant cette version) sont toutes `BUSINESS` / `peering: null`.
+
 ### v2.0-alpha.13 — Slice 2l Volumes sur les edges (épaisseur + stats popup) (2026-04-23)
 
 L'épaisseur d'une arête est désormais **proportionnelle au volume de messages** échangés sur la paire (somme bi-directionnelle `A→B + B→A`). Le popup flux détaille le volume total, les compteurs UP/DOWN, et la dernière activité DOWN en plus de l'UP.

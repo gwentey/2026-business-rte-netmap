@@ -12,7 +12,13 @@ import { RawPersisterService } from './raw-persister.service.js';
 import { detectDumpType } from './dump-type-detector.js';
 import { parseDumpFilename } from './filename-parser.js';
 import type { DumpType } from './dump-type-detector.js';
-import type { BuiltImport, BuiltImportedComponent, BuiltImportedPath, BuiltImportedMessagingStat } from './types.js';
+import type {
+  BuiltImport,
+  BuiltImportedComponent,
+  BuiltImportedDirectorySync,
+  BuiltImportedPath,
+  BuiltImportedMessagingStat,
+} from './types.js';
 
 export type CreateImportInput = {
   file: { originalname: string; buffer: Buffer };
@@ -82,6 +88,7 @@ export class ImportsService {
     let paths: BuiltImportedPath[] = [];
     let messagingStats: BuiltImportedMessagingStat[] = [];
     let appProperties: Array<{ key: string; value: string }> = [];
+    let directorySyncs: BuiltImportedDirectorySync[] = [];
 
     // --- 2.bis. Parsing du .properties externe (optionnel) ---
     // Clés issues du `<EIC>-configuration.properties` exporté par l'admin ECP.
@@ -272,6 +279,13 @@ export class ImportsService {
         const src = components.find((c) => c.eic === cdRealEic);
         if (src) src.projectName = projectNameCd;
       }
+
+      // Slice 2m : parse synchronized_directories.csv si présent (uniquement CD).
+      const syncBuf = extracted.files.get('synchronized_directories.csv');
+      if (syncBuf) {
+        const syncRows = this.csvReader.readSynchronizedDirectories(syncBuf, warnings);
+        directorySyncs = this.builder.buildDirectorySyncs(syncRows);
+      }
       // Pas de messaging_statistics côté CD (tableau vide par défaut)
     } else {
       // BROKER : metadata-only — pas d'extraction CSV (zip ne contient pas les CSVs requis)
@@ -299,6 +313,7 @@ export class ImportsService {
       paths,
       messagingStats,
       appProperties,
+      directorySyncs,
       warnings,
     };
 
