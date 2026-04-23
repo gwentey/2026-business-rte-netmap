@@ -187,6 +187,7 @@ export type BuiltImportedComponent = {
   homeCdCode: string | null;
   networksCsv: string | null;
   displayName: string | null;
+  projectName: string | null;
   country: string | null;
   lat: number | null;
   lng: number | null;

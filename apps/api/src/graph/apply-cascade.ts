@@ -43,6 +43,7 @@ export type GlobalComponent = {
   homeCdCode: string | null;
   networksCsv: string | null;
   displayName: string;
+  projectName: string | null;
   country: string | null;
   lat: number;
   lng: number;
@@ -71,9 +72,15 @@ export function applyCascade(
 ): GlobalComponent {
   const { override, entsoe, registry } = inputs;
 
+  // Cascade displayName : priorité à la saisie admin (Override), puis au nom
+  // humain officiel ECP (`ecp.projectName` lu depuis le dump, ex. "INTERNET-EP1")
+  // qui est la source de vérité pour les composants dumpés. On retombe sur les
+  // référentiels externes (ENTSO-E, overlay RTE) pour les EICs partenaires non
+  // dumpés, puis sur `merged.displayName` local (rare) et l'EIC en fallback.
   const displayName =
     pickField(
       override?.displayName,
+      merged?.projectName,
       entsoe?.displayName,
       registry?.displayName,
       merged?.displayName,
@@ -114,6 +121,7 @@ export function applyCascade(
     homeCdCode: merged?.homeCdCode ?? null,
     networksCsv: merged?.networksCsv ?? null,
     displayName,
+    projectName: merged?.projectName ?? null,
     country,
     lat: hasExplicitCoord ? lat : defaultFallback.lat,
     lng: hasExplicitCoord ? lng : defaultFallback.lng,

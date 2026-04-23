@@ -72,6 +72,7 @@ export class GraphService {
         homeCdCode: c.homeCdCode,
         networksCsv: c.networksCsv,
         displayName: c.displayName,
+        projectName: c.projectName,
         country: c.country,
         lat: c.lat,
         lng: c.lng,
@@ -84,6 +85,10 @@ export class GraphService {
       })),
     );
     const mergedByEic = mergeComponentsLatestWins(componentRows);
+
+    // envName est commun à tous les imports de cette requête (filtré en amont).
+    // On le renvoie sur chaque GraphNode pour que le popup puisse l'afficher.
+    const envNameForGraph = envName;
 
     // 2. Cascade 5 niveaux (T13)
     const overrideByEic = new Map(overrides.map((o) => [o.eic, o]));
@@ -137,7 +142,7 @@ export class GraphService {
 
     // 5. Nodes + bounds
     const nodes: GraphNode[] = Array.from(globalComponents.values()).map((g) =>
-      this.toNode(g, rteEicSet),
+      this.toNode(g, rteEicSet, envNameForGraph),
     );
 
     return {
@@ -148,12 +153,14 @@ export class GraphService {
     };
   }
 
-  private toNode(g: GlobalComponent, rteEicSet: Set<string>): GraphNode {
+  private toNode(g: GlobalComponent, rteEicSet: Set<string>, envName: string): GraphNode {
     return {
       id: g.eic,
       eic: g.eic,
       kind: this.kindOf(g, rteEicSet),
       displayName: g.displayName,
+      projectName: g.projectName,
+      envName,
       organization: g.organization ?? '',
       country: g.country,
       lat: g.lat,

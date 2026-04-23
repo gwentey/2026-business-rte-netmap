@@ -7,6 +7,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.10 — Slice 2j projectName / envName sur la carte (2026-04-23)
+
+La carte affiche désormais le **nom humain ECP officiel** (ex. `INTERNET-EP1`, `ECP-CWERPN`, `PCN-EP1`) pour chaque composant, lu directement depuis la propriété `ecp.projectName` du dump — conformément à la convention admin ECP (Admin Guide §4.4 : `Endpoint | <projectName> | <envName>`). L'env name est exposé dans le popup.
+
+**Highlights :**
+
+- **Prisma** : nouvelle colonne `ImportedComponent.projectName String?` (migration `20260423071514_add_project_name_to_imported_component`). Renseignée uniquement pour le composant dont le dump est issu (`eic === sourceComponentEic`).
+- **`ImportsService`** : extraction de `ecp.projectName` depuis `application_property.csv` au moment de l'ingestion, côté ENDPOINT et COMPONENT_DIRECTORY.
+  - ENDPOINT : injecté sur le composant local (eic = `ecp.componentCode`).
+  - COMPONENT_DIRECTORY : correctif supplémentaire — le CD utilise désormais son **vrai EIC** (`ecp.componentCode`) au lieu de l'id interne séquentiel `"1"` du CSV. Les dumps CD antérieurs n'étaient donc pas correctement chaînés avec les autres dumps de l'env.
+- **Cascade `displayName`** (`apply-cascade.ts`) réordonnée : `Override → merged.projectName → ENTSOE → Registry → merged.displayName → EIC`. La source officielle ECP prend maintenant le pas sur les référentiels d'overlay (sauf override admin explicite). Les EICs partenaires sans projectName (TERNA, APG, etc.) continuent de passer par ENTSOE/Registry.
+- **`GraphNode`** (shared) gagne 2 champs : `projectName: string | null` et `envName: string | null`.
+- **`NodeDetails`** frontend affiche :
+  - un chip violet "Projet ECP : INTERNET-EP1" sous le titre si `projectName` diffère du `displayName` (cas override / registry présent) ;
+  - une ligne "Environnement" avec la valeur courante (`PFRFI`, `ACCEPTANCE`, etc.).
+- **`GraphService.toNode`** reçoit l'`envName` courant et le propage sur chaque node.
+- **`merge-components`** : `projectName` rejoint la liste des `OVERWRITABLE_FIELDS` (latest-wins comme les autres attributs non-coordonnées).
+
+**Tests :**
+- API : 225 + 2 (apply-cascade : projectName prime sur ENTSOE/Registry, override bat projectName) + 0 (les fixtures existantes couvrent le reste) = **227/227**.
+- Web : 85 + 3 (NodeDetails : chip affiché quand distinct, chip caché quand identique, ligne envName rendue) = **88/88**.
+- Nouveau check d'intégration dans `full-ingestion-v2.spec.ts` : les nodes RTE EP2 et CD1 ressortent avec `projectName` = `INTERNET-EP2` / `INTERNET-CD` et `envName = INTEG_OPF_V2`.
+
+**Breaking changes :**
+- `GraphNode` gagne 2 champs non-nullables dans le wire-format (mais tolérance `null`). Les clients qui typent `GraphNode` doivent mettre à jour.
+- Les anciens dumps CD persistés avant cette version ont un composant synthetic avec `eic = "1"` ; l'ingestion d'un nouveau dump CD dans le même env ne viendra PAS écraser cette ligne (EIC différent). Recommandation : purger les imports CD legacy via `/admin > Danger Zone` avant de ré-ingérer.
+
 ### v2.0-alpha.9 — Slice 2h Migration fixtures vers EXPORT/ (2026-04-23)
 
 Rétire les 2 anciens dossiers fixtures `17V...2026-04-17T21_27_17Z/` et `17V...2026-04-17T22_11_50Z/` (dont le contexte métier — nom du composant, environnement — avait été perdu) et bascule toute la suite de tests sur la nouvelle arborescence `tests/fixtures/EXPORT/PRFRI-*/`. Première pierre du plan d'enrichissement de la carte : les dumps sont désormais accompagnés de leur fichier `<EIC>-configuration.properties` (source future pour `ecp.projectName` / `ecp.envName`).

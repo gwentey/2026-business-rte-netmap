@@ -8,6 +8,7 @@ export type ImportedComponentWithImport = {
   homeCdCode: string | null;
   networksCsv: string | null;
   displayName: string | null;
+  projectName: string | null;
   country: string | null;
   lat: number | null;
   lng: number | null;
@@ -30,6 +31,7 @@ const OVERWRITABLE_FIELDS = [
   'homeCdCode',
   'networksCsv',
   'displayName',
+  'projectName',
   'country',
   'lat',
   'lng',
@@ -62,6 +64,7 @@ export function mergeComponentsLatestWins(
       homeCdCode: first.homeCdCode,
       networksCsv: first.networksCsv,
       displayName: first.displayName,
+      projectName: first.projectName,
       country: first.country,
       lat: first.lat,
       lng: first.lng,

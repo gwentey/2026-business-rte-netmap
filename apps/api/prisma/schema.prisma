@@ -45,6 +45,7 @@ model ImportedComponent {
   homeCdCode         String?
   networksCsv        String?
   displayName        String?
+  projectName        String?   // ecp.projectName — renseigné uniquement pour le composant dont le dump est issu (sourceComponentEic)
   country            String?
   lat                Float?
   lng                Float?

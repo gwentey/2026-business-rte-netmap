@@ -6,7 +6,7 @@ const baseMerged: MergedComponent = {
   eic: 'EIC-X', type: 'ENDPOINT',
   organization: null, personName: null, email: null, phone: null,
   homeCdCode: null, networksCsv: null,
-  displayName: null, country: null, lat: null, lng: null,
+  displayName: null, projectName: null, country: null, lat: null, lng: null,
   isDefaultPosition: true, sourceType: 'LOCAL_CSV',
   creationTs: null, modificationTs: null, urls: [],
 };
@@ -33,7 +33,7 @@ describe('applyCascade', () => {
     expect(result.isDefaultPosition).toBe(false);
   });
 
-  it('registry overrides merged-import on displayName but not lat', () => {
+  it('registry overrides merged.displayName local but pas lat', () => {
     const merged: MergedComponent = { ...baseMerged, displayName: 'From Import', lat: 48, lng: 16, isDefaultPosition: false };
     const registry = { displayName: 'From Registry' };
     const result = applyCascade('EIC-X', merged, { ...emptyInputs, registry }, defaultFallback);
@@ -41,7 +41,7 @@ describe('applyCascade', () => {
     expect(result.lat).toBe(48);
   });
 
-  it('ENTSO-E overrides registry AND merged-import', () => {
+  it('ENTSO-E prend le pas sur registry pour les composants non-dumpés', () => {
     const merged: MergedComponent = { ...baseMerged, displayName: 'From Import' };
     const registry = { displayName: 'From Registry' };
     const entsoe = { displayName: 'From ENTSO-E' };
@@ -72,5 +72,48 @@ describe('applyCascade', () => {
     expect(result.lat).toBe(48.856);
     expect(result.lng).toBe(2.352);
     expect(result.isDefaultPosition).toBe(false);  // coords explicites présentes
+  });
+
+  it('projectName du dump sert de displayName quand pas d\'override', () => {
+    const merged: MergedComponent = { ...baseMerged, projectName: 'INTERNET-EP1' };
+    const result = applyCascade('EIC-X', merged, emptyInputs, defaultFallback);
+    expect(result.displayName).toBe('INTERNET-EP1');
+    expect(result.projectName).toBe('INTERNET-EP1');
+  });
+
+  it('merged.projectName prime sur ENTSOE et Registry (source officielle ECP)', () => {
+    const merged: MergedComponent = { ...baseMerged, projectName: 'INTERNET-EP1' };
+    const registry = { displayName: 'INTERNET-2' };
+    const entsoe = { displayName: 'ENTSOE name' };
+    const result = applyCascade('EIC-X', merged, { ...emptyInputs, registry, entsoe }, defaultFallback);
+    expect(result.displayName).toBe('INTERNET-EP1');
+    expect(result.projectName).toBe('INTERNET-EP1');
+  });
+
+  it('admin override bat même merged.projectName', () => {
+    const merged: MergedComponent = { ...baseMerged, projectName: 'INTERNET-EP1' };
+    const override = { displayName: 'Mon label manuel' };
+    const result = applyCascade('EIC-X', merged, { ...emptyInputs, override }, defaultFallback);
+    expect(result.displayName).toBe('Mon label manuel');
+    // Mais le projectName brut reste exposé pour le popup UI (chip)
+    expect(result.projectName).toBe('INTERNET-EP1');
+  });
+
+  it('registry.displayName est utilisé pour EICs partenaires sans projectName', () => {
+    const merged: MergedComponent = { ...baseMerged, projectName: null };
+    const registry = { displayName: 'TERNA CD' };
+    const result = applyCascade('EIC-X', merged, { ...emptyInputs, registry }, defaultFallback);
+    expect(result.displayName).toBe('TERNA CD');
+    expect(result.projectName).toBeNull();
+  });
+
+  it('merged.projectName prime sur merged.displayName local', () => {
+    const merged: MergedComponent = {
+      ...baseMerged,
+      projectName: 'INTERNET-EP1',
+      displayName: 'legacy-name',
+    };
+    const result = applyCascade('EIC-X', merged, emptyInputs, defaultFallback);
+    expect(result.displayName).toBe('INTERNET-EP1');
   });
 });

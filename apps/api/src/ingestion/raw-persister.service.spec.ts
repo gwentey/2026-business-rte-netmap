@@ -19,7 +19,7 @@ function makeBuilt(): BuiltImport {
     components: [{
       eic: 'EIC-RP-1', type: 'ENDPOINT',
       organization: 'RTE', personName: null, email: null, phone: null,
-      homeCdCode: null, networksCsv: null, displayName: 'E1', country: null,
+      homeCdCode: null, networksCsv: null, displayName: 'E1', projectName: null, country: null,
       lat: null, lng: null, isDefaultPosition: true,
       sourceType: 'LOCAL_CSV', creationTs: null, modificationTs: null,
       urls: [{ network: 'PUBLIC_NETWORK', url: 'https://example.com' }],

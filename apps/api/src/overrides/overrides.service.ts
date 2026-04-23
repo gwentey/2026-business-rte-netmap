@@ -53,6 +53,7 @@ export class OverridesService {
       homeCdCode: c.homeCdCode,
       networksCsv: c.networksCsv,
       displayName: c.displayName,
+      projectName: c.projectName,
       country: c.country,
       lat: c.lat,
       lng: c.lng,

@@ -15,6 +15,8 @@ export type GraphNode = {
   eic: string;
   kind: NodeKind;
   displayName: string;
+  projectName: string | null;
+  envName: string | null;
   organization: string;
   country: string | null;
   lat: number;

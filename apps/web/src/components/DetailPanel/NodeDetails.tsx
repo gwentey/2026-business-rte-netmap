@@ -2,9 +2,22 @@ import type { GraphNode } from '@carto-ecp/shared';
 import { formatDateTime } from '../../lib/format.js';
 
 export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
+  const showProjectChip =
+    node.projectName != null && node.projectName !== node.displayName;
+
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold">{node.displayName}</h2>
+      <div>
+        <h2 className="text-lg font-semibold">{node.displayName}</h2>
+        {showProjectChip ? (
+          <p className="mt-0.5 text-xs text-gray-500">
+            Projet ECP :{' '}
+            <span className="inline-block rounded bg-violet-50 px-1.5 py-0.5 font-mono text-violet-700">
+              {node.projectName}
+            </span>
+          </p>
+        ) : null}
+      </div>
       <dl className="text-sm">
         <div className="grid grid-cols-3 gap-2 py-1">
           <dt className="text-gray-500">EIC</dt>
@@ -13,6 +26,10 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
         <div className="grid grid-cols-3 gap-2 py-1">
           <dt className="text-gray-500">Type</dt>
           <dd className="col-span-2">{node.kind}</dd>
+        </div>
+        <div className="grid grid-cols-3 gap-2 py-1">
+          <dt className="text-gray-500">Environnement</dt>
+          <dd className="col-span-2">{node.envName ?? '—'}</dd>
         </div>
         <div className="grid grid-cols-3 gap-2 py-1">
           <dt className="text-gray-500">Organisation</dt>

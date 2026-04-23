@@ -11,6 +11,7 @@ const baseComp: Omit<ImportedComponentWithImport, '_effectiveDate'> = {
   homeCdCode: null,
   networksCsv: null,
   displayName: null,
+  projectName: null,
   country: null,
   lat: null,
   lng: null,

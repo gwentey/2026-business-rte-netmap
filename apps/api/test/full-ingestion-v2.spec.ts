@@ -67,6 +67,26 @@ describe('Full ingestion v2 (integration)', () => {
     expect(g.bounds.north).toBeGreaterThan(g.bounds.south);
     expect(g.bounds.east).toBeGreaterThan(g.bounds.west);
 
+    // Slice 2j : projectName du dump endpoint PRFRI-EP2 doit remonter sur le node source.
+    // ecp.projectName dans 17V000000498771C/application_property.csv vaut "INTERNET-EP2".
+    const endpointNode = g.nodes.find((n) => n.eic === '17V000000498771C');
+    expect(endpointNode).toBeDefined();
+    expect(endpointNode!.projectName).toBe('INTERNET-EP2');
+    expect(endpointNode!.displayName).toBe('INTERNET-EP2');
+    expect(endpointNode!.envName).toBe(TEST_ENV);
+
+    // Slice 2j : projectName du CD PRFRI-CD1 = "INTERNET-CD" (dans application_property.csv).
+    const cdNode = g.nodes.find((n) => n.eic === '17V000002014106G');
+    expect(cdNode).toBeDefined();
+    expect(cdNode!.projectName).toBe('INTERNET-CD');
+
+    // Les autres nodes (vus via XML dans le dump EP2) n'ont pas leur projectName
+    // puisqu'ils n'ont pas fait l'objet d'un dump dédié : projectName = null.
+    const otherNode = g.nodes.find(
+      (n) => n.eic !== '17V000000498771C' && n.eic !== '17V000002014106G',
+    );
+    if (otherNode) expect(otherNode.projectName).toBeNull();
+
     // At least 2 imports listed for this env
     const list = await imports.listImports(TEST_ENV);
     expect(list).toHaveLength(2);

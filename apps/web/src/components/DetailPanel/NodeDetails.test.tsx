@@ -8,6 +8,8 @@ function baseNode(overrides: Partial<GraphNode> = {}): GraphNode {
     id: 'node-1',
     eic: '17V000000498771C',
     displayName: 'INTERNET-2',
+    projectName: null,
+    envName: 'PFRFI',
     organization: 'RTE',
     country: 'FR',
     lat: 48.89,
@@ -61,5 +63,30 @@ describe('NodeDetails', () => {
     );
     expect(screen.getByRole('heading', { name: /URLs/i })).toBeInTheDocument();
     expect(screen.getByText('http://example.com', { exact: false })).toBeInTheDocument();
+  });
+
+  it('displays the projectName chip when it differs from displayName', () => {
+    render(
+      <NodeDetails
+        node={baseNode({ displayName: 'Paris-Est RTE', projectName: 'INTERNET-EP2' })}
+      />,
+    );
+    expect(screen.getByText(/Projet ECP/i)).toBeInTheDocument();
+    expect(screen.getByText('INTERNET-EP2')).toBeInTheDocument();
+  });
+
+  it('hides the projectName chip when displayName already equals projectName', () => {
+    render(
+      <NodeDetails
+        node={baseNode({ displayName: 'INTERNET-EP2', projectName: 'INTERNET-EP2' })}
+      />,
+    );
+    expect(screen.queryByText(/Projet ECP/i)).not.toBeInTheDocument();
+  });
+
+  it('renders envName row from Import meta', () => {
+    render(<NodeDetails node={baseNode({ envName: 'PFRFI' })} />);
+    expect(screen.getByText('Environnement')).toBeInTheDocument();
+    expect(screen.getByText('PFRFI')).toBeInTheDocument();
   });
 });

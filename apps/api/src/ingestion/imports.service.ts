@@ -159,6 +159,14 @@ export class ImportsService {
       for (const c of xmlComponents) componentsByEic.set(c.eic, c);
       components = Array.from(componentsByEic.values());
       paths = xmlPaths;
+
+      // Injecte ecp.projectName uniquement sur le composant dont le dump est issu.
+      // Les autres composants (vus via le XML) n'ont pas leur projectName dans ce dump.
+      const projectName = appsMap.get('ecp.projectName') ?? null;
+      if (projectName && localEic) {
+        const src = componentsByEic.get(localEic);
+        if (src) src.projectName = projectName;
+      }
     } else if (dumpType === 'COMPONENT_DIRECTORY') {
       // Pipeline 2b : CSVs only, pas de XML blob
       const extracted = this.zipExtractor.extract(file.buffer);
@@ -169,12 +177,22 @@ export class ImportsService {
         extractedRecord[k] = v;
       }
 
+      // Lecture précoce de application_property.csv pour récupérer le vrai EIC
+      // du CD : `component_directory.csv` n'expose qu'un id interne séquentiel
+      // (ex. "1"), pas l'EIC réel du composant directory.
+      const appPropBuffer = extracted.files.get('application_property.csv')!;
+      const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
+      const appsMapCd = new Map(appPropRows.map((r) => [r.key, r.value] as const));
+      const cdRealEic = appsMapCd.get('ecp.componentCode') ?? sourceComponentEic ?? '';
+      const projectNameCd = appsMapCd.get('ecp.projectName') ?? null;
+
       const cdBuffer = extracted.files.get('component_directory.csv')!;
       const cdRawRows = this.csvReader.readComponentDirectory(cdBuffer, warnings);
-      // Adapter: ComponentDirectoryRow → shape attendu par buildFromCdCsv
+      // Adapter : on substitue l'EIC réel à l'id interne du CSV (sinon le CD
+      // serait persisté avec un EIC bidon type "1" sans lien avec le graph).
       const cdComponentRows = cdRawRows.map((r) => ({
-        id: r.id,
-        componentCode: r.id,
+        id: cdRealEic || r.id,
+        componentCode: cdRealEic || r.id,
         directoryContent: r.directoryContent,
         organization: null,
       }));
@@ -184,13 +202,17 @@ export class ImportsService {
       paths = cdBuilt.paths;
       warnings.push(...cdBuilt.warnings);
 
-      const appPropBuffer = extracted.files.get('application_property.csv')!;
-      const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
       appProperties = this.builder.buildAppProperties(
         appPropRows
           .filter((r) => r.value != null)
           .map((r) => ({ key: r.key, value: r.value! })),
       );
+
+      // Injecte ecp.projectName sur le composant CD lui-même (source du dump).
+      if (projectNameCd && cdRealEic) {
+        const src = components.find((c) => c.eic === cdRealEic);
+        if (src) src.projectName = projectNameCd;
+      }
       // Pas de messaging_statistics côté CD (tableau vide par défaut)
     } else {
       // BROKER : metadata-only — pas d'extraction CSV (zip ne contient pas les CSVs requis)
