@@ -247,3 +247,45 @@ describe('NodeDetails — section Interlocuteurs', () => {
     expect(screen.getByText('EIC_ABSENT')).toBeInTheDocument();
   });
 });
+
+describe('NodeDetails — section Applications metier (Slice 3b)', () => {
+  it('ne rend pas la section si businessApplications est vide', () => {
+    render(<NodeDetails node={baseNode({ businessApplications: [] })} />);
+    expect(screen.queryByText(/Applications métier/)).not.toBeInTheDocument();
+  });
+
+  it('rend la section avec le bon compteur', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          businessApplications: [
+            { code: 'OCAPPI', criticality: 'P1' },
+            { code: 'PLANET', criticality: 'P2' },
+            { code: 'KIWI', criticality: 'P3' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('Applications métier (3)')).toBeInTheDocument();
+    expect(screen.getByText('OCAPPI')).toBeInTheDocument();
+    expect(screen.getByText('PLANET')).toBeInTheDocument();
+    expect(screen.getByText('KIWI')).toBeInTheDocument();
+  });
+
+  it('rend un badge de criticite par BA', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          businessApplications: [
+            { code: 'OCAPPI', criticality: 'P1' },
+            { code: 'PLANET', criticality: 'P2' },
+            { code: 'KIWI', criticality: 'P3' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('P1')).toBeInTheDocument();
+    expect(screen.getByText('P2')).toBeInTheDocument();
+    expect(screen.getByText('P3')).toBeInTheDocument();
+  });
+});
