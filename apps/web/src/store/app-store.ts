@@ -45,6 +45,13 @@ type AppState = {
   refDate: Date | null;
   /** Toggle visuel : affiche les liens endpoint → home CD sur la carte (slice 2o). */
   showHomeCdOverlay: boolean;
+  /**
+   * Filtre « par BA » (Slice 3c). Set des codes BA sélectionnés. Vide = pas
+   * de filtre (comportement par défaut, tout affiché). Non-vide = on ne
+   * garde que les nodes RTE qui portent au moins une BA sélectionnée, plus
+   * les externes connectés à ces nodes via une edge.
+   */
+  selectedBaCodes: string[];
 
   loadEnvs: () => Promise<void>;
   setActiveEnv: (env: string) => Promise<void>;
@@ -59,6 +66,8 @@ type AppState = {
   clearBatch: () => void;
   setRefDate: (date: Date | null) => Promise<void>;
   toggleHomeCdOverlay: () => void;
+  toggleBaFilter: (code: string) => void;
+  clearBaFilter: () => void;
 };
 
 /**
@@ -89,6 +98,7 @@ export const useAppStore = create<AppState>()(
       uploadInProgress: false,
       refDate: null,
       showHomeCdOverlay: false,
+      selectedBaCodes: [],
 
       loadEnvs: async () => {
         set({ loading: true, error: null });
@@ -279,12 +289,23 @@ export const useAppStore = create<AppState>()(
 
       toggleHomeCdOverlay: () =>
         set((s) => ({ showHomeCdOverlay: !s.showHomeCdOverlay })),
+
+      toggleBaFilter: (code) =>
+        set((s) => {
+          const next = s.selectedBaCodes.includes(code)
+            ? s.selectedBaCodes.filter((c) => c !== code)
+            : [...s.selectedBaCodes, code];
+          return { selectedBaCodes: next };
+        }),
+
+      clearBaFilter: () => set({ selectedBaCodes: [] }),
     }),
     {
       name: 'carto-ecp-store',
       partialize: (s) => ({
         activeEnv: s.activeEnv,
         showHomeCdOverlay: s.showHomeCdOverlay,
+        selectedBaCodes: s.selectedBaCodes,
       }),
     },
   ),
