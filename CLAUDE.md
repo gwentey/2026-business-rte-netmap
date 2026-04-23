@@ -91,15 +91,28 @@ Both are handled by `apps/api/src/common/date-parser.ts` via regex + truncation 
 
 ## Test fixtures
 
-Two real ECP backups live in `tests/fixtures/`:
+Real ECP dumps live in `tests/fixtures/EXPORT/` (environnement PRFRI, copie quasi-parfaite de la PROD). Chaque sous-dossier contient le **zip brut** livré par l'admin ECP **plus** son fichier `<EIC>-configuration.properties` exporté via `Admin ECP > Settings > Runtime Configuration > Export Configuration` :
 
-- `17V000000498771C_2026-04-17T21_27_17Z/` — real Endpoint backup (ECP-INTERNET-2, env `OPF`)
-- `17V000002014106G_2026-04-17T22_11_50Z/` — real CD backup (RTE CD)
-- `X_eicCodes.csv` — ENTSO-E official EIC registry (~14929 codes)
+| Dossier | EIC | projectName | envName | Rôle |
+|---|---|---|---|---|
+| `EXPORT/PRFRI-CD1/` | 17V000002014106G | INTERNET-CD | ACCEPTANCE | Component Directory central (peering vers 8 CDs européens) |
+| `EXPORT/PRFRI-CWERPN/` | 17V0000009823063 | ECP-CWERPN | PFRFI | Endpoint métier CWE-RPN |
+| `EXPORT/PRFRI-EP1/` | 17V0000009927458 | INTERNET-EP1 | PFRFI | Endpoint INTERNET |
+| `EXPORT/PRFRI-EP2/` | 17V000000498771C | INTERNET-EP2 | PFRFI | Endpoint INTERNET |
+| `EXPORT/PRFRI-PCN-EP1/` | 17V000002128128A | PCN-EP1 | PFRFI | Endpoint PCN-ATOM (NAT activé) |
+| `EXPORT/PRFRI-PCN-EP2/` | 17V000002128130N | PCN-EP2 | PFRFI | Endpoint PCN-ATOM |
+| `EXPORT/PRFRI-PCN-EP3/` | 17V000002128089V | ECP-PCN-3 | PFRFI | Endpoint PCN |
 
-The sensitive CSVs (`local_key_store.csv`, `registration_store.csv`, `registration_requests.csv`) are **gitignored** — they contain private keys and internal inventory. Do not commit them even if the `ls` output looks incomplete.
+Hors `EXPORT/` : `X_eicCodes.csv` — ENTSO-E official EIC registry (~14929 codes, tracked).
 
-Integration tests rebuild a fresh zip at runtime from these folders via `apps/api/test/fixtures-loader.ts`.
+**Sécurité** :
+- Les `.zip` sont `gitignored` globalement (`tests/fixtures/EXPORT/**/*.zip`) car ils **contiennent** les CSVs sensibles `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv` (clés privées + inventaire interne). Ne jamais committer un zip — les secrets y sont empaquettés et un `.gitignore` CSV ne peut pas les filtrer.
+- Les CSVs sensibles restent `gitignored` individuellement (`tests/fixtures/**/local_key_store.csv` etc.) — filet de sécurité pour une éventuelle décompression locale.
+- Les `<EIC>-configuration.properties` sont tracked (valeurs de config non-secrètes — NAT, networks, theme, homeCD URL).
+
+**Pour regénérer les fixtures** : demander à l'admin ECP un nouvel export du dump du composant ciblé + son `Export Configuration`. Remettre le zip + .properties dans `tests/fixtures/EXPORT/<PRFRI-XXX>/`.
+
+Les tests d'intégration reconstruisent à la volée un zip filtré (sans CSVs sensibles) via `apps/api/test/fixtures-loader.ts` (`ENDPOINT_FIXTURE` = PRFRI-EP2, `CD_FIXTURE` = PRFRI-CD1) et `apps/web/e2e/helpers/fixtures.ts` (même contrat côté Playwright).
 
 ## Registry conventions
 

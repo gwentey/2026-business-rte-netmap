@@ -14,49 +14,12 @@
  * Sélecteur EnvSelector.tsx : <select> dans <header> (App.tsx).
  */
 import { test, expect } from '@playwright/test';
-import AdmZip from 'adm-zip';
-import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ENDPOINT_FIXTURE, CD_FIXTURE, buildFixtureZipBuffer } from './helpers/fixtures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-const ENDPOINT_DIR = join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'tests',
-  'fixtures',
-  '17V000000498771C_2026-04-17T21_27_17Z',
-);
-
-const CD_DIR = join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'tests',
-  'fixtures',
-  '17V000002014106G_2026-04-17T22_11_50Z',
-);
-
-/** Fichiers sensibles à ne jamais lire ni uploader */
-const EXCLUDED = new Set([
-  'local_key_store.csv',
-  'registration_store.csv',
-  'registration_requests.csv',
-]);
-
-function buildZipBuffer(dir: string): Buffer {
-  const zip = new AdmZip();
-  for (const f of readdirSync(dir)) {
-    if (EXCLUDED.has(f) || f.startsWith('.')) continue;
-    zip.addFile(f, readFileSync(join(dir, f)));
-  }
-  return zip.toBuffer();
-}
 
 /**
  * Helper : upload un dump et attend le bouton "Voir sur la carte".
@@ -92,7 +55,7 @@ test('le selector d\'env affiche ≥2 envs et le switch recharge la carte', asyn
   // Upload dump ENDPOINT dans env E2E_ENV_A
   await uploadAndGoToMap(
     page,
-    buildZipBuffer(ENDPOINT_DIR),
+    buildFixtureZipBuffer(__dirname, ENDPOINT_FIXTURE),
     '17V000000498771C_endpoint.zip',
     'E2E Env A',
     'E2E_ENV_A',
@@ -101,7 +64,7 @@ test('le selector d\'env affiche ≥2 envs et le switch recharge la carte', asyn
   // Upload dump CD dans env E2E_ENV_B
   await uploadAndGoToMap(
     page,
-    buildZipBuffer(CD_DIR),
+    buildFixtureZipBuffer(__dirname, CD_FIXTURE),
     '17V000002014106G_cd.zip',
     'E2E Env B',
     'E2E_ENV_B',

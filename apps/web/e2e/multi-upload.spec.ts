@@ -9,68 +9,21 @@
  * - Navigation vers la carte et vérification d'au moins un élément Leaflet interactif
  *
  * Les zips sont construits en mémoire depuis les fixtures réelles
- * `tests/fixtures/17V.../` (fichiers sensibles exclus).
+ * `tests/fixtures/EXPORT/PRFRI-*/` (fichiers sensibles exclus).
  *
  * Précondition : l'API tourne sur http://localhost:3000 (géré par webServer).
  * Le beforeEach purge tous les imports existants pour éviter les doublons sur
  * des runs répétés (state "skipped" au lieu de "done").
  */
 import { test, expect } from '@playwright/test';
-import AdmZip from 'adm-zip';
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ENDPOINT_FIXTURE, CD_FIXTURE, buildFixtureZipBuffer } from './helpers/fixtures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const API = 'http://localhost:3000';
-
-/** Fichiers sensibles à ne jamais lire ni uploader */
-const EXCLUDED = new Set([
-  'local_key_store.csv',
-  'registration_store.csv',
-  'registration_requests.csv',
-]);
-
-/** Fichiers CSV attendus dans un dump ECP (whitelist) */
-const CANDIDATES = [
-  'application_property.csv',
-  'component_directory.csv',
-  'messaging_statistics.csv',
-  'message_path.csv',
-  'message_type.csv',
-  'message_upload_route.csv',
-  'component_statistics.csv',
-  'synchronized_directories.csv',
-  'pending_edit_directories.csv',
-  'pending_removal_directories.csv',
-];
-
-/**
- * Construit un Buffer ZIP depuis un dossier fixture, en excluant les fichiers
- * sensibles et en se limitant à la whitelist des fichiers attendus.
- */
-function buildFixtureZipBuffer(fixtureName: string): Buffer {
-  const zip = new AdmZip();
-  const base = join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    'tests',
-    'fixtures',
-    fixtureName,
-  );
-  for (const f of CANDIDATES) {
-    if (EXCLUDED.has(f)) continue;
-    const p = join(base, f);
-    if (existsSync(p)) {
-      zip.addFile(f, readFileSync(p));
-    }
-  }
-  return zip.toBuffer();
-}
 
 test.describe('Multi-upload', () => {
   test.beforeEach(async ({ request }) => {
@@ -105,29 +58,28 @@ test.describe('Multi-upload', () => {
     await envInput.clear();
     await envInput.fill('E2E_MULTI');
 
+    const endpointZipName = `${ENDPOINT_FIXTURE}.zip`;
+    const cdZipName = `${CD_FIXTURE}.zip`;
+
     // Sélectionne les 2 fichiers via setInputFiles (bypass dropzone natif)
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles([
       {
-        name: '17V000000498771C_2026-04-17T21_27_17Z.zip',
+        name: endpointZipName,
         mimeType: 'application/zip',
-        buffer: buildFixtureZipBuffer('17V000000498771C_2026-04-17T21_27_17Z'),
+        buffer: buildFixtureZipBuffer(__dirname, ENDPOINT_FIXTURE),
       },
       {
-        name: '17V000002014106G_2026-04-17T22_11_50Z.zip',
+        name: cdZipName,
         mimeType: 'application/zip',
-        buffer: buildFixtureZipBuffer('17V000002014106G_2026-04-17T22_11_50Z'),
+        buffer: buildFixtureZipBuffer(__dirname, CD_FIXTURE),
       },
     ]);
 
     // Attend que les deux noms de fichiers apparaissent dans la table de preview
     // (état "pending-inspect" → "inspected" = "🟢 Prêt")
-    await expect(
-      page.getByText('17V000000498771C_2026-04-17T21_27_17Z.zip'),
-    ).toBeVisible({ timeout: 20_000 });
-    await expect(
-      page.getByText('17V000002014106G_2026-04-17T22_11_50Z.zip'),
-    ).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(endpointZipName)).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(cdZipName)).toBeVisible({ timeout: 20_000 });
 
     // Attend que les 2 fichiers passent à l'état "Prêt" avant de soumettre
     // Le bouton est activé dès qu'au moins 1 fichier est "actionable"

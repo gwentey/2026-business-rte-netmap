@@ -136,6 +136,19 @@ pnpm --filter @carto-ecp/api prisma:studio          # navigateur DB
 
 ---
 
+## Fixtures de test
+
+Depuis la slice 2h, les dumps ECP réels sont stockés dans `tests/fixtures/EXPORT/PRFRI-*/`. Chaque sous-dossier contient :
+
+- Le zip brut `<EIC>_<timestamp>.zip` livré par l'admin ECP (**gitignored**, contient CSVs sensibles).
+- Le fichier `<EIC>-configuration.properties` exporté via *Admin ECP > Settings > Runtime Configuration > Export Configuration* (tracked, sert de source primaire pour `ecp.projectName`, `ecp.envName`, `ecp.networks`, `ecp.natEnabled`, `ecp.directory.client.synchronization.homeComponentDirectoryPrimaryUrl`).
+
+7 dossiers sont présents : `PRFRI-CD1` (CD central), `PRFRI-CWERPN`, `PRFRI-EP1`, `PRFRI-EP2`, `PRFRI-PCN-EP1`, `PRFRI-PCN-EP2`, `PRFRI-PCN-EP3` — détails dans `CLAUDE.md` section *Test fixtures*.
+
+Les tests chargent les zips via `apps/api/test/fixtures-loader.ts` (constantes `ENDPOINT_FIXTURE` = PRFRI-EP2, `CD_FIXTURE` = PRFRI-CD1) et `apps/web/e2e/helpers/fixtures.ts`. Les deux helpers décompressent en mémoire et filtrent les CSVs sensibles (`local_key_store.csv`, `registration_store.csv`, `registration_requests.csv`).
+
+---
+
 ## Outils transverses
 
 - **Gestionnaire de paquets :** pnpm >= 9.0.0 (workspaces)

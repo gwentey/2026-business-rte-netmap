@@ -5,7 +5,7 @@
  * vers "/" (MapPage) → carte Leaflet peuplée avec au moins un marker interactif.
  *
  * Le zip est construit en mémoire depuis la fixture réelle
- * `tests/fixtures/17V000000498771C_2026-04-17T21_27_17Z/` (fichiers sensibles exclus).
+ * `tests/fixtures/EXPORT/PRFRI-EP2/` (fichiers sensibles exclus).
  *
  * Sélecteurs vérifiés contre UploadPage.tsx :
  *   - placeholder label  : "ex: Semaine 15 RTE"
@@ -14,48 +14,21 @@
  *   - bouton post-import : "Voir sur la carte →"
  */
 import { test, expect } from '@playwright/test';
-import AdmZip from 'adm-zip';
-import { readFileSync, readdirSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ENDPOINT_FIXTURE, buildFixtureZipBuffer } from './helpers/fixtures.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
-const FIXTURE_DIR = join(
-  __dirname,
-  '..',
-  '..',
-  '..',
-  'tests',
-  'fixtures',
-  '17V000000498771C_2026-04-17T21_27_17Z',
-);
-
-/** Fichiers sensibles à ne jamais lire ni uploader */
-const EXCLUDED = new Set([
-  'local_key_store.csv',
-  'registration_store.csv',
-  'registration_requests.csv',
-]);
-
-function buildFixtureZipBuffer(): Buffer {
-  const zip = new AdmZip();
-  for (const f of readdirSync(FIXTURE_DIR)) {
-    if (EXCLUDED.has(f) || f.startsWith('.')) continue;
-    zip.addFile(f, readFileSync(join(FIXTURE_DIR, f)));
-  }
-  return zip.toBuffer();
-}
 
 test('upload un dump ENDPOINT puis atterrit sur la carte peuplée', async ({ page }) => {
   await page.goto('/upload');
 
   // Sélectionne le fichier via setInputFiles (bypass dropzone)
   await page.setInputFiles('input[type=file]', {
-    name: '17V000000498771C_2026-04-17T21_27_17Z.zip',
+    name: `${ENDPOINT_FIXTURE}.zip`,
     mimeType: 'application/zip',
-    buffer: buildFixtureZipBuffer(),
+    buffer: buildFixtureZipBuffer(__dirname, ENDPOINT_FIXTURE),
   });
 
   // Renseigne le label (placeholder "ex: Semaine 15 RTE")

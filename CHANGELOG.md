@@ -7,6 +7,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.9 — Slice 2h Migration fixtures vers EXPORT/ (2026-04-23)
+
+Rétire les 2 anciens dossiers fixtures `17V...2026-04-17T21_27_17Z/` et `17V...2026-04-17T22_11_50Z/` (dont le contexte métier — nom du composant, environnement — avait été perdu) et bascule toute la suite de tests sur la nouvelle arborescence `tests/fixtures/EXPORT/PRFRI-*/`. Première pierre du plan d'enrichissement de la carte : les dumps sont désormais accompagnés de leur fichier `<EIC>-configuration.properties` (source future pour `ecp.projectName` / `ecp.envName`).
+
+**Highlights :**
+
+- **Nouvelle arborescence fixtures** : 7 dumps PRFRI (1 CD + 6 endpoints) dans `tests/fixtures/EXPORT/PRFRI-{CD1,CWERPN,EP1,EP2,PCN-EP1,PCN-EP2,PCN-EP3}/`. Chaque dossier contient le zip brut ECP **et** son `<EIC>-configuration.properties` (tracked, non-sensible).
+- **`.gitignore` durci** : ajout de `tests/fixtures/EXPORT/**/*.zip` pour empêcher tout commit accidentel de zip — les zips contiennent les CSVs sensibles (`local_key_store.csv`, etc.) qu'un pattern CSV ne peut pas filtrer une fois empaquettés.
+- **`apps/api/test/fixtures-loader.ts` refactorisé** : lecture du zip via `AdmZip` en mémoire (au lieu de `readdirSync` sur dossier décompressé), filtrage des CSVs sensibles, résolution `fixtureName → sous-dossier EXPORT/PRFRI-*/` via table statique. Constantes `ENDPOINT_FIXTURE` et `CD_FIXTURE` mises à jour avec les nouveaux noms de zip (mêmes EICs, nouveaux timestamps 2026-04-21/22).
+- **Nouvelle fonction `readFixtureProperties()`** : lit le `<EIC>-configuration.properties` associé à une fixture, prête à être consommée par les futurs tests du slice 2i (upload couplé zip + properties).
+- **Helper e2e partagé** `apps/web/e2e/helpers/fixtures.ts` : remplace la duplication de `buildFixtureZip` / `EXCLUDED` dans 5 fichiers e2e (`upload-to-map`, `upload-then-map`, `select-node`, `snapshot-switch`, `multi-upload`, `env-switch`).
+- **`apps/api/src/ingestion/imports.service.spec.ts`** : assertions `sourceDumpTimestamp` alignées sur le nouveau timestamp (`'2026-04-21T14:33:05.000Z'` pour l'endpoint) et noms de zip hardcodés remplacés par `${ENDPOINT_FIXTURE}.zip` / `${CD_FIXTURE}.zip` pour suivre la constante.
+- **Nettoyage artefacts** : suppression de `apps/api/test/fixtures-loader.{d.ts,js,js.map}` (compilation manuelle obsolète — vitest+swc résout `./fixtures-loader.js` → `.ts` à l'exécution). Ajout au `.gitignore` : `apps/api/test/*.{js,d.ts,js.map}`.
+- **Docs synchronisées** : `CLAUDE.md` section *Test fixtures* documente les 7 dumps avec projectName + envName + rôle. `.claude/rules/02-stack.md` ajoute une section *Fixtures de test* qui renvoie vers CLAUDE.md.
+
+**Tests :**
+- 222/222 API et 85/85 Web inchangés après migration (aucune régression).
+- Typecheck PASS sur les 4 workspaces.
+- E2E Playwright non relancés dans ce slice (les 5 specs compilent ; validation complète attendue lors du slice 2i).
+
+**Breaking changes :** aucun pour le contrat API. Impact dev : les 2 anciens dossiers fixtures sont supprimés — toute branche en cours qui les référence doit rebase sur cette version.
+
 ### v2.0-alpha.8 — Slice 2g Registry admin UI (2026-04-20)
 
 Onglet **Registry RTE** activé dans `/admin` avec 2 sections opérationnelles :

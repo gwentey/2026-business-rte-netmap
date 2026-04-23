@@ -144,14 +144,14 @@ describe('ImportsService.inspectBatch', () => {
   it('inspects a real ENDPOINT fixture and returns HIGH confidence', async () => {
     const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
     const result = await service.inspectBatch(
-      [{ originalname: '17V000000498771C_2026-04-17T21_27_17Z.zip', buffer: zip }],
+      [{ originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip }],
       undefined,
     );
     expect(result).toHaveLength(1);
     expect(result[0]!.dumpType).toBe('ENDPOINT');
     expect(result[0]!.confidence).toBe('HIGH');
     expect(result[0]!.sourceComponentEic).toBe('17V000000498771C');
-    expect(result[0]!.sourceDumpTimestamp).toBe('2026-04-17T21:27:17.000Z');
+    expect(result[0]!.sourceDumpTimestamp).toBe('2026-04-21T14:33:05.000Z');
     expect(result[0]!.duplicateOf).toBeNull();
     expect(result[0]!.fileHash).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -165,7 +165,7 @@ describe('ImportsService.inspectBatch', () => {
     });
 
     const result = await service.inspectBatch(
-      [{ originalname: '17V000000498771C_2026-04-17T21_27_17Z.zip', buffer: zip }],
+      [{ originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip }],
       'TEST_INSPECT_DUP',
     );
     expect(result[0]!.duplicateOf).not.toBeNull();
@@ -182,7 +182,7 @@ describe('ImportsService.inspectBatch', () => {
     });
 
     const result = await service.inspectBatch(
-      [{ originalname: '17V000000498771C_2026-04-17T21_27_17Z.zip', buffer: zip }],
+      [{ originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip }],
       'TEST_INSPECT_CROSS_B',
     );
     expect(result[0]!.duplicateOf).toBeNull();
@@ -195,8 +195,8 @@ describe('ImportsService.inspectBatch', () => {
     const zipB = buildZipFromFixture(CD_FIXTURE);
     const result = await service.inspectBatch(
       [
-        { originalname: '17V000000498771C_2026-04-17T21_27_17Z.zip', buffer: zipA },
-        { originalname: '17V000002014106G_2026-04-17T22_11_50Z.zip', buffer: zipB },
+        { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zipA },
+        { originalname: `${CD_FIXTURE}.zip`, buffer: zipB },
       ],
       undefined,
     );

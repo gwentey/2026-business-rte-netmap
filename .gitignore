@@ -11,6 +11,12 @@ build/
 coverage/
 *.tsbuildinfo
 
+# Artefacts de compilation ad-hoc du test runner (vitest+swc résout les imports
+# `./fixtures-loader.js` vers le source .ts — les .js/.d.ts/.js.map sont dead code)
+apps/api/test/*.js
+apps/api/test/*.d.ts
+apps/api/test/*.js.map
+
 # Runtime storage (zips archivés)
 storage/
 
@@ -48,6 +54,13 @@ Thumbs.db
 tests/fixtures/**/local_key_store.csv
 tests/fixtures/**/registration_store.csv
 tests/fixtures/**/registration_requests.csv
+
+# Dumps ECP bruts : les zips contiennent les CSVs sensibles ci-dessus et ne
+# peuvent pas être filtrés par pattern une fois empaquetés. On les ignore donc
+# intégralement. Seuls les fichiers <EIC>-configuration.properties sont tolérés
+# côté fixtures (pas de clés privées dans ce fichier), mais ils doivent être
+# relus avant commit.
+tests/fixtures/EXPORT/**/*.zip
 
 # Playwright
 test-results/
