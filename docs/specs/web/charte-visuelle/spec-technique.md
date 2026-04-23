@@ -1,11 +1,11 @@
 # Spec Technique — web/charte-visuelle
 
-| Champ  | Valeur                                     |
-|--------|--------------------------------------------|
-| Module | web/charte-visuelle                        |
-| Version| 3.0-alpha.15                               |
-| Date   | 2026-04-23                                 |
-| Source | Slice 5a — Foundation charte web/marketing |
+| Champ  | Valeur                                             |
+|--------|----------------------------------------------------|
+| Module | web/charte-visuelle                                |
+| Version| 3.0-alpha.16                                       |
+| Date   | 2026-04-23                                         |
+| Source | Slice 5b — Shell & navigation (base : Slice 5a)    |
 
 Accompagne [`spec-fonctionnel.md`](./spec-fonctionnel.md). Documente l'architecture des fichiers, le pipeline CSS, les CSS vars exposées, les mixins et les tests de contraste.
 
@@ -233,13 +233,108 @@ La spec `2026-04-23-charte-web-marketing-design.md` §3.1 indique `--c-text-link
 
 La spec §3.1 indique `--c-text-disabled: #94a3b1`. L'implémentation utilise `#7a8a95`. Les deux valeurs ont été envisagées ; `#7a8a95` est plus proche du teal et passe quand même le seuil AA_LARGE (exempt WCAG pour les états disabled).
 
-### Fonctionnalités de slices ultérieures (5b–5e) non présentes
+### Fonctionnalités de slices ultérieures (5b–5e) non présentes en Slice 5a
 
-Les éléments suivants sont décrits dans la design spec mais ne sont pas implémentés en Slice 5a — c'est normal, ils font l'objet des prochaines slices :
+Les éléments suivants sont décrits dans la design spec mais n'étaient pas implémentés en Slice 5a — c'est normal, ils font l'objet des prochaines slices :
 
-- **Slice 5b** : `App.module.scss` header sombre, `EnvSelector.module.scss`, `MapPage.module.scss`.
-- **Slice 5c** : `UploadPage.module.scss`, `NetworkMap.module.scss`, `BaFilter.module.scss`, `TimelineSlider.module.scss`, `NodeMarker.module.scss`.
+- **Slice 5b** : `App.module.scss` header sombre, `EnvSelector.module.scss`, `MapPage.module.scss`. **[LIVRÉ — voir §11]**
+- **Slice 5c** : `NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`, `TimelineSlider.module.scss`. *(en cours)*
 - **Slice 5d** : tous les `Admin/*.module.scss`, `DetailPanel/*.module.scss`, `UploadBatchTable.module.scss`, composants UI maison.
 - **Slice 5e** : composants `Skeleton`, `EmptyState`, intégration Toast DS, script `check:no-hex`, audit axe-core.
+
+---
+
+## 11. Slice 5b — Shell & navigation (v3.0-alpha.16)
+
+### 11.1 Périmètre
+
+La Slice 5b applique les tokens `brand.scss` (Slice 5a) à la couche shell de l'application : header principal, sous-header de la carte, footer légende et fallback EnvSelector. Aucun overlay map (`NetworkMap`, `BaFilter`, `NodeMarker`, `TimelineSlider`) n'est touché — ceux-ci sont réservés à la Slice 5c.
+
+### 11.2 Pattern d'import dans les module.scss
+
+Tous les fichiers `.module.scss` de shell ajoutés en Slice 5b commencent par :
+
+```scss
+@use "@/styles/brand" as *;
+```
+
+L'alias `@` est résolu vers `apps/web/src/` via la config Vite (`resolve.alias` dans `vite.config.ts`). Ce pattern permet d'utiliser les mixins typographiques (`@include t-body`, `@include t-h2`, etc.) et toutes les CSS vars `--c-*`/`--t-*`/`--r-*`/`--layout-*`/`--motion-*`/`--shadow-*` sans répétition de chemin relatif.
+
+### 11.3 Fichiers modifiés
+
+| Fichier | Nature |
+|---------|--------|
+| `apps/web/src/App.module.scss` | Refonte complète : header dark 56px, brand avec accent cyan, brandMark + brandTagline, adminLink avec hover state, `--layout-header-h`/`--layout-page-px` |
+| `apps/web/src/App.tsx` | Ajout des spans `brandMark` + `brandTagline` dans le `<Link>` brand |
+| `apps/web/src/pages/MapPage.module.scss` | Refonte shell : états loading/error/empty tokenisés, sous-header map, `snapshotLabel` pill teal, footer légende avec `--c-border-subtle`, swatch `--r-xs`, counter `@include t-mono` |
+| `apps/web/src/components/EnvSelector/EnvSelector.module.scss` | Fallback `.empty` : passage de hex `#6b7280` à `rgba(255,255,255,0.72)` + `@include t-small` |
+
+### 11.4 Tokens consommés par fichier
+
+#### `App.module.scss`
+
+| Token | Usage |
+|-------|-------|
+| `--layout-header-h` | Hauteur fixe du header (56px) |
+| `--layout-page-px` | Padding horizontal desktop |
+| `--layout-page-px-mobile` | Padding horizontal ≤640px |
+| `--c-surface-dark` | Fond header dark |
+| `--c-surface-sunken` | Fond root + main |
+| `--c-text-inverse` | Texte sur fond dark |
+| `--c-primary` | Accent bar vertical brand + flèche adminLink |
+| `--r-pill` | Border-radius de la barre accent |
+| `--r-sm` | Border-radius adminLink hover |
+| `--motion-fast` | Transition hover adminLink |
+| `--t-body-size` | Font-size adminLink |
+| `--t-body-strong-weight` | Font-weight adminLink |
+| `@mixin t-h2` | Styles brandMark |
+| `@mixin t-small` | Styles brandTagline |
+
+#### `MapPage.module.scss`
+
+| Token | Usage |
+|-------|-------|
+| `--c-text-muted` | État loading, snapshotLink, counter |
+| `--c-error`, `--c-error-bg`, `--c-error-border` | Bloc erreur |
+| `--r-md` | Border-radius bloc erreur |
+| `--c-surface-sunken` | Fond empty state |
+| `--c-text` | Texte emptyText, legendItem |
+| `--c-primary-pressed` | Mot fort dans emptyText |
+| `--c-primary` | Fond emptyButton + dot snapshotLabel |
+| `--c-primary-hover` | Hover emptyButton |
+| `--shadow-1`, `--shadow-2` | Ombres emptyButton |
+| `--r-sm` | Border-radius emptyButton, snapshotLink |
+| `--motion-fast` | Transitions hover |
+| `--c-surface` | Fond root + header + footer |
+| `--c-surface-deep` | Fond snapshotLabel |
+| `--c-border-subtle` | Séparateurs header/footer |
+| `--layout-page-px` | Padding header + footer |
+| `--r-pill` | Border-radius snapshotLabel |
+| `--r-xs` | Border-radius legendSwatch |
+| `--t-body-strong-weight` | Font-weight legendItem |
+| `--t-body-size` | Font-size emptyButton |
+| `@mixin t-body` | États loading, error, emptyButton |
+| `@mixin t-h2` | emptyText |
+| `@mixin t-small` | Footer légende, legendItem |
+| `@mixin t-caps` | snapshotLabel |
+| `@mixin t-mono` | counter |
+
+#### `EnvSelector.module.scss`
+
+| Token | Usage |
+|-------|-------|
+| `@mixin t-small` | Taille et line-height du texte `.empty` |
+
+*(Le fond dark du header est géré par `App.module.scss` — EnvSelector délègue au DS pour son rendu principal, les `--background-brand-*` surchargés en Slice 5a s'appliquent automatiquement.)*
+
+### 11.5 Contrainte zero-hex
+
+Zéro valeur hexadécimale codée en dur introduite en Slice 5b dans les fichiers de shell (conformément à l'objectif design spec §4.1). Exception documentée : `rgba(0, 189, 237, 0.12)` pour la bordure basse du header (accent cyan 12% opacité) — non tokenisé car valeur d'opacité non exposée en token. Cette exception sera revue en Slice 5e lors de l'audit `check:no-hex`.
+
+### 11.6 Résultats des tests Slice 5b
+
+- `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
+- `pnpm typecheck` : 0 erreurs.
+- `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~194 KB** (vs ~190 KB Slice 5a).
 
 ---

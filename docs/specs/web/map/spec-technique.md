@@ -105,6 +105,8 @@ Paramètres depuis `graph.mapConfig` : `rteClusterLat`, `rteClusterLng`, `rteClu
 - `NetworkMap` pour la carte
 - `DetailPanel` pour le panneau latéral (nœud ou edge sélectionné)
 
+**Styling du shell MapPage (Slice 5b — v3.0-alpha.16)** : `MapPage.module.scss` a été refondu pour consommer exclusivement les tokens `--c-*`/`--r-*`/`--shadow-*`/`--motion-*`/`--layout-*`/`--t-*` de `apps/web/src/styles/brand.scss`. Les états loading/error/empty, le sous-header, le footer légende, `snapshotLabel` et `snapshotLink` ne comportent plus aucun hex codé en dur. Les overlays internes (`NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`) ne sont **pas** concernés par cette refonte — ils seront tokenisés en Slice 5c. Voir `docs/specs/web/charte-visuelle/spec-technique.md §11` pour le détail complet des tokens consommés.
+
 ---
 
 ## Dépendances

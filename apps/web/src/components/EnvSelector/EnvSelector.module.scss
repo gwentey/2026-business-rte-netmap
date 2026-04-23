@@ -1,4 +1,13 @@
+@use "@/styles/brand" as *;
+
+// Le Select DS RTE se charge du rendu principal — il utilise les
+// --content-brand-* et --background-brand-* surchargees par Slice 5a.
+// Ici on style uniquement le fallback "Aucun env" et on force un theme
+// sombre leger autour du Select quand il est dans le header dark.
+
 .empty {
-  font-size: 0.875rem;
-  color: #6b7280;
+  @include t-small;
+  color: rgba(255, 255, 255, 0.72);
+  padding: 0 8px;
+  font-style: italic;
 }

@@ -9,7 +9,10 @@ export function App(): JSX.Element {
   return (
     <div className={styles.root}>
       <header className={styles.header}>
-        <Link to="/" className={styles.brand}>Carto ECP — RTE</Link>
+        <Link to="/" className={styles.brand}>
+          <span className={styles.brandMark}>CARTO ECP · RTE</span>
+          <span className={styles.brandTagline}>Cartographie du réseau ECP</span>
+        </Link>
         <div className={styles.rightNav}>
           <EnvSelector />
           <Link to="/admin" className={styles.adminLink}>Admin</Link>

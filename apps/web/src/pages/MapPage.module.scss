@@ -1,85 +1,158 @@
+@use "@/styles/brand" as *;
+
+// =============================================================================
+// MapPage — shell (loading / error / empty / header / footer)
+// Les overlays de la carte (NetworkMap, BaFilter, NodeMarker) sont refondus
+// en Slice 5c.
+// =============================================================================
+
+// --------- États transitoires ----------------------------------------------
+
 .loading {
-  padding: 2rem;
-  color: #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--c-text-muted);
+  @include t-body;
 }
 
 .error {
-  padding: 2rem;
-  color: #b91c1c;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: var(--layout-page-px);
+  padding: 16px 20px;
+  background: var(--c-error-bg);
+  border: 1px solid var(--c-error-border);
+  border-radius: var(--r-md);
+  color: var(--c-error);
+  @include t-body;
 }
+
+// --------- Empty state ------------------------------------------------------
 
 .empty {
   display: flex;
-  height: 100vh;
+  height: 100%;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  background: #f9fafb;
-  padding: 2rem;
+  gap: 24px;
+  padding: 48px 24px;
+  background: var(--c-surface-sunken);
+  text-align: center;
 }
 
 .emptyText {
-  text-align: center;
-  color: #374151;
+  @include t-h2;
+  color: var(--c-text);
+  max-width: 520px;
+
+  strong {
+    color: var(--c-primary-pressed);
+    font-weight: 700;
+  }
 }
 
 .emptyButton {
-  display: inline-block;
-  border-radius: 0.25rem;
-  background: #e30613;
-  color: #ffffff;
-  padding: 0.5rem 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--c-primary);
+  color: var(--c-text);
+  border-radius: var(--r-sm);
   text-decoration: none;
+  font-weight: var(--t-body-strong-weight);
+  @include t-body;
+  box-shadow: var(--shadow-1);
+  transition: background var(--motion-fast), box-shadow var(--motion-fast);
 
   &:hover {
-    background: #b91c1c;
+    background: var(--c-primary-hover);
+    box-shadow: var(--shadow-2);
+    color: var(--c-text);
+    text-decoration: none;
+  }
+
+  &:active {
+    background: var(--c-primary-pressed);
+    color: var(--c-text-inverse);
   }
 }
+
+// --------- Layout général --------------------------------------------------
 
 .root {
   display: flex;
   height: 100%;
   flex-direction: column;
+  background: var(--c-surface);
 }
+
+// --------- Sous-header Map (compact, sous le header app) -------------------
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
-  background: #ffffff;
-  padding: 0.75rem 1rem;
+  gap: 16px;
+  padding: 10px var(--layout-page-px);
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border-subtle);
 }
 
 .headerLeft {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 12px;
+  min-width: 0;
 }
 
 .brand {
-  font-weight: 700;
-  color: #e30613;
+  @include t-caps;
+  color: var(--c-text-muted);
 }
 
 .envBadge {
-  border-radius: 0.25rem;
-  background: #f3f4f6;
-  padding: 0.125rem 0.5rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--c-surface-deep);
+  color: var(--c-primary);
+  border-radius: var(--r-pill);
+  @include t-caps;
+  font-weight: 700;
+
+  &::before {
+    content: "●";
+    font-size: 8px;
+    color: var(--c-primary);
+    line-height: 1;
+  }
 }
 
 .snapshotLink {
-  font-size: 0.875rem;
-  color: #4b5563;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--c-text-muted);
   text-decoration: none;
+  @include t-body;
+  padding: 6px 10px;
+  border-radius: var(--r-sm);
+  transition: color var(--motion-fast), background var(--motion-fast);
 
   &:hover {
-    color: #111827;
+    color: var(--c-text);
+    background: var(--c-surface-sunken);
+    text-decoration: none;
   }
 }
+
+// --------- Corps Map (carte + detail panel) --------------------------------
 
 .body {
   display: flex;
@@ -93,30 +166,43 @@
   height: 100%;
 }
 
+// --------- Footer légende --------------------------------------------------
+
 .footer {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  border-top: 1px solid #e5e7eb;
-  background: #ffffff;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  color: #4b5563;
+  gap: 20px;
+  padding: 10px var(--layout-page-px);
+  background: var(--c-surface);
+  border-top: 1px solid var(--c-border-subtle);
+  @include t-small;
+  color: var(--c-text-muted);
+  overflow-x: auto;
+  white-space: nowrap;
 }
 
 .legendItem {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 6px;
+  flex-shrink: 0;
+  color: var(--c-text);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
 }
 
 .legendSwatch {
   display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 0.25rem;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--r-xs);
+  border: 1px solid rgba(16, 24, 29, 0.08);
+  flex-shrink: 0;
 }
 
 .counter {
   margin-left: auto;
+  @include t-mono;
+  color: var(--c-text-muted);
+  flex-shrink: 0;
 }

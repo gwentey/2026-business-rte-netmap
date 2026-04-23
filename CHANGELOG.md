@@ -7,6 +7,36 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.16 — Slice 5b : Shell & navigation — header dark + MapPage shell (2026-04-23)
+
+Deuxième slice de la refonte visuelle : le shell applicatif (header global,
+sous-header MapPage, footer légende, EnvSelector fallback, états loading/
+error/empty de la carte) bascule intégralement sur la charte web/marketing
+posée en Slice 5a. **Zéro hex hardcodé introduit** — 100% `--c-*`, `--t-*`,
+`--r-*`, `--motion-*`, `--shadow-*`, `--layout-*`.
+
+- `App.module.scss` + `App.tsx` : header dark `--c-surface-dark` 56px,
+  accent vertical 3px cyan à gauche du wordmark, wordmark `CARTO ECP · RTE`
+  en `t-h2 700 letter-spacing .02em`, tagline `Cartographie du réseau ECP`
+  en `t-small muted` avec pipe séparateur cyan (cachée < 900px), env
+  selector (Select DS cyan) + admin link blanc avec chevron cyan (hover
+  bg white/8%), séparation bottom 1px cyan 12%.
+- `MapPage.module.scss` : refonte complète du shell (sans toucher les
+  overlays carte, réservés à Slice 5c) — loading centré muted, error en
+  banner `--c-error-bg` + bordure `--c-error-border`, empty state en
+  sunken background avec bouton primaire cyan charte + shadow-1/2, sous-
+  header map compact avec brand en `t-caps muted` + envBadge pill teal
+  avec point cyan + snapshotLink hover sunken, footer légende avec
+  swatches 10px radius-xs, compteur en `t-mono`.
+- `EnvSelector.module.scss` : fallback "Aucun env" en `t-small` italique
+  sur `rgba(255,255,255,.72)` pour cohérence avec le fond dark du header.
+
+Le `Select` du DS RTE utilisé par `EnvSelector` affiche automatiquement la
+palette cyan grâce à la surcharge des CSS vars du DS (Slice 5a).
+
+**Tests :** 157/160 vitest passent (idem 5a), typecheck OK, build Vite OK
+(CSS bundle 194 KB, +4 KB vs alpha.15).
+
 ### v3.0-alpha.15 — Slice 5a : Foundation charte web/marketing (cyan/teal/dark) (2026-04-23)
 
 **Première slice de la refonte visuelle globale.** Aligne l'app sur la charte
