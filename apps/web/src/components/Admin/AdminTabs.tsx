@@ -1,3 +1,5 @@
+import styles from './AdminTabs.module.scss';
+
 export type AdminTabId =
   | 'imports'
   | 'components'
@@ -29,26 +31,27 @@ type Props = {
 
 export function AdminTabs({ active, onChange }: Props): JSX.Element {
   return (
-    <nav className="flex gap-1 border-b border-gray-200" role="tablist">
-      {TABS.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          aria-selected={active === tab.id}
-          onClick={() => { if (tab.enabled) onChange(tab.id); }}
-          disabled={!tab.enabled}
-          title={tab.tooltip}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition ${
-            active === tab.id
-              ? 'border-rte text-rte'
-              : tab.enabled
-                ? 'border-transparent text-gray-700 hover:text-gray-900'
-                : 'border-transparent text-gray-300 cursor-not-allowed'
-          }`}
-        >
-          {tab.label}
-        </button>
-      ))}
+    <nav className={styles.tabs} role="tablist">
+      {TABS.map((tab) => {
+        const isActive = active === tab.id;
+        const classes = isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => {
+              if (tab.enabled) onChange(tab.id);
+            }}
+            disabled={!tab.enabled}
+            title={tab.tooltip}
+            className={classes}
+          >
+            {tab.label}
+          </button>
+        );
+      })}
     </nav>
   );
 }

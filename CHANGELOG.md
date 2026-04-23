@@ -7,6 +7,37 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.8 — Slice 4c.1 : migration Admin shell + 2 onglets simples (2026-04-23)
+
+Première mini-slice d'une série de 4-5 (4c.1 à 4c.5) qui migre progressivement les 6 onglets admin de Tailwind inliné vers CSS Modules. Cette slice couvre le shell (AdminPage + AdminTabs) et les 2 onglets les plus simples (EntsoeAdminTab + DangerZoneTab).
+
+**Highlights :**
+
+- **`pages/AdminPage.{tsx,module.scss}`** — shell wrapper migré : max-width 72rem, padding 1.5rem, overflow-y auto. Titre 1.5rem font-weight 600 couleur gris 900.
+- **`components/Admin/AdminTabs.{tsx,module.scss}`** — 6 onglets cliquables. Rôle ARIA explicite `role="tab"` + `aria-selected` (au lieu de button implicite). Border-bottom rouge RTE (`#e30613`) sur onglet actif, hover gris 900 sur les inactifs.
+- **`components/Admin/EntsoeAdminTab.{tsx,module.scss}`** — upload CSV ENTSO-E. Status box grisée (statut annuaire), file input natif, bouton submit rouge RTE avec disabled state, banners inline error (rouge `#fee2e2/#991b1b`) + success (vert `#d1fae5/#065f46`).
+- **`components/Admin/DangerZoneTab.{tsx,module.scss}`** — 3 actions danger en cartes rouges (`#fef2f2` background + `#fecaca` border). Modal de confirmation custom (CSS Module) avec backdrop `rgba(0,0,0,0.5)`, box-shadow, input monospace avec focus ring rouge RTE. Confirmation par saisie mot-clé (PURGER / RESET).
+- **Pas de Modal DS ni Tab DS dans cette mini-slice** — le Modal DS demande un `primaryButton: DSButtonElement` obligatoire (API épaisse incompatible avec notre UX "input + 2 buttons cancel/confirm") et Tab DS nécessite un setup différent de notre pattern `activeTab === 'x' ? <X /> : null`. Adoption reportée à slice dédiée quand on aura documenté ces intégrations.
+- **2 tests mis à jour** — `AdminTabs.test.tsx` et `AdminPage.test.tsx` passent de `getByRole('button')` à `getByRole('tab')` suite à l'ajout du rôle ARIA explicite.
+
+**Tests :**
+- Web typecheck : OK
+- Web vitest : 143 verts + 3 `.todo` (inchangé depuis 4b)
+- Web build : OK
+
+**Fichiers clés :**
+- `apps/web/src/pages/AdminPage.{tsx,module.scss}`
+- `apps/web/src/components/Admin/{AdminTabs,EntsoeAdminTab,DangerZoneTab}.{tsx,module.scss}`
+- Tests : `AdminTabs.test.tsx`, `AdminPage.test.tsx` (sélecteurs `role="tab"`)
+
+**Prochaines slices 4c.x :**
+- 4c.2 : RegistryAdminTab + ProcessColorsEditor + RteEndpointsTable
+- 4c.3 : OrganizationsAdminTab + OrganizationEditModal
+- 4c.4 : ComponentsAdminTable + ComponentOverrideModal + ComponentConfigModal
+- 4c.5 : ImportsAdminTable + AdminImportRow + TypeBadge + PropertiesBadge
+
+---
+
 ### v3.0-alpha.7 — Slice 4b : couche components/ui/ + migration EnvSelector (2026-04-23)
 
 Crée la couche projet `apps/web/src/components/ui/` qui expose les composants UI utilisés dans carto-ecp : 37 ré-exports depuis `@design-system-rte/react` + 4 composants maison (Table, RangeSlider, ColorField, DateTimeField) pour les besoins non couverts par le DS. Migre EnvSelector comme premier consommateur de la couche. Aucune page métier touchée (Admin, Upload, Map restent pour 4c/4d/4e).
