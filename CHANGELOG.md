@@ -7,6 +7,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.16 — Slice 2o Overlay endpoint → home CD (2026-04-23)
+
+Un nouveau toggle "Hiérarchie CD" sur la carte trace des liens fins gris-bleu **endpoint → Component Directory parent**, utilisant le champ `homeCdCode` déjà remonté par les slices précédents. Utile pour voir en un coup d'œil quel CD dessert quel groupe d'endpoints.
+
+**Highlights :**
+
+- **Nouveau composant `HomeCdOverlay.tsx`** — purement front-end, aucun changement API. Pour chaque `GraphNode` ayant un `homeCdCode` qui correspond à un autre nœud du graph courant, trace une `Polyline` non-interactive (slate-400, weight 1, dashArray `2 4`, opacité 0.55) entre les 2 points géographiques. Skip de l'auto-référence (un CD qui se déclare son propre home).
+- **Store `app-store.ts`** : nouveau state `showHomeCdOverlay: boolean` + action `toggleHomeCdOverlay()`. Persisté en localStorage (comme `activeEnv`) pour retrouver le toggle au reload.
+- **`NetworkMap.tsx`** : bouton flottant en haut à droite "Hiérarchie CD" (style chip, état actif visible via inversion couleur) qui toggle le store. Le composant `HomeCdOverlay` est rendu dans le `MapContainer` (derrière les edges et markers) pour ne pas concurrencer les interactions.
+
+**Tests :**
+- API : **256/256** inchangés.
+- Web : 103 → **107/107** (+4 `HomeCdOverlay` : rien rendu si `visible=false`, rien si aucun homeCd, une polyline par endpoint avec homeCd présent dans le graph, auto-référence skipée).
+
+**Breaking changes :** aucun. Toggle par défaut OFF, expérience utilisateur inchangée tant qu'il n'est pas activé.
+
 ### v2.0-alpha.15 — Slice 2n Santé composant + routes d'upload (2026-04-23)
 
 Deux nouveaux CSV ECP sont désormais parsés : `component_statistics.csv` (vu par un CD pour chaque composant — santé + cumul messages) et `message_upload_route.csv` (cibles d'upload prioritaires déclarées par un endpoint). Chaque nœud affiche un **badge de santé coloré** (vert < 1h, orange < 24h, rouge > 24h) sur son marker, et le popup contient une section "Santé (vue CD)" + la liste des "Cibles d'upload" cliquables.

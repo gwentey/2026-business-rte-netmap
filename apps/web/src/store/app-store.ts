@@ -43,6 +43,8 @@ type AppState = {
   propertiesFiles: Record<string, File>;
   uploadInProgress: boolean;
   refDate: Date | null;
+  /** Toggle visuel : affiche les liens endpoint → home CD sur la carte (slice 2o). */
+  showHomeCdOverlay: boolean;
 
   loadEnvs: () => Promise<void>;
   setActiveEnv: (env: string) => Promise<void>;
@@ -56,6 +58,7 @@ type AppState = {
   submitBatch: (envName: string) => Promise<void>;
   clearBatch: () => void;
   setRefDate: (date: Date | null) => Promise<void>;
+  toggleHomeCdOverlay: () => void;
 };
 
 /**
@@ -82,6 +85,7 @@ export const useAppStore = create<AppState>()(
       propertiesFiles: {},
       uploadInProgress: false,
       refDate: null,
+      showHomeCdOverlay: false,
 
       loadEnvs: async () => {
         set({ loading: true, error: null });
@@ -263,10 +267,16 @@ export const useAppStore = create<AppState>()(
           await get().loadGraph(env, date ?? undefined);
         }
       },
+
+      toggleHomeCdOverlay: () =>
+        set((s) => ({ showHomeCdOverlay: !s.showHomeCdOverlay })),
     }),
     {
       name: 'carto-ecp-store',
-      partialize: (s) => ({ activeEnv: s.activeEnv }),
+      partialize: (s) => ({
+        activeEnv: s.activeEnv,
+        showHomeCdOverlay: s.showHomeCdOverlay,
+      }),
     },
   ),
 );
