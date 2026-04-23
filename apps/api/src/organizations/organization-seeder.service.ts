@@ -12,6 +12,8 @@ type SeedFile = {
     country?: string | null;
     address?: string | null;
     typeHint?: string | null;
+    lat?: number | null;
+    lng?: number | null;
     notes?: string | null;
   }>;
 };
@@ -77,6 +79,8 @@ export class OrganizationSeederService implements OnModuleInit {
             country: entry.country ?? null,
             address: entry.address ?? null,
             typeHint: entry.typeHint ?? null,
+            lat: entry.lat ?? null,
+            lng: entry.lng ?? null,
             notes: entry.notes ?? null,
             seedVersion: seed.version,
             userEdited: false,
@@ -106,6 +110,8 @@ export class OrganizationSeederService implements OnModuleInit {
             country: entry.country ?? null,
             address: entry.address ?? null,
             typeHint: entry.typeHint ?? null,
+            lat: entry.lat ?? null,
+            lng: entry.lng ?? null,
             notes: entry.notes ?? null,
             seedVersion: seed.version,
           },

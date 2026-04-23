@@ -89,8 +89,20 @@ describe('OrganizationsService', () => {
       await service.create({ displayName: 'Test-Svc-Epsilon', country: 'BE' });
       const found1 = await service.resolveByOrganization('Test-Svc-Epsilon');
       const found2 = await service.resolveByOrganization('  TEST-SVC-EPSILON  ');
-      expect(found1).toEqual({ country: 'BE', address: null, displayName: 'Test-Svc-Epsilon' });
-      expect(found2).toEqual({ country: 'BE', address: null, displayName: 'Test-Svc-Epsilon' });
+      expect(found1).toEqual({
+        country: 'BE',
+        address: null,
+        displayName: 'Test-Svc-Epsilon',
+        lat: null,
+        lng: null,
+      });
+      expect(found2).toEqual({
+        country: 'BE',
+        address: null,
+        displayName: 'Test-Svc-Epsilon',
+        lat: null,
+        lng: null,
+      });
     });
   });
 
@@ -149,10 +161,16 @@ describe('OrganizationsService', () => {
 
   describe('exportJson', () => {
     it('exporte toutes les entries au format versionne', async () => {
-      await service.create({ displayName: 'Test-Svc-Theta', country: 'NL', typeHint: 'TSO' });
+      await service.create({
+        displayName: 'Test-Svc-Theta',
+        country: 'NL',
+        typeHint: 'TSO',
+        lat: 52.37,
+        lng: 4.89,
+      });
       const buffer = await service.exportJson();
       const parsed = JSON.parse(buffer.toString('utf-8'));
-      expect(parsed.version).toBe(1);
+      expect(parsed.version).toBe(2);
       expect(Array.isArray(parsed.entries)).toBe(true);
       const ours = parsed.entries.find((e: { organizationName: string }) =>
         e.organizationName === 'test-svc-theta',
@@ -160,6 +178,8 @@ describe('OrganizationsService', () => {
       expect(ours).toBeDefined();
       expect(ours.country).toBe('NL');
       expect(ours.typeHint).toBe('TSO');
+      expect(ours.lat).toBe(52.37);
+      expect(ours.lng).toBe(4.89);
     });
   });
 });

@@ -219,6 +219,12 @@ model OrganizationEntry {
   // Hint libre : "TSO" | "RCC" | "NEMO" | "PLATFORM" | "INTERCONNECTOR" |
   // "EXCHANGE" | "CAO" | "AO" | "ASSOCIATION" | "PARTNER" | "OTHER".
   typeHint         String?
+  // Coordonnées GPS (facultatives). Si renseignées, la cascade graph les
+  // utilise pour placer les composants de l'organisation sur la carte —
+  // niveau entre overlay.organizationGeocode (MCO-précis) et countryGeocode
+  // (fallback approximatif par pays).
+  lat              Float?
+  lng              Float?
   notes            String?
   // Version du seed au moment de la dernière synchro auto. Incrémentée à chaque
   // passage d'onModuleInit quand le JSON a une version supérieure.

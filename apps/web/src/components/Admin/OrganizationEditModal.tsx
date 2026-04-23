@@ -20,6 +20,8 @@ type FormState = {
   country: string;
   address: string;
   typeHint: string;
+  lat: string;
+  lng: string;
   notes: string;
 };
 
@@ -36,6 +38,8 @@ export function OrganizationEditModal({
     country: entry?.country ?? '',
     address: entry?.address ?? '',
     typeHint: entry?.typeHint ?? '',
+    lat: entry?.lat != null ? String(entry.lat) : '',
+    lng: entry?.lng != null ? String(entry.lng) : '',
     notes: entry?.notes ?? '',
   });
   const [saving, setSaving] = useState(false);
@@ -54,11 +58,37 @@ export function OrganizationEditModal({
       return;
     }
 
+    // Parse lat/lng : vide → null, sinon number avec validation de plage.
+    let lat: number | null = null;
+    if (form.lat.trim() !== '') {
+      const parsed = Number(form.lat);
+      if (!Number.isFinite(parsed) || parsed < -90 || parsed > 90) {
+        setError('La latitude doit être un nombre entre -90 et 90.');
+        return;
+      }
+      lat = parsed;
+    }
+    let lng: number | null = null;
+    if (form.lng.trim() !== '') {
+      const parsed = Number(form.lng);
+      if (!Number.isFinite(parsed) || parsed < -180 || parsed > 180) {
+        setError('La longitude doit être un nombre entre -180 et 180.');
+        return;
+      }
+      lng = parsed;
+    }
+    if ((lat === null) !== (lng === null)) {
+      setError('Latitude et longitude doivent être toutes deux renseignées ou toutes deux vides.');
+      return;
+    }
+
     const patch: OrganizationUpsertInput = {
       displayName: form.displayName.trim(),
       country,
       address: trimOrNull(form.address),
       typeHint: trimOrNull(form.typeHint),
+      lat,
+      lng,
       notes: trimOrNull(form.notes),
     };
 
@@ -200,6 +230,35 @@ export function OrganizationEditModal({
               className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
             />
           </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium">Latitude</span>
+              <input
+                type="number"
+                step="any"
+                value={form.lat}
+                onChange={(e) => setForm({ ...form, lat: e.target.value })}
+                placeholder="-90 … 90"
+                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium">Longitude</span>
+              <input
+                type="number"
+                step="any"
+                value={form.lng}
+                onChange={(e) => setForm({ ...form, lng: e.target.value })}
+                placeholder="-180 … 180"
+                className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+              />
+            </label>
+          </div>
+          <p className="-mt-2 text-[10px] text-gray-500">
+            Coords facultatives — utilisées pour placer les composants de l'organisation sur
+            la carte. Laissées vides, la cascade fallback sur le centre du pays.
+          </p>
 
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Notes</span>

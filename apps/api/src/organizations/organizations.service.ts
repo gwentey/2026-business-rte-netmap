@@ -8,6 +8,8 @@ export type OrganizationLookup = {
   country: string | null;
   address: string | null;
   displayName: string;
+  lat: number | null;
+  lng: number | null;
 };
 
 export type UpsertInput = {
@@ -16,6 +18,8 @@ export type UpsertInput = {
   country?: string | null;
   address?: string | null;
   typeHint?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   notes?: string | null;
 };
 
@@ -32,6 +36,8 @@ export type SeedEntry = {
   country?: string | null;
   address?: string | null;
   typeHint?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   notes?: string | null;
 };
 
@@ -83,6 +89,8 @@ export class OrganizationsService {
         country: patch.country ?? null,
         address: patch.address ?? null,
         typeHint: patch.typeHint ?? null,
+        lat: patch.lat ?? null,
+        lng: patch.lng ?? null,
         notes: patch.notes ?? null,
         seedVersion: 0,
         userEdited: true,
@@ -104,6 +112,8 @@ export class OrganizationsService {
         ...(patch.country !== undefined ? { country: patch.country } : {}),
         ...(patch.address !== undefined ? { address: patch.address } : {}),
         ...(patch.typeHint !== undefined ? { typeHint: patch.typeHint } : {}),
+        ...(patch.lat !== undefined ? { lat: patch.lat } : {}),
+        ...(patch.lng !== undefined ? { lng: patch.lng } : {}),
         ...(patch.notes !== undefined ? { notes: patch.notes } : {}),
         userEdited: true,
       },
@@ -131,6 +141,8 @@ export class OrganizationsService {
       country: row.country,
       address: row.address,
       displayName: row.displayName,
+      lat: row.lat,
+      lng: row.lng,
     };
   }
 
@@ -144,7 +156,13 @@ export class OrganizationsService {
     return new Map(
       rows.map((r) => [
         r.organizationName,
-        { country: r.country, address: r.address, displayName: r.displayName },
+        {
+          country: r.country,
+          address: r.address,
+          displayName: r.displayName,
+          lat: r.lat,
+          lng: r.lng,
+        },
       ]),
     );
   }
@@ -198,6 +216,8 @@ export class OrganizationsService {
             country: entry.country ?? null,
             address: entry.address ?? null,
             typeHint: entry.typeHint ?? null,
+            lat: entry.lat ?? null,
+            lng: entry.lng ?? null,
             notes: entry.notes ?? null,
             userEdited: true,
           },
@@ -211,6 +231,8 @@ export class OrganizationsService {
             country: entry.country ?? null,
             address: entry.address ?? null,
             typeHint: entry.typeHint ?? null,
+            lat: entry.lat ?? null,
+            lng: entry.lng ?? null,
             notes: entry.notes ?? null,
             seedVersion: 0,
             userEdited: true,
@@ -231,7 +253,7 @@ export class OrganizationsService {
       orderBy: [{ displayName: 'asc' }],
     });
     const payload = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       entries: rows.map((r) => ({
         organizationName: r.organizationName,
@@ -239,6 +261,8 @@ export class OrganizationsService {
         country: r.country,
         address: r.address,
         typeHint: r.typeHint,
+        lat: r.lat,
+        lng: r.lng,
         notes: r.notes,
       })),
     };
