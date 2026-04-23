@@ -85,9 +85,46 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
     await reload();
   };
 
+  const handleExportJson = (): void => {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      filter: {
+        search: search.trim() || null,
+        onlyOverridden,
+      },
+      totals: { filtered: filtered.length, total: rows.length },
+      components: filtered.map((r) => ({
+        eic: r.eic,
+        displayName: r.current.displayName,
+        type: r.current.type,
+        organization: r.current.organization,
+        country: r.current.country,
+        lat: r.current.isDefaultPosition ? null : r.current.lat,
+        lng: r.current.isDefaultPosition ? null : r.current.lng,
+        isDefaultPosition: r.current.isDefaultPosition,
+        importsCount: r.importsCount,
+        hasOverride: r.override !== null,
+        override: r.override,
+      })),
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    a.download = `components-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-3 flex flex-wrap items-center gap-3">
         <input
           type="text"
           value={search}
@@ -104,6 +141,15 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
           Seulement surchargés
         </label>
         <span className="text-sm text-gray-500">{filtered.length} / {rows.length} composants</span>
+        <button
+          type="button"
+          onClick={handleExportJson}
+          disabled={filtered.length === 0}
+          className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+          title="Télécharger les lignes affichées au format JSON"
+        >
+          ⬇ Exporter JSON ({filtered.length})
+        </button>
       </div>
 
       {error ? (

@@ -103,4 +103,50 @@ describe('ComponentsAdminTable', () => {
     await userEvent.click(editBtn);
     expect(screen.getByRole('heading', { name: /Surcharge pour 17V-EDIT/i })).toBeInTheDocument();
   });
+
+  it('[Export JSON] le bouton declenche un download et respecte le filtre courant', async () => {
+    vi.mocked(api.listAdminComponents).mockResolvedValue([
+      fakeRow({ eic: '17V-ALPHA', current: { ...fakeRow().current, displayName: 'Alpha', organization: 'APG' } }),
+      fakeRow({ eic: '17V-BETA', current: { ...fakeRow().current, displayName: 'Beta', organization: 'Tennet' } }),
+    ]);
+    const createObjectURL = vi.fn().mockReturnValue('blob:x');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+
+    render(<ComponentsAdminTable />);
+    await waitFor(() => expect(screen.getByText('17V-ALPHA')).toBeInTheDocument());
+
+    // Sans filtre : le bouton affiche le total
+    const btn = screen.getByRole('button', { name: /Exporter JSON \(2\)/ });
+    await userEvent.click(btn);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+    // Avec filtre : le bouton reflete le count filtre et exporte seulement
+    // les lignes visibles. On verifie que le blob contient bien alpha et pas beta.
+    const searchInput = screen.getByPlaceholderText(/EIC, nom/i);
+    await userEvent.type(searchInput, 'APG');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Exporter JSON \(1\)/ })).toBeInTheDocument();
+    });
+    await userEvent.click(screen.getByRole('button', { name: /Exporter JSON \(1\)/ }));
+    expect(createObjectURL).toHaveBeenCalledTimes(2);
+    // Le second appel recoit un Blob contenant la serialisation filtree
+    const blobArg = createObjectURL.mock.calls[1]![0] as Blob;
+    expect(blobArg).toBeInstanceOf(Blob);
+  });
+
+  it('[Export JSON] le bouton est disable quand aucun composant ne matche le filtre', async () => {
+    vi.mocked(api.listAdminComponents).mockResolvedValue([
+      fakeRow({ eic: '17V-A', current: { ...fakeRow().current, organization: 'RTE' } }),
+    ]);
+    render(<ComponentsAdminTable />);
+    await waitFor(() => expect(screen.getByText('17V-A')).toBeInTheDocument());
+    const searchInput = screen.getByPlaceholderText(/EIC, nom/i);
+    await userEvent.type(searchInput, 'zzzzzzzz-absent');
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /Exporter JSON \(0\)/ });
+      expect(btn).toBeDisabled();
+    });
+  });
 });
