@@ -7,6 +7,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.13 — Slice 4d : migration UploadPage + UploadBatchTable (2026-04-23)
+
+Slice 4d complète. Migre l'ensemble du domaine Upload (UploadPage + UploadBatchTable avec sous-composant LabelInput) de Tailwind vers CSS Modules.
+
+- `UploadPage.{tsx,module.scss}` : shell max-width 56rem, titre 1.5rem, input envName, dropzone react-dropzone (bordure dashed rouge RTE quand drag active), bandeau `Dernier drop` avec liste détaillée (zips verts, properties violet, erreurs rouge), sélecteur natif de fallback, bandeau violet "properties en attente d'association", toolbar submit+clear, summary final avec lien "Voir sur la carte" noir.
+- `UploadBatchTable.{tsx,module.scss}` : table 6 colonnes (Fichier, EIC, Type select, Label input, Statut, Action), état d'inspection et doublons avec checkbox Remplacer, erreurs inline avec code rouge.
+
+Tests : 143 verts + 3 `.todo`, typecheck + build OK.
+
+---
+
 ### v3.0-alpha.12 — Slice 4c.5 : migration ImportsAdminTable (dernier onglet admin) (2026-04-23)
 
 Cinquième et dernière mini-slice 4c. Migre le plus riche des onglets admin : ImportsAdminTable + ses sous-composants AdminImportRow, TypeBadge, PropertiesBadge (tous dans le même fichier). **La migration Admin complète (6 onglets) est maintenant terminée.**

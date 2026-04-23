@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useAppStore } from '../../store/app-store.js';
+import styles from './UploadBatchTable.module.scss';
 
 const STATE_LABELS: Record<string, string> = {
   'pending-inspect': '⏳ Inspection…',
-  'inspected': '🟢 Prêt',
-  'uploading': '⬆ Envoi…',
-  'done': '✓ Créé',
-  'skipped': '🟡 Ignoré',
-  'error': '🔴 Erreur',
+  inspected: '🟢 Prêt',
+  uploading: '⬆ Envoi…',
+  done: '✓ Créé',
+  skipped: '🟡 Ignoré',
+  error: '🔴 Erreur',
 };
 
 type LabelInputProps = {
@@ -17,7 +18,12 @@ type LabelInputProps = {
   updateItem: (id: string, patch: { label: string }) => void;
 };
 
-function LabelInput({ itemId, initialLabel, disabled, updateItem }: LabelInputProps): JSX.Element {
+function LabelInput({
+  itemId,
+  initialLabel,
+  disabled,
+  updateItem,
+}: LabelInputProps): JSX.Element {
   const [value, setValue] = useState(initialLabel);
 
   return (
@@ -29,7 +35,7 @@ function LabelInput({ itemId, initialLabel, disabled, updateItem }: LabelInputPr
         updateItem(itemId, { label: e.target.value });
       }}
       disabled={disabled}
-      className="w-40 rounded border border-gray-300 px-1 py-0.5 text-xs"
+      className={styles.labelInput}
     />
   );
 }
@@ -40,45 +46,53 @@ export function UploadBatchTable(): JSX.Element {
   const updateItem = useAppStore((s) => s.updateBatchItem);
 
   if (batch.length === 0) {
-    return <p className="p-4 text-sm text-gray-500">Aucun fichier dans le batch.</p>;
+    return <p className={styles.empty}>Aucun fichier dans le batch.</p>;
   }
 
   return (
-    <table className="w-full table-auto border border-gray-200 text-sm">
-      <thead className="bg-gray-50">
+    <table className={styles.table}>
+      <thead>
         <tr>
-          <th className="px-2 py-1 text-left">Fichier</th>
-          <th className="px-2 py-1 text-left">EIC</th>
-          <th className="px-2 py-1 text-left">Type</th>
-          <th className="px-2 py-1 text-left">Label</th>
-          <th className="px-2 py-1 text-left">Statut</th>
-          <th className="px-2 py-1 text-left">Action</th>
+          <th>Fichier</th>
+          <th>EIC</th>
+          <th>Type</th>
+          <th>Label</th>
+          <th>Statut</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
         {batch.map((item) => (
-          <tr key={item.id} className="border-t border-gray-200">
-            <td className="px-2 py-1">
-              <div className="font-mono text-xs">{item.fileName}</div>
-              <div className="text-xs text-gray-500">{(item.fileSize / 1024).toFixed(1)} KB</div>
+          <tr key={item.id}>
+            <td>
+              <div className={styles.fileName}>{item.fileName}</div>
+              <div className={styles.fileSize}>
+                {(item.fileSize / 1024).toFixed(1)} KB
+              </div>
             </td>
-            <td className="px-2 py-1 font-mono text-xs">{item.sourceComponentEic ?? '—'}</td>
-            <td className="px-2 py-1">
+            <td className={styles.mono}>{item.sourceComponentEic ?? '—'}</td>
+            <td>
               <select
                 value={item.overrideDumpType ?? item.dumpType ?? 'COMPONENT_DIRECTORY'}
-                onChange={(e) => updateItem(item.id, { overrideDumpType: e.target.value as any })}
+                onChange={(e) =>
+                  updateItem(item.id, {
+                    overrideDumpType: e.target.value as 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER',
+                  })
+                }
                 disabled={item.state === 'uploading' || item.state === 'done'}
-                className="rounded border border-gray-300 px-1 py-0.5 text-xs"
+                className={styles.typeSelect}
               >
                 <option value="ENDPOINT">ENDPOINT</option>
                 <option value="COMPONENT_DIRECTORY">CD</option>
                 <option value="BROKER">BROKER</option>
               </select>
               {item.confidence === 'FALLBACK' ? (
-                <span className="ml-1 text-xs text-orange-600" title="Détection incertaine">⚠</span>
+                <span className={styles.fallbackWarn} title="Détection incertaine">
+                  ⚠
+                </span>
               ) : null}
             </td>
-            <td className="px-2 py-1">
+            <td>
               <LabelInput
                 itemId={item.id}
                 initialLabel={item.label}
@@ -86,34 +100,35 @@ export function UploadBatchTable(): JSX.Element {
                 updateItem={updateItem}
               />
             </td>
-            <td className="px-2 py-1">
+            <td>
               <div>{STATE_LABELS[item.state] ?? item.state}</div>
               {item.duplicateOf ? (
-                <div className="text-xs text-orange-700">
+                <div className={styles.duplicateNotice}>
                   Doublon (import : {item.duplicateOf.label})
-                  <label className="ml-2 text-xs">
+                  <label className={styles.duplicateCheckboxLabel}>
                     <input
                       type="checkbox"
                       checked={item.forceReplace}
-                      onChange={(e) => updateItem(item.id, { forceReplace: e.target.checked })}
-                      className="mr-1"
+                      onChange={(e) =>
+                        updateItem(item.id, { forceReplace: e.target.checked })
+                      }
                     />
                     Remplacer
                   </label>
                 </div>
               ) : null}
               {item.state === 'error' && item.errorCode ? (
-                <div className="text-xs text-red-700">
+                <div className={styles.errorMessage}>
                   <code>{item.errorCode}</code> {item.errorMessage ?? ''}
                 </div>
               ) : null}
             </td>
-            <td className="px-2 py-1">
+            <td>
               <button
                 type="button"
                 onClick={() => removeItem(item.id)}
                 disabled={item.state === 'uploading'}
-                className="text-red-600 hover:text-red-800"
+                className={styles.removeButton}
                 aria-label={`Retirer ${item.fileName}`}
               >
                 🗑
