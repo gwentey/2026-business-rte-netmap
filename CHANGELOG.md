@@ -7,6 +7,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.12 — Slice 4c.5 : migration ImportsAdminTable (dernier onglet admin) (2026-04-23)
+
+Cinquième et dernière mini-slice 4c. Migre le plus riche des onglets admin : ImportsAdminTable + ses sous-composants AdminImportRow, TypeBadge, PropertiesBadge (tous dans le même fichier). **La migration Admin complète (6 onglets) est maintenant terminée.**
+
+- `ImportsAdminTable.{tsx,module.scss}` : toolbar (env filter + search + bouton "+ Importer"), table 10 colonnes, modal confirm delete.
+- `AdminImportRow` (sous-composant) : input label debounced, date `<input type="datetime-local">`, badges Type/Props/Warnings, bouton delete 🗑.
+- `TypeBadge` : 3 variants (ENDPOINT rouge, CD rouge foncé, BROKER noir).
+- `PropertiesBadge` : 2 variants (✓ emerald présent, ✗ red absent).
+
+Tests : 143 verts + 3 `.todo`, typecheck + build OK.
+
+**Fin Slice 4c — récap** : 6 onglets admin migrés sur 5 mini-slices (4c.1 à 4c.5). AdminPage + AdminTabs + EntsoeAdminTab + DangerZoneTab (4c.1), RegistryAdminTab + ProcessColorsEditor + RteEndpointsTable (4c.2), OrganizationsAdminTab + OrganizationEditModal (4c.3), ComponentsAdminTable + ComponentOverrideModal + ComponentConfigModal (4c.4), ImportsAdminTable + sous-composants (4c.5). Total ~14 fichiers .tsx métier migrés + ~14 CSS Modules créés.
+
+**Prochaines slices** : 4d (UploadPage + UploadBatchTable), 4e (MapPage overlays + NodeMarker + EdgePath + DetailPanel contents + TimelineSlider + retrait lucide-react).
+
+---
+
 ### v3.0-alpha.11 — Slice 4c.4 : migration Composants + ComponentOverrideModal + ComponentConfigModal (2026-04-23)
 
 Quatrième mini-slice 4c. Migre l'onglet Composants et ses 2 modales (override + config ECP) de Tailwind vers CSS Modules. Les 3 plus gros fichiers admin (9 colonnes table, modal override avec 8 fields, modal config avec dl/dt/dd).
