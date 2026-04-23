@@ -7,6 +7,25 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.15 — Slice 5a : Foundation charte web/marketing (cyan/teal/dark) (2026-04-23)
+
+**Première slice de la refonte visuelle globale.** Aligne l'app sur la charte
+web/marketing de `rte-france.com` (cyan `#00bded`, teal `#0c3949`, dark `#10181d`,
+white) en surchargeant la palette corporate rouge du DS RTE via CSS custom
+properties. Aucun composant métier n'est modifié dans cette slice — l'effet est
+global via la surcharge des CSS vars du DS.
+
+- `styles/brand.scss` : ~40 CSS custom properties app (palette pure 4 couleurs, radius, elevation, motion, typo Nunito, layout) + 9 mixins SCSS de composition typographique (`t-display`, `t-h1`..`t-h3`, `t-body`, `t-body-strong`, `t-small`, `t-caps`, `t-mono`).
+- `styles/ds-override.scss` : remappe ~60 CSS custom properties consommées par le DS RTE (`--background-brand-*`, `--content-brand-*`, `--border-brand-*`, `--content-link-*`, `--background-neutral-*`, `--border-divider`, `--elevation-shadow-*`, etc.) vers les `--c-*` de brand.scss. Les palettes `--decorative-*` du DS restent intactes (illustrations/charts hors scope).
+- `styles/reset.scss` : reset moderne — `box-sizing` universel, typo base Nunito antialiased, `focus-visible` cyan universel (a11y), respect `prefers-reduced-motion` (animations → 0.01ms).
+- `styles/globals.scss` : orchestre l'ordre critique d'import — brand → ds-override → reset — pour garantir que la surcharge app l'emporte sur le DS.
+- `styles/_contrast.ts` + `styles/brand.test.ts` : lib de calcul WCAG 2.1 + 13 tests de ratios AA/AA_LARGE (text, text-muted, text-inverse, text-link, text-disabled, error sur toutes les surfaces utilisées). Tous passent.
+- `docs/adr/ADR-039-charte-web-marketing-surcharge-ds.md` : documente l'écart assumé au DS corporate, le choix "Option A" (surcharge CSS vars, pas de fork), et les interdits (plus de hex `#e30613` hardcodé dans les `.module.scss` métier à partir de Slice 5b).
+
+**Tests :** 157 vitest passent (dont 13 nouveaux asserts contraste AA), 0 erreur typecheck, build Vite OK (CSS bundle 190 KB, +3 KB vs avant).
+
+**Effet immédiat :** les composants DS RTE visibles dans l'app (notamment `EnvSelector` basé sur le `Select` du DS) basculent du rouge corporate au cyan. Les 492 hex hardcodés des `.module.scss` métier seront traités dans les Slices 5b → 5e.
+
 ### v3.0-alpha.14 — Slice 4e : migration Map + DetailPanel contents + TimelineSlider (2026-04-23)
 
 **Dernière slice technique de la migration DS RTE (migration 4a→4e terminée).** Migre les derniers composants Tailwind vers CSS Modules : les overlays carte (NetworkMap, BaFilter, NodeMarker), le contenu du DetailPanel (NodeDetails, EdgeDetails), et TimelineSlider.
