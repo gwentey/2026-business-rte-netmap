@@ -3,9 +3,9 @@
 | Champ  | Valeur                          |
 |--------|---------------------------------|
 | Module | web/admin                       |
-| Version| 2.0.0                           |
-| Date   | 2026-04-20                      |
-| Source | v2.0 post-implémentation        |
+| Version| 2.1.0                           |
+| Date   | 2026-04-23                      |
+| Source | v2.1 — Slice 5d styling         |
 
 ---
 
@@ -110,3 +110,28 @@ Flux de confirmation : bouton -> modal -> saisie mot-clé -> bouton "Confirmer" 
 | `AdminPage.test.tsx` | Navigation entre onglets |
 
 Ref. croisées : [api/admin](../../api/admin/spec-technique.md), [api/overrides](../../api/overrides/spec-technique.md), [api/imports](../../api/imports/spec-technique.md).
+
+---
+
+## Styling — Slice 5d
+
+Tous les fichiers `.module.scss` du module Admin ont été refondus en Slice 5d. Chaque fichier consomme `@use "@/styles/brand" as *` et s'appuie sur les mixins composites introduits dans `brand.scss` (Slice 5d). Aucun hex codé en dur.
+
+| Fichier | Mixins utilisés |
+|---------|----------------|
+| `pages/AdminPage.module.scss` | — (tokens directs : `surface-sunken`, `t-display`, `layout-page-px`) |
+| `Admin/AdminTabs.module.scss` | — (border-bottom cyan 3px sur onglet actif, `primary-soft` hover) |
+| `ui/Table/Table.module.scss` | `table-base` |
+| `Admin/ComponentsAdminTable.module.scss` | `input-base`, `button-primary`, `button-ghost` |
+| `Admin/RteEndpointsTable.module.scss` | `table-base` (badge override `primary-soft`, remplace ambre) |
+| `Admin/OrganizationsAdminTab.module.scss` | `button-primary`, `button-ghost` |
+| `Admin/ImportsAdminTable.module.scss` | `modal-backdrop`, `modal-box`, `button-danger` |
+| `Admin/ComponentConfigModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base` |
+| `Admin/ComponentOverrideModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base`, `button-primary`, `button-danger-outline` |
+| `Admin/OrganizationEditModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base`, `button-primary`, `button-ghost` |
+| `Admin/DangerZoneTab.module.scss` | `input-base`, `button-danger` (seule zone rouge de l'app — ADR-039) |
+| `Admin/EntsoeAdminTab.module.scss` | `button-primary`, `alert-error`, `alert-success` |
+| `Admin/ProcessColorsEditor.module.scss` | `button-primary`, `button-ghost` |
+| `Admin/RegistryAdminTab.module.scss` | — (sections h2 charte, `surface-sunken`) |
+
+Voir `docs/specs/web/charte-visuelle/spec-technique.md §13` pour le détail complet des mixins et leur sémantique.

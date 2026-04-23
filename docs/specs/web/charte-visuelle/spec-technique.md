@@ -3,9 +3,9 @@
 | Champ  | Valeur                                             |
 |--------|----------------------------------------------------|
 | Module | web/charte-visuelle                                |
-| Version| 3.0-alpha.17                                       |
+| Version| 3.0-alpha.18                                       |
 | Date   | 2026-04-23                                         |
-| Source | Slice 5c — Upload & Map chrome (base : Slice 5b)   |
+| Source | Slice 5d — Admin + DetailPanel + ui (base : 5c)    |
 
 Accompagne [`spec-fonctionnel.md`](./spec-fonctionnel.md). Documente l'architecture des fichiers, le pipeline CSS, les CSS vars exposées, les mixins et les tests de contraste.
 
@@ -239,7 +239,7 @@ Les éléments suivants sont décrits dans la design spec mais n'étaient pas im
 
 - **Slice 5b** : `App.module.scss` header sombre, `EnvSelector.module.scss`, `MapPage.module.scss`. **[LIVRÉ — voir §11]**
 - **Slice 5c** : `UploadPage.module.scss`, `NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`, `TimelineSlider.module.scss`. **[LIVRÉ — voir §12]**
-- **Slice 5d** : tous les `Admin/*.module.scss`, `DetailPanel/*.module.scss`, `UploadBatchTable.module.scss`, composants UI maison.
+- **Slice 5d** : tous les `Admin/*.module.scss`, `DetailPanel/*.module.scss`, `UploadBatchTable.module.scss`, composants UI maison. **[LIVRÉ — voir §13]**
 - **Slice 5e** : composants `Skeleton`, `EmptyState`, intégration Toast DS, script `check:no-hex`, audit axe-core.
 
 ---
@@ -427,5 +427,114 @@ Slice 5c n'introduit aucun hex codé en dur dans les cinq fichiers modifiés. Ex
 - `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
 - `pnpm typecheck` : 0 erreurs.
 - `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~203 KB** (+9 KB vs Slice 5b ~194 KB).
+
+---
+
+## 13. Slice 5d — Admin + DetailPanel + ui (v3.0-alpha.18)
+
+### 13.1 Périmètre
+
+La Slice 5d tokenise les 19 fichiers `.module.scss` restants : la page Admin et ses 11 sous-composants (tables, modales, onglets), le DetailPanel et ses fichiers partagés, UploadBatchTable, et 3 composants UI maison. Elle introduit également la section "Mixins de composants" dans `brand.scss`, factorisant les patterns récurrents de l'Admin et du DetailPanel.
+
+### 13.2 Mixins composites ajoutés dans `brand.scss`
+
+10 nouveaux mixins SCSS dans la section "Mixins de composants (Slice 5d)" :
+
+| Mixin | Usage principal |
+|-------|----------------|
+| `@mixin input-base` | Tous les `<input>` et `<textarea>` Admin + UI maison — fond `surface`, border `border-strong`, focus ring `shadow-focus`, placeholder `text-muted` |
+| `@mixin button-primary` | Boutons de validation (Sauvegarder, Confirmer, Importer) — fond `primary`, hover `primary-hover`, pressed `primary-pressed`, shadow-1/shadow-2 |
+| `@mixin button-ghost` | Boutons secondaires (Annuler, Fermer) — fond transparent, hover `primary-soft`, texte `text-muted` |
+| `@mixin button-danger` | Bouton confirmation destructive (DangerZoneTab uniquement) — fond `error`, hover assombri, texte inverse |
+| `@mixin button-danger-outline` | Boutons delete outline (ComponentOverrideModal) — border `error`, texte `error`, hover `error-bg` |
+| `@mixin alert-error` | Bloc alerte erreur — fond `error-bg`, border `error-border`, texte `error` |
+| `@mixin alert-success` | Bloc alerte succès — fond `primary-soft`, border `primary` (cyan 20% opacity), texte `primary-pressed` |
+| `@mixin modal-backdrop` | Fond des modales — `rgba(16,24,29,.48)` + `backdrop-filter: blur(2px)` |
+| `@mixin modal-box` | Conteneur de modale — fond `surface`, radius `r-md`, shadow-3, max-width 560px |
+| `@mixin table-base` | Structure de tableau — header `surface-sunken` + `t-caps` + `text-muted`, lignes alternées, hover `primary-soft`, border `border-subtle` |
+
+### 13.3 Fichiers modifiés/créés
+
+#### Admin (11 fichiers)
+
+| Fichier | Mixins utilisés | Notes |
+|---------|----------------|-------|
+| `pages/AdminPage.module.scss` | — | Fond `surface-sunken`, titre `@include t-display`, max-width 1200px |
+| `Admin/AdminTabs.module.scss` | — | Onglet actif : bordure basse cyan 3px, texte `primary`; inactif : `text-muted`, hover `primary-soft` |
+| `ui/Table/Table.module.scss` | `table-base` | Application directe du mixin table |
+| `Admin/ComponentsAdminTable.module.scss` | `input-base`, `button-primary`, `button-ghost` | `missingButton` en pill `error`; badge "override" `primary-soft` |
+| `Admin/RteEndpointsTable.module.scss` | `table-base` | Badge override `primary-soft` (remplace ambre `#fef3c7/#92400e`) ; badge default `text-muted` |
+| `Admin/OrganizationsAdminTab.module.scss` | `button-primary`, `button-ghost` | `importResult` `primary-soft` (remplace vert ecru) ; `editedBadge` `primary-soft` |
+| `Admin/ImportsAdminTable.module.scss` | `modal-backdrop`, `modal-box`, `button-danger` | TypeBadge : `endpoint`=`primary-pressed`, `cd`=`surface-deep`, `broker`=`surface-dark` (palette pure) ; PropertiesBadge : ok=`primary-soft`, missing=`error-bg` |
+| `Admin/ComponentConfigModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base` | Sections avec header `surface-sunken`, props mono |
+| `Admin/ComponentOverrideModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base`, `button-primary`, `button-danger-outline` | Grille 2 colonnes, inputs tokenisés |
+| `Admin/OrganizationEditModal.module.scss` | `modal-backdrop`, `modal-box`, `input-base`, `button-primary`, `button-ghost` | `metaBox` `surface-sunken` pour timestamps/source |
+| `Admin/DangerZoneTab.module.scss` | `input-base`, `button-danger` | Seule zone rouge de l'app (conforme ADR-039) ; titre `error`, `actionCard` `error-bg/error-border` ; input ring `shadow-error-focus` |
+| `Admin/EntsoeAdminTab.module.scss` | `button-primary`, `alert-error`, `alert-success` | `statusBox` border-left cyan 3px comme accent |
+| `Admin/ProcessColorsEditor.module.scss` | `button-primary`, `button-ghost` | `badgeOverride` `primary-soft` (remplace ambre) |
+| `Admin/RegistryAdminTab.module.scss` | — | Sections h2 charte, fond `surface-sunken` |
+
+#### DetailPanel (2 fichiers)
+
+| Fichier | Contenu |
+|---------|---------|
+| `DetailPanel/DetailPanel.module.scss` | Panel blanc `shadow-2`, `border-left: 2px solid var(--c-primary)` (signature accent cyan) ; `closeButton` ghost avec flèche cyan |
+| `DetailPanel/details.module.scss` | Fichier partagé NodeDetails + EdgeDetails. Titre `t-h2`, `sectionTitle` `t-caps` + `text-muted`, `dlRow` avec séparateur `border-subtle`. Badges entièrement fondus dans la palette pure (voir §13.4). `defaultPositionNotice` : fond `primary-soft` (remplace ambre). |
+
+#### UploadBatchTable (1 fichier)
+
+| Fichier | Contenu |
+|---------|---------|
+| `UploadBatchTable/UploadBatchTable.module.scss` | `table-base` mixin, inputs `input-base`, `removeButton` hover `error-bg` |
+
+#### Composants UI maison (3 fichiers)
+
+| Fichier | Contenu |
+|---------|---------|
+| `ui/RangeSlider/RangeSlider.module.scss` | Thumb WebKit + Firefox `primary`, focus ring `shadow-focus` — même pattern que TimelineSlider (Slice 5c) |
+| `ui/ColorField/ColorField.module.scss` | Picker `32x24`, bordure `border-strong`, focus ring `primary` ; texte hex `text-muted` + `t-mono` |
+| `ui/DateTimeField/DateTimeField.module.scss` | Applique `input-base`, focus ring `shadow-focus` |
+
+### 13.4 Résolution des badges via palette pure
+
+Tous les badges utilisent exclusivement les tokens `--c-*` de `brand.scss`, sans aucun hex ou rgba spécifique métier.
+
+| Catégorie | Variante | Token fond | Token texte/border |
+|-----------|----------|-----------|-------------------|
+| Status | active | `--c-primary` solid | `--c-text-inverse` |
+| Status | neutral | `--c-surface-sunken` | `--c-text-muted` |
+| Status | notConnected | `--c-error-bg` | `--c-error` |
+| Health | fresh | `--c-primary-soft` | `--c-primary-pressed` |
+| Health | warning | `--c-surface-sunken` | `--c-text-muted` |
+| Health | stale | `--c-error-bg` | `--c-error` |
+| Health | unknown | `--c-text-muted` | `--c-text-inverse` |
+| Direction | IN | `--c-primary-pressed` | `--c-text-inverse` |
+| Direction | OUT | `--c-surface-deep` | `--c-text-inverse` |
+| Direction | BIDI | `--c-surface-dark` | `--c-text-inverse` |
+| BA | P1 | `--c-error-bg` | `--c-error` |
+| BA | P2 | `--c-primary-soft` | `--c-primary-pressed` |
+| BA | P3 | `--c-text-muted` | `--c-text-inverse` |
+| Sync | twoWay | `--c-primary-soft` | `--c-primary-pressed` |
+| Sync | oneWay | `--c-surface-sunken` | `--c-text-muted` |
+| TypeBadge | endpoint | `--c-primary-pressed` | `--c-text-inverse` |
+| TypeBadge | cd | `--c-surface-deep` | `--c-text-inverse` |
+| TypeBadge | broker | `--c-surface-dark` | `--c-text-inverse` |
+
+### 13.5 Contrainte zero-hex — exceptions documentées
+
+Deux `rgba()` sont utilisés dans Slice 5d et n'ont pas encore de token dédié :
+
+| Valeur | Fichier | Usage | Plan |
+|--------|---------|-------|------|
+| `rgba(0, 189, 237, 0.2)` | `details.module.scss` | Fond de bordure soft sur badges Direction (overlay semi-transparent cyan) | Factoriser en token `--c-primary-faint` en Slice 5e |
+| `rgba(12, 57, 73, 0.08)` | `details.module.scss` | Fond soft de certains badges Sync (dark teal 8%) | Factoriser en token `--c-surface-tint` en Slice 5e |
+
+Le `rgba(16,24,29,.48)` du `modal-backdrop` mixin est intentionnel (valeur d'opacité de fond de modale non exposée comme token de couleur pur — cohérent avec l'exception déjà documentée en Slice 5b).
+
+### 13.6 Résultats des tests Slice 5d
+
+- `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
+- `pnpm typecheck` : 0 erreurs.
+- `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~233 KB** (+30 KB raw vs Slice 5c ~203 KB, +0.6 KB gzip).
 
 ---

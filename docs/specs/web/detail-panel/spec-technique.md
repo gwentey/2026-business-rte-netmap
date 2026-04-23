@@ -3,9 +3,9 @@
 | Champ         | Valeur              |
 |---------------|---------------------|
 | Module        | web/detail-panel    |
-| Version       | 2.0.0               |
-| Date          | 2026-04-20          |
-| Source        | v2.0 post-implémentation |
+| Version       | 2.1.0               |
+| Date          | 2026-04-23          |
+| Source        | v2.1 — Slice 5d styling |
 
 ---
 
@@ -155,3 +155,20 @@ Résultat typique : `"17/04/2026 10:30"`. Les cas null, undefined et chaîne inv
 | `apps/web/src/components/DetailPanel/NodeDetails.test.tsx` | **[P2-5]** Rendu `country` null → `'—'`, rendu `process` null → `'—'`, rendu `networks` vide → `'—'`, badge "Position par défaut" si `isDefaultPosition = true`, formatage `creationTs` en locale fr-FR | Ajouté Phase 2 |
 | `apps/web/src/components/DetailPanel/EdgeDetails.test.tsx` | **[P2-5]** Rendu `connectionStatus` null → `'—'`, rendu `intermediateBrokerEic` null (ligne absente), badges `messageTypes`, `isRecent = true` → `'Oui'`, rendu `validTo` null → `'—'` | Ajouté Phase 2 |
 | Smoke Playwright (MapPage) | Couverture indirecte possible via navigation carte | Partiel (non vérifié) |
+
+---
+
+## Styling — Slice 5d
+
+Deux fichiers `.module.scss` ont été créés en Slice 5d. Aucun composant TSX n'a été modifié.
+
+| Fichier | Description |
+|---------|-------------|
+| `DetailPanel/DetailPanel.module.scss` | Panel blanc, `box-shadow: var(--shadow-2)`, `border-left: 2px solid var(--c-primary)` (accent cyan signature) ; `closeButton` ghost avec flèche cyan via `button-ghost` mixin |
+| `DetailPanel/details.module.scss` | Fichier partagé NodeDetails + EdgeDetails. Titre `@include t-h2`, `sectionTitle` `@include t-caps` + `text-muted`, `dlRow` avec séparateur `border-subtle`. Tous les badges (Status, Health, Direction, BA, Sync) utilisent exclusivement la palette `--c-*` sans hex codé en dur. `defaultPositionNotice` fond `primary-soft` (remplace ambre hors charte). |
+
+La résolution complète des badges par variante est documentée dans `docs/specs/web/charte-visuelle/spec-technique.md §13.4`.
+
+**Exceptions rgba documentées dans `details.module.scss` :**
+- `rgba(0, 189, 237, 0.2)` — fond overlay soft sur badges Direction (à tokeniser en Slice 5e)
+- `rgba(12, 57, 73, 0.08)` — fond soft badges Sync (à tokeniser en Slice 5e)
