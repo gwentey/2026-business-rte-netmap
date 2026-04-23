@@ -1,4 +1,4 @@
-@use 'styles/brand' as *;
+@use "@/styles/brand" as *;
 
 // Le Select DS RTE se charge du rendu principal — il utilise les
 // --content-brand-* et --background-brand-* surchargees par Slice 5a.
