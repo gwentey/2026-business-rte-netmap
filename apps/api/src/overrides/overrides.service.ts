@@ -6,6 +6,8 @@ import {
   type ImportedComponentWithImport,
 } from '../graph/merge-components.js';
 import { applyCascade } from '../graph/apply-cascade.js';
+import { OrganizationsService } from '../organizations/organizations.service.js';
+import { normalizeOrgName } from '../organizations/normalize-org-name.js';
 import type { AdminComponentRow, OverrideUpsertInput } from '@carto-ecp/shared';
 
 @Injectable()
@@ -13,6 +15,7 @@ export class OverridesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: RegistryService,
+    private readonly organizations: OrganizationsService,
   ) {}
 
   async upsert(eic: string, patch: OverrideUpsertInput) {
@@ -35,13 +38,15 @@ export class OverridesService {
   }
 
   async listAdminComponents(): Promise<AdminComponentRow[]> {
-    const [importedComponents, overrides, entsoeEntries] = await Promise.all([
-      this.prisma.importedComponent.findMany({
-        include: { urls: true, import: { select: { effectiveDate: true } } },
-      }),
-      this.prisma.componentOverride.findMany(),
-      this.prisma.entsoeEntry.findMany(),
-    ]);
+    const [importedComponents, overrides, entsoeEntries, orgMemoryByName] =
+      await Promise.all([
+        this.prisma.importedComponent.findMany({
+          include: { urls: true, import: { select: { effectiveDate: true } } },
+        }),
+        this.prisma.componentOverride.findMany(),
+        this.prisma.entsoeEntry.findMany(),
+        this.organizations.loadAsMap(),
+      ]);
 
     const componentRows: ImportedComponentWithImport[] = importedComponents.map((c) => ({
       eic: c.eic,
@@ -86,7 +91,36 @@ export class OverridesService {
       const override = overrideByEic.get(eic) ?? null;
       const entsoe = entsoeByEic.get(eic) ?? null;
       const registryEntry = this.registry.resolveEic(eic);
-      const global = applyCascade(eic, merged, { override, entsoe, registry: registryEntry }, defaultFallback);
+      // Slice 3d — résolution enrichie par organisation
+      const rawOrgName = merged?.organization ?? null;
+      const organizationOverlay = this.registry.resolveByOrganization(rawOrgName);
+      const normalizedOrg = normalizeOrgName(rawOrgName);
+      const organizationMemory = normalizedOrg
+        ? orgMemoryByName.get(normalizedOrg) ?? null
+        : null;
+      const intermediateCountry =
+        override?.country ??
+        entsoe?.country ??
+        registryEntry?.country ??
+        organizationOverlay?.country ??
+        organizationMemory?.country ??
+        merged?.country ??
+        null;
+      const countryGeo = this.registry.resolveByCountry(intermediateCountry);
+
+      const global = applyCascade(
+        eic,
+        merged,
+        {
+          override,
+          entsoe,
+          registry: registryEntry,
+          organizationOverlay,
+          organizationMemory,
+          countryGeo,
+        },
+        defaultFallback,
+      );
 
       rows.push({
         eic,

@@ -27,10 +27,46 @@ export type RegistryInput = {
   process?: string | null;
 };
 
+/** Slice 3d — mémoire interne DB (par nom d'organisation). */
+export type OrganizationMemoryInput = {
+  country?: string | null;
+  address?: string | null;
+  displayName?: string | null;
+};
+
+/** Slice 3d — overlay.organizationGeocode statique MCO (par nom d'organisation). */
+export type OrganizationOverlayInput = {
+  lat: number;
+  lng: number;
+  country: string;
+};
+
+/** Slice 3d — overlay.countryGeocode fallback par pays résolu. */
+export type CountryGeoInput = {
+  lat: number;
+  lng: number;
+};
+
 export type CascadeInputs = {
   override: OverrideInput | null;
   entsoe: EntsoeInput | null;
   registry: RegistryInput | null;
+  /**
+   * Entrée de la mémoire interne DB pour `merged.organization`.
+   * Apporte country + address quand l'organisation est connue.
+   */
+  organizationMemory?: OrganizationMemoryInput | null;
+  /**
+   * Entrée statique `organizationGeocode` de l'overlay pour
+   * `merged.organization`. Apporte lat/lng/country précises.
+   */
+  organizationOverlay?: OrganizationOverlayInput | null;
+  /**
+   * Entrée `countryGeocode[country]` — coords approximatives du pays
+   * résolu plus haut dans la cascade. Appliqué en fallback avant
+   * l'ultime default Brussels.
+   */
+  countryGeo?: CountryGeoInput | null;
 };
 
 export type GlobalComponent = {
@@ -45,6 +81,8 @@ export type GlobalComponent = {
   displayName: string;
   projectName: string | null;
   country: string | null;
+  /** Slice 3d — adresse issue de la mémoire interne (null sinon). */
+  address: string | null;
   lat: number;
   lng: number;
   isDefaultPosition: boolean;
@@ -71,6 +109,9 @@ export function applyCascade(
   defaultFallback: { lat: number; lng: number },
 ): GlobalComponent {
   const { override, entsoe, registry } = inputs;
+  const organizationMemory = inputs.organizationMemory ?? null;
+  const organizationOverlay = inputs.organizationOverlay ?? null;
+  const countryGeo = inputs.countryGeo ?? null;
 
   // Cascade displayName : priorité à la saisie admin (Override), puis au nom
   // humain officiel ECP (`ecp.projectName` lu depuis le dump, ex. "INTERNET-EP1")
@@ -93,10 +134,15 @@ export function applyCascade(
     merged?.organization,
   );
 
+  // Slice 3d — country : on insère la mémoire interne DB entre ENTSO-E et
+  // registry RTE. Permet de résoudre le pays pour une organisation connue
+  // (ex. "Swissgrid AG" → "CH") sans attendre l'upload CSV ENTSO-E.
   const country = pickField(
     override?.country,
     entsoe?.country,
     registry?.country,
+    organizationOverlay?.country,
+    organizationMemory?.country,
     merged?.country,
   );
 
@@ -107,9 +153,27 @@ export function applyCascade(
       merged?.type,
     ) ?? 'ENDPOINT';
 
-  const lat = pickField(override?.lat, registry?.lat, merged?.lat);
-  const lng = pickField(override?.lng, registry?.lng, merged?.lng);
+  // Slice 3d — lat/lng : injection de organizationOverlay (coords précises
+  // MCO) puis countryGeo (fallback approximatif par pays).
+  const lat = pickField(
+    override?.lat,
+    registry?.lat,
+    organizationOverlay?.lat,
+    countryGeo?.lat,
+    merged?.lat,
+  );
+  const lng = pickField(
+    override?.lng,
+    registry?.lng,
+    organizationOverlay?.lng,
+    countryGeo?.lng,
+    merged?.lng,
+  );
   const hasExplicitCoord = lat != null && lng != null;
+
+  // Slice 3d — address : uniquement depuis la mémoire interne DB
+  // (pas d'address côté overlay/registry/ENTSO-E). Null par défaut.
+  const address = organizationMemory?.address ?? null;
 
   return {
     eic,
@@ -123,6 +187,7 @@ export function applyCascade(
     displayName,
     projectName: merged?.projectName ?? null,
     country,
+    address,
     lat: hasExplicitCoord ? lat : defaultFallback.lat,
     lng: hasExplicitCoord ? lng : defaultFallback.lng,
     isDefaultPosition: !hasExplicitCoord,
