@@ -1,30 +1,72 @@
+@use "@/styles/brand" as *;
+
 .container {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
-  color: #374151;
+  gap: 12px;
+  @include t-body;
+  color: var(--c-text);
 }
 
 .label {
-  font-weight: 500;
+  font-weight: var(--t-body-strong-weight);
+  color: var(--c-text);
 }
 
 .slider {
   flex: 1 1 auto;
   cursor: pointer;
-  accent-color: #e30613;
+  accent-color: var(--c-primary);
+  height: 4px;
+
+  &:focus {
+    outline: none;
+    box-shadow: var(--shadow-focus);
+    border-radius: var(--r-pill);
+  }
 
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
   }
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--r-pill);
+    background: var(--c-surface);
+    border: 2px solid var(--c-primary);
+    box-shadow: var(--shadow-1);
+    cursor: grab;
+  }
+
+  &::-webkit-slider-runnable-track {
+    height: 4px;
+    background: var(--c-border-strong);
+    border-radius: var(--r-pill);
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: var(--r-pill);
+    background: var(--c-surface);
+    border: 2px solid var(--c-primary);
+    box-shadow: var(--shadow-1);
+    cursor: grab;
+  }
+
+  &::-moz-range-track {
+    height: 4px;
+    background: var(--c-border-strong);
+    border-radius: var(--r-pill);
+  }
 }
 
 .value {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem;
-  color: #4b5563;
+  @include t-mono;
+  color: var(--c-text);
   min-width: 4rem;
   text-align: right;
 }

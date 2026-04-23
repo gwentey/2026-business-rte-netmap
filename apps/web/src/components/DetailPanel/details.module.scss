@@ -1,93 +1,107 @@
-// CSS module partagé par NodeDetails et EdgeDetails
+@use "@/styles/brand" as *;
+
+// =============================================================================
+// details.module.scss — partagé entre NodeDetails et EdgeDetails
+// =============================================================================
 
 .root {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 16px;
 }
 
 .title {
   margin: 0;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: #111827;
+  @include t-h2;
+  color: var(--c-text);
 }
 
 .projectChip {
-  margin: 0.125rem 0 0;
-  font-size: 0.75rem;
-  color: #6b7280;
+  margin: 2px 0 0;
+  @include t-small;
+  color: var(--c-text-muted);
 }
 
 .projectBadge {
   display: inline-block;
-  padding: 0.125rem 0.375rem;
-  background: #f5f3ff;
-  color: #5b21b6;
-  border-radius: 0.25rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 2px 8px;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border-radius: var(--r-xs);
+  @include t-mono;
+  font-size: 11px;
 }
 
 .sectionTitle {
-  margin: 0 0 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
+  margin: 0 0 6px;
+  @include t-caps;
+  color: var(--c-text-muted);
 }
 
 .dl {
   margin: 0;
-  font-size: 0.875rem;
+  @include t-body;
 }
 
 .dlRow {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--c-border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
 }
 
 .dlTerm {
   margin: 0;
-  color: #6b7280;
+  color: var(--c-text-muted);
+  @include t-small;
 }
 
 .dlValue {
   margin: 0;
   grid-column: span 1;
-  color: #111827;
+  color: var(--c-text);
+  @include t-body-strong;
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  @include t-mono;
 }
 
 .small {
-  font-size: 0.75rem;
+  @include t-small;
 }
 
 .muted {
-  color: #9ca3af;
+  color: var(--c-text-disabled);
 }
 
 .link {
-  color: #e30613;
+  color: var(--c-text);
   text-decoration: underline;
-  text-underline-offset: 0.125rem;
+  text-decoration-color: var(--c-primary);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
+  transition: color var(--motion-fast), text-decoration-color var(--motion-fast);
 
   &:hover {
-    color: #991b1b;
+    color: var(--c-primary-pressed);
+    text-decoration-color: var(--c-primary-pressed);
   }
 }
 
 .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 6px;
 }
 
 .list {
@@ -96,14 +110,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 6px;
 }
 
 .listItem {
   display: flex;
   align-items: flex-start;
-  gap: 0.5rem;
-  font-size: 0.75rem;
+  gap: 8px;
+  @include t-small;
 }
 
 .interlocutorBody {
@@ -112,7 +126,7 @@
 }
 
 .interlocutorTypes {
-  color: #6b7280;
+  color: var(--c-text-muted);
 }
 
 .urlList {
@@ -121,172 +135,191 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  gap: 4px;
+  @include t-mono;
 }
 
 .urlNetwork {
-  color: #6b7280;
+  color: var(--c-text-muted);
+  @include t-small;
 }
 
 .defaultPositionNotice {
-  padding: 0.5rem;
-  background: #fef3c7;
-  color: #92400e;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 10px 12px;
+  background: var(--c-surface-sunken);
+  color: var(--c-text);
+  border: 1px solid var(--c-border-strong);
+  border-left: 3px solid var(--c-text-muted);
+  border-radius: var(--r-sm);
+  @include t-small;
 }
 
-// Badges
+// =============================================================================
+// Badges (palette pure : cyan / teal / error / muted only)
+// =============================================================================
+
 .badge {
-  display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
 }
 
+// Status
 .statusActive {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--c-primary);
+  color: var(--c-text);
 }
 
 .statusNeutral {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--c-surface-sunken);
+  color: var(--c-text);
+  border: 1px solid var(--c-border-strong);
 }
 
 .statusNotConnected {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
 }
 
+// Health
 .healthFresh {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border: 1px solid rgba(0, 189, 237, 0.2);
 }
 
 .healthWarning {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--c-surface-sunken);
+  color: var(--c-text);
+  border: 1px solid var(--c-border-strong);
 }
 
 .healthStale {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
 }
 
 .healthUnknown {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--c-surface-sunken);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-subtle);
 }
 
+// Direction (IN/OUT/BIDI) — palette neutre teal/cyan/dark
 .directionBadge {
   display: inline-flex;
-  min-width: 2rem;
-  height: 1.25rem;
+  min-width: 36px;
+  height: 20px;
   align-items: center;
   justify-content: center;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.625rem;
-  font-weight: 600;
+  padding: 0 6px;
+  border-radius: var(--r-xs);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--c-text-inverse);
 }
 
 .directionIn {
-  background: #e0f2fe;
-  color: #075985;
+  background: var(--c-primary-pressed);
 }
 
 .directionOut {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--c-surface-deep);
 }
 
 .directionBidi {
-  background: #ede9fe;
-  color: #5b21b6;
+  background: var(--c-surface-dark);
 }
 
+// BA criticité (palette pure : error / teal / muted)
 .baBadge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.125rem 0.375rem;
+  gap: 6px;
+  padding: 2px 8px;
   border: 1px solid;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  border-radius: var(--r-xs);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
 }
 
 .baP1 {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #991b1b;
+  background: var(--c-error-bg);
+  border-color: var(--c-error-border);
+  color: var(--c-error);
 }
 
 .baP2 {
-  background: #fef3c7;
-  border-color: #fde68a;
-  color: #92400e;
+  background: rgba(12, 57, 73, 0.08);
+  border-color: var(--c-surface-deep);
+  color: var(--c-surface-deep);
 }
 
 .baP3 {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
-  color: #374151;
+  background: var(--c-surface-sunken);
+  border-color: var(--c-border-strong);
+  color: var(--c-text-muted);
 }
 
 .baCode {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  @include t-mono;
 }
 
 .baCrit {
-  padding: 0 0.25rem;
+  padding: 0 4px;
   background: rgba(255, 255, 255, 0.6);
-  border-radius: 0.125rem;
-  font-size: 0.5625rem;
+  border-radius: var(--r-xs);
+  font-size: 9px;
   font-weight: 700;
 }
 
-// EdgeDetails specific
+// EdgeDetails specific — syncs
 .syncTwoWay {
-  background: #e0e7ff;
-  color: #3730a3;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border: 1px solid rgba(0, 189, 237, 0.2);
 }
 
 .syncOneWay {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--c-surface-sunken);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-strong);
 }
 
 .volumeZero {
-  color: #9ca3af;
-  font-size: 0.75rem;
+  color: var(--c-text-disabled);
+  @include t-small;
 }
 
 .volumePositive {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
-  background: #f1f5f9;
-  color: #1e293b;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 2px 8px;
+  background: var(--c-surface-dark);
+  color: var(--c-text-inverse);
+  border-radius: var(--r-xs);
+  @include t-mono;
 }
 
 .msgTypes {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  font-size: 0.75rem;
+  gap: 4px;
 }
 
 .msgType {
-  padding: 0.125rem 0.5rem;
-  background: #f3f4f6;
-  border-radius: 0.25rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  padding: 2px 8px;
+  background: var(--c-surface-sunken);
+  color: var(--c-text);
+  border: 1px solid var(--c-border-subtle);
+  border-radius: var(--r-xs);
+  @include t-mono;
+  font-size: 11px;
 }
 
 .breakAll {
