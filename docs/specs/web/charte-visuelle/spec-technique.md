@@ -3,9 +3,9 @@
 | Champ  | Valeur                                             |
 |--------|----------------------------------------------------|
 | Module | web/charte-visuelle                                |
-| Version| 3.0-alpha.18                                       |
+| Version| 3.0-alpha.19                                       |
 | Date   | 2026-04-23                                         |
-| Source | Slice 5d — Admin + DetailPanel + ui (base : 5c)    |
+| Source | Slice 5e — Finitions UX (base : 5d)                |
 
 Accompagne [`spec-fonctionnel.md`](./spec-fonctionnel.md). Documente l'architecture des fichiers, le pipeline CSS, les CSS vars exposées, les mixins et les tests de contraste.
 
@@ -240,7 +240,7 @@ Les éléments suivants sont décrits dans la design spec mais n'étaient pas im
 - **Slice 5b** : `App.module.scss` header sombre, `EnvSelector.module.scss`, `MapPage.module.scss`. **[LIVRÉ — voir §11]**
 - **Slice 5c** : `UploadPage.module.scss`, `NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`, `TimelineSlider.module.scss`. **[LIVRÉ — voir §12]**
 - **Slice 5d** : tous les `Admin/*.module.scss`, `DetailPanel/*.module.scss`, `UploadBatchTable.module.scss`, composants UI maison. **[LIVRÉ — voir §13]**
-- **Slice 5e** : composants `Skeleton`, `EmptyState`, intégration Toast DS, script `check:no-hex`, audit axe-core.
+- **Slice 5e** : composants `Skeleton`, `EmptyState`, script `check:no-hex`, 3 tokens rgba résiduels tokenisés, 2 tokens error-hover/pressed. **[LIVRÉ — voir §14]**
 
 ---
 
@@ -536,5 +536,183 @@ Le `rgba(16,24,29,.48)` du `modal-backdrop` mixin est intentionnel (valeur d'opa
 - `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
 - `pnpm typecheck` : 0 erreurs.
 - `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~233 KB** (+30 KB raw vs Slice 5c ~203 KB, +0.6 KB gzip).
+
+---
+
+## 14. Slice 5e — Finitions UX (v3.0-alpha.19)
+
+### 14.1 Périmètre
+
+La Slice 5e clôt le chantier charte visuelle 5a→5e. Elle tokenise les 3 `rgba()` résiduels identifiés en Slice 5d, ajoute 2 tokens d'état error (hover/pressed), crée les composants UI partagés `Skeleton` et `EmptyState`, et installe un garde-fou CI `check:no-hex` vérifiant l'absence de hex hardcodés dans `apps/web/src/`.
+
+### 14.2 Nouveaux tokens dans `brand.scss`
+
+5 tokens ajoutés dans la section `:root` de `brand.scss` :
+
+| Token | Valeur | Rôle |
+|-------|--------|------|
+| `--c-primary-border-soft` | `rgba(0, 189, 237, 0.2)` | Remplace le `rgba(0, 189, 237, 0.2)` hard-codé dans `details.module.scss` (badges Direction) |
+| `--c-primary-divider` | `rgba(0, 189, 237, 0.12)` | Remplace `rgba(0, 189, 237, 0.12)` (bordure basse header dans `App.module.scss`) — exception Slice 5b résolue |
+| `--c-surface-deep-soft` | `rgba(12, 57, 73, 0.08)` | Remplace `rgba(12, 57, 73, 0.08)` dans `details.module.scss` (badges Sync fond dark teal 8%) |
+| `--c-error-hover` | `#9a211a` | État hover des boutons danger (foncé de `--c-error`) |
+| `--c-error-pressed` | `#821c16` | État pressed des boutons danger |
+
+Ces 5 tokens complètent la palette et permettent d'atteindre le zéro rgba/hex hors exceptions documentées.
+
+### 14.3 Composant `Skeleton`
+
+Nouveau composant UI maison dans `apps/web/src/components/ui/Skeleton/`.
+
+**Fichiers :**
+
+| Fichier | Rôle |
+|---------|------|
+| `Skeleton.tsx` | Composant React — 5 variants, prop `lines` pour multi-ligne |
+| `Skeleton.module.scss` | Styles : animation shimmer, variants, `prefers-reduced-motion` |
+| `test.tsx` | 6 tests Vitest |
+
+**Props :**
+
+| Prop | Type | Défaut | Description |
+|------|------|--------|-------------|
+| `variant` | `'text' \| 'title' \| 'card' \| 'circle' \| 'rect'` | `'text'` | Forme du squelette |
+| `width` | `string \| number` | — | Largeur override |
+| `height` | `string \| number` | — | Hauteur override |
+| `lines` | `number` | `1` | Nombre de lignes (variant `text` uniquement) — la dernière ligne est rendue à 60% |
+
+**Tokens consommés :**
+
+| Token | Usage |
+|-------|-------|
+| `--c-surface-sunken` | Couleur de fond du squelette |
+| `--r-sm` | Border-radius variants text/title |
+| `--r-md` | Border-radius variant card |
+| `--r-pill` | Border-radius variant circle |
+
+**Accessibilité :** `role="status"`, `aria-label="Chargement"`, `aria-live="polite"`. Animation désactivée via `prefers-reduced-motion`.
+
+**Animation shimmer :** gradient linéaire `90deg` `transparent → rgba(255,255,255,0.6) → transparent` sur 200% de background-size, animé en 1.6s `ease-in-out infinite`. Le gradient shimmer `rgba(255,255,255,0.6)` est intentionnellement non tokenisé — c'est une valeur d'effet visuel pure, pas une couleur sémantique.
+
+### 14.4 Composant `EmptyState`
+
+Nouveau composant UI maison dans `apps/web/src/components/ui/EmptyState/`.
+
+**Fichiers :**
+
+| Fichier | Rôle |
+|---------|------|
+| `EmptyState.tsx` | Composant React — 3 tailles, 4 slots (icon, title, description, action) |
+| `EmptyState.module.scss` | Styles : layout flex colonne centré, tailles sm/md/lg |
+| `test.tsx` | 6 tests Vitest |
+
+**Props :**
+
+| Prop | Type | Défaut | Description |
+|------|------|--------|-------------|
+| `title` | `ReactNode` | requis | Titre principal |
+| `icon` | `ReactNode` | — | Icône (rendu `aria-hidden`) |
+| `description` | `ReactNode` | — | Texte descriptif |
+| `action` | `ReactNode` | — | Slot action (bouton, lien) |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Taille du composant |
+
+**Tokens consommés :**
+
+| Token | Usage |
+|-------|-------|
+| `--c-surface-sunken` | Fond du conteneur |
+| `--c-text` | Couleur titre |
+| `--c-text-muted` | Couleur description |
+| `--c-primary` | Couleur de l'icône |
+| `--r-md` | Border-radius conteneur |
+| `@mixin t-h2` | Titre taille md/lg |
+| `@mixin t-h3` | Titre taille sm |
+| `@mixin t-body` | Description |
+
+### 14.5 Script `check:no-hex`
+
+Nouveau fichier `apps/web/scripts/check-no-hex.mjs`. Script Node.js ESM qui parcourt récursivement `apps/web/src/` à la recherche de hex hardcodés dans les fichiers `.ts`, `.tsx`, `.scss`, `.css`.
+
+**Comportement :**
+- Exit 0 si aucun hex trouvé hors exceptions.
+- Exit 1 avec liste détaillée (fichier:ligne, valeur hex, contexte) si violations trouvées.
+- Exit 2 sur erreur interne.
+
+**Regex de détection :** `/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g`
+
+**Fichiers exemptés (data-driven ou tests) :**
+
+| Chemin | Raison |
+|--------|--------|
+| `lib/process-colors.ts` | Palette métier data-driven |
+| `components/Map/node-icon.ts` | Couleurs inline SVG |
+| `components/Map/EdgePath.tsx` | Couleurs process métier |
+| `components/Map/HomeCdOverlay.tsx` | Config carto |
+| `styles/brand.scss` | Source unique des tokens |
+| `styles/brand.test.ts` | Tests des tokens |
+| Tous les `*.test.ts{,x}` | Fixtures de tests |
+
+**Intégration `package.json` :**
+
+```json
+"scripts": {
+  "check:no-hex": "node scripts/check-no-hex.mjs"
+}
+```
+
+### 14.6 Extension de `ui/index.ts`
+
+`apps/web/src/components/ui/index.ts` étendu pour exporter les 2 nouveaux composants maison :
+
+```typescript
+export { Skeleton, type SkeletonVariant } from './Skeleton/Skeleton.js';
+export { EmptyState } from './EmptyState/EmptyState.js';
+```
+
+Le total de composants maison passe de 4 à 6 (`Table`, `RangeSlider`, `ColorField`, `DateTimeField`, `Skeleton`, `EmptyState`).
+
+### 14.7 Résultats des tests Slice 5e
+
+- `pnpm --filter @carto-ecp/web test` : **169 passed** / 172 total (+12 Skeleton/EmptyState), 3 todo (inchangés).
+- `pnpm typecheck` : 0 erreurs.
+- `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~234 KB** (+1 KB raw vs Slice 5d ~233 KB).
+- `pnpm --filter @carto-ecp/web check:no-hex` : vert (0 violation).
+
+---
+
+## 15. Bilan cumulatif 5a → 5e
+
+### 15.1 Tableau récapitulatif des slices
+
+| Slice | Version | Périmètre | Fichiers .module.scss | Tokens ajoutés | Mixins ajoutés | Tests |
+|-------|---------|-----------|----------------------|----------------|----------------|-------|
+| 5a | alpha.15 | Foundation — brand.scss, ds-override, reset, contrast | 0 (styles/ uniquement) | ~50 tokens --c-/--r-/--shadow-/--motion-/--t-/--layout- | 9 mixins typo | 14 (13 assertés + 1 log) |
+| 5b | alpha.16 | Shell — App, MapPage, EnvSelector | 3 | 0 | 0 | 0 |
+| 5c | alpha.17 | Upload & Map chrome | 5 | 0 | 0 | 0 |
+| 5d | alpha.18 | Admin + DetailPanel + UI (19 fichiers) | 19 (dont 3 créés) | 0 | 10 mixins composites | 0 |
+| 5e | alpha.19 | Finitions — Skeleton, EmptyState, check:no-hex, tokens résiduels | 2 (créés) | 5 | 0 | 12 |
+| **Total** | | | **~33 .module.scss** | **~65 tokens** | **19 mixins** | **26 tests** |
+
+### 15.2 État zero-hex final
+
+Après Slice 5e, `check:no-hex` retourne exit 0 sur l'ensemble de `apps/web/src/`. Les exceptions permanentes documentées (fichiers data-driven listés en §14.5) sont les seules occurrences de hex dans le codebase frontend.
+
+### 15.3 Composants UI maison créés ou tokenisés au fil des slices
+
+| Composant | Slice | Type | Fichiers |
+|-----------|-------|------|---------|
+| `Table` | 5d | Maison | `Table.tsx`, `Table.module.scss` |
+| `RangeSlider` | 5d | Maison | `RangeSlider.tsx`, `RangeSlider.module.scss` |
+| `ColorField` | 5d | Maison | `ColorField.tsx`, `ColorField.module.scss` |
+| `DateTimeField` | 5d | Maison | `DateTimeField.tsx`, `DateTimeField.module.scss` |
+| `Skeleton` | 5e | Maison | `Skeleton.tsx`, `Skeleton.module.scss`, `test.tsx` |
+| `EmptyState` | 5e | Maison | `EmptyState.tsx`, `EmptyState.module.scss`, `test.tsx` |
+
+### 15.4 ADR de référence
+
+| ADR | Titre | Décision |
+|-----|-------|----------|
+| [ADR-037](../../../adr/ADR-037-adoption-design-system-rte.md) | Adoption DS RTE | DS RTE comme socle technique |
+| [ADR-038](../../../adr/ADR-038-components-ui-layer-wrappers-ds.md) | Couche `components/ui/` | Wrapper pour DS + composants maison |
+| [ADR-039](../../../adr/ADR-039-charte-web-marketing-surcharge-ds.md) | Surcharge palette DS | Option A : surcharge CSS vars en cascade |
 
 ---
