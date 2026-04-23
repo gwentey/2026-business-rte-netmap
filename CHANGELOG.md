@@ -7,6 +7,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.2 — Slice 3b : mapping Business Applications ↔ endpoints (2026-04-23)
+
+Les 14 Business Applications RTE (OCAPPI, PLANET, CIA, NOVA, TACITE, PROPHYL, SMARDATA, RDM, KIWI, SRA, ECO2MIX, TOTEM, BOB, TOP NIVEAU) sont désormais **reliées aux endpoints qui les portent** et affichées en tête du panneau de détail. Répond à la question du user : « on arrive pas à reconnaitre qui sont les BA ».
+
+**Highlights :**
+
+- **Mapping statique BA ↔ Endpoints** dans `packages/registry/eic-rte-overlay.json` — nouveau champ `endpoints: string[]` sur chaque entrée de `rteBusinessApplications`. Matrice issue de `carto-ecp-document-fonctionnel-v1.2.md §5bis`. Éditable par MCO via PR git, sans redéploiement pour les couleurs (toujours recalculées à la lecture).
+- **`RegistryService.resolveBusinessApplications(eic)`** — nouvelle méthode qui retourne les BAs triées par criticité (P1 > P2 > P3) puis par code alpha. Vide pour un EIC externe, pour un endpoint RTE non mappé (broker, endpoint de test), et par construction pour les brokers/CDs.
+- **Type shared `BusinessApplicationSummary`** (`{code, criticality: 'P1'|'P2'|'P3'}`) + champ `GraphNode.businessApplications`.
+- **`GraphService.getGraph`** appelle `resolveBusinessApplications` pour chaque noeud et propage via `toNode`.
+- **Section UI « Applications métier (N) » dans `NodeDetails.tsx`** — placée **en tête du panneau** (avant la grille d'identité) car c'est l'info la plus attendue au clic sur un endpoint RTE. Badges colorés par criticité (rouge P1, ambre P2, gris P3).
+- **Composant privé `BaBadge`** réutilisable (code mono + pastille criticité).
+
+**Décisions confirmées :**
+- Mapping statique d'abord, édition via PR git. Pas d'UI admin en Slice 3b.
+- Pas de déduction BA via messageTypes — le mapping explicite est la source de vérité.
+- Tri déterministe côté backend pour garantir le rendu stable.
+
+**Tests :**
+- API : 284 → **289/289** (+5 sur `resolveBusinessApplications`).
+- Web : 117 → **120/120** (+3 sur la section Applications métier).
+
+**Breaking changes :** aucun. Champ `GraphNode.businessApplications` additif.
+
+**Prépare :** Slice 3c (filtre « par BA » sur la carte).
+
 ### v3.0-alpha.1 — Slice 3a : endpoint paths + interlocuteurs (2026-04-23)
 
 Première slice de la version v3 qui enrichit la carto ECP avec la dimension « interlocuteurs ». On exploite enfin `message_path.csv` côté endpoint (ignoré jusqu'ici au profit du XML MADES) et on affiche dans le panneau de détail la liste ordonnée des composants avec qui chaque noeud échange, avec direction IN/OUT/BIDI et aperçu des messageTypes.

@@ -2,7 +2,13 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { parse as parseCsv } from 'csv-parse/sync';
-import type { MapConfig, ProcessColorMap, ProcessKey } from '@carto-ecp/shared';
+import type {
+  BusinessApplicationCriticality,
+  BusinessApplicationSummary,
+  MapConfig,
+  ProcessColorMap,
+  ProcessKey,
+} from '@carto-ecp/shared';
 import type {
   EntsoeEntry,
   RteOverlay,
@@ -109,6 +115,38 @@ export class RegistryService implements OnModuleInit {
 
   getRteEicSet(): Set<string> {
     return this.rteEicSet;
+  }
+
+  /**
+   * Résout les Business Applications RTE qui utilisent cet endpoint.
+   * Mapping statique maintenu dans `eic-rte-overlay.json` par MCO.
+   *
+   * Retourne :
+   *  - pour un endpoint RTE mappé : la liste des BAs triées par criticité
+   *    (P1 > P2 > P3) puis par code alpha
+   *  - pour un endpoint RTE non mappé : [] (endpoint connu mais sans BA
+   *    déclarée, ex. broker RTE ou endpoint de test)
+   *  - pour un EIC externe : [] (les BAs sont RTE-only)
+   */
+  resolveBusinessApplications(eic: string): BusinessApplicationSummary[] {
+    if (!this.rteEicSet.has(eic)) return [];
+    const bas = this.overlay.rteBusinessApplications
+      .filter((ba) => ba.endpoints.includes(eic))
+      .map((ba) => ({
+        code: ba.code,
+        criticality: ba.criticality as BusinessApplicationCriticality,
+      }));
+    const rank: Record<BusinessApplicationCriticality, number> = {
+      P1: 0,
+      P2: 1,
+      P3: 2,
+    };
+    bas.sort((a, b) => {
+      const dr = rank[a.criticality] - rank[b.criticality];
+      if (dr !== 0) return dr;
+      return a.code < b.code ? -1 : a.code > b.code ? 1 : 0;
+    });
+    return bas;
   }
 
   getMapConfig(): MapConfig {

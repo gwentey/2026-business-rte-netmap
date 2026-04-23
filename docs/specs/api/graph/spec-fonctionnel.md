@@ -55,6 +55,8 @@ Le module `graph` est le service de lecture centrale : il calcule à la volée l
 
 11. **Interlocuteurs dérivés des edges agrégées.** Pour chaque `GraphNode`, la liste `interlocutors` est calculée à partir des edges BUSINESS (pas PEERING) : pour chaque edge où le noeud est `fromEic` ou `toEic`, l'autre extrémité est ajoutée avec la direction vue depuis le noeud (IN si le noeud est `toEic`, OUT si `fromEic`, BIDI si présent des deux côtés). Les messageTypes sont unis et triés alphabétiquement. Tri des interlocuteurs : (1) direction BIDI > OUT > IN, (2) nombre de messageTypes décroissant, (3) EIC croissant. Cohérence garantie avec la carte : un interlocuteur affiché ⇔ une edge visible.
 
+12. **Business Applications résolues via le registry overlay.** Pour chaque `GraphNode`, la liste `businessApplications` est calculée via `RegistryService.resolveBusinessApplications(eic)` qui lit le mapping statique `eic-rte-overlay.json → rteBusinessApplications[*].endpoints[]`. Matrice métier source : `carto-ecp-document-fonctionnel-v1.2.md §5bis`. Les BAs sont triées par criticité (P1 > P2 > P3) puis par code alphabétique. La liste est vide pour les partenaires externes, les brokers et les CDs (non-RTE ou RTE non-endpoint).
+
 ---
 
 ## Cas d'usage

@@ -49,6 +49,8 @@ Le DetailPanel est le panneau de détail latéral de la carte ECP. Il se rend vi
 
 11. **Section « Interlocuteurs (N) » sur la fiche nœud** — Si `node.interlocutors.length > 0`, une section « Interlocuteurs (N) » est rendue sous « Cibles d'upload ». Chaque interlocuteur occupe une ligne avec : un badge de direction (`IN` en bleu ciel, `OUT` en vert émeraude, `⇄` en violet pour BIDI), le `displayName` (cliquable, appelle `selectNode`) ou l'EIC brut (si l'interlocuteur n'est pas dans le graph de l'env courant), puis un aperçu des messageTypes (3 premiers, suivis de « et N autre(s) » si plus de 3). L'ordre est déterministe côté backend (règle 11 spec api/graph).
 
+12. **Section « Applications métier (N) » sur la fiche nœud** — Si `node.businessApplications.length > 0`, une section « Applications métier (N) » est rendue **en tête** du panneau (sous le titre, avant la grille d'identité). Chaque BA est un badge compact incluant son code (mono) et sa criticité (P1 rouge, P2 ambre, P3 gris). Ordre déterministe côté backend (règle 12 spec api/graph : P1 > P2 > P3, puis code alpha). Vide pour les partenaires externes, brokers et CDs.
+
 ---
 
 ## Cas d'usage (déduits)

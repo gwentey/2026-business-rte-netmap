@@ -12,6 +12,15 @@ export type EdgeDirection = 'IN' | 'OUT';
 
 export type InterlocutorDirection = 'IN' | 'OUT' | 'BIDI';
 
+export type BusinessApplicationCriticality = 'P1' | 'P2' | 'P3';
+
+export type BusinessApplicationSummary = {
+  /** Code métier (OCAPPI, PLANET, CIA…). Identifiant unique. */
+  code: string;
+  /** P1 (critique), P2 (important), P3 (standard). */
+  criticality: BusinessApplicationCriticality;
+};
+
 export type GraphNodeInterlocutor = {
   /** EIC de l'interlocuteur. Toujours différent du noeud courant. */
   eic: string;
@@ -72,6 +81,13 @@ export type GraphNode = {
    * cibles d'upload qui sont déclarées sans observation de trafic.
    */
   interlocutors: GraphNodeInterlocutor[];
+  /**
+   * Business Applications RTE qui utilisent ce noeud. Résolu uniquement
+   * pour les endpoints RTE via le mapping statique de l'overlay
+   * (packages/registry/eic-rte-overlay.json → rteBusinessApplications).
+   * Vide pour les partenaires externes, les brokers et les CDs.
+   */
+  businessApplications: BusinessApplicationSummary[];
   country: string | null;
   lat: number;
   lng: number;

@@ -29,6 +29,7 @@ function nodeOf(overrides: Partial<GraphNode>): GraphNode {
     receivedMessages: null,
     uploadTargets: [],
     interlocutors: [],
+    businessApplications: [],
     country: null,
     lat: overrides.lat ?? 48,
     lng: overrides.lng ?? 2,

@@ -314,7 +314,18 @@ export class GraphService {
       const compStat = compStatsByEic.get(g.eic) ?? null;
       const uploadTargets = uploadTargetsBySourceEic.get(g.eic)?.targets ?? [];
       const interlocutors = interlocutorsByEic.get(g.eic) ?? [];
-      return this.toNode(g, rteEicSet, envNameForGraph, runtime, compStat, uploadTargets, interlocutors);
+      // Slice 3b : BAs RTE qui utilisent cet endpoint (vide pour les externes).
+      const businessApplications = this.registry.resolveBusinessApplications(g.eic);
+      return this.toNode(
+        g,
+        rteEicSet,
+        envNameForGraph,
+        runtime,
+        compStat,
+        uploadTargets,
+        interlocutors,
+        businessApplications,
+      );
     });
 
     return {
@@ -333,6 +344,7 @@ export class GraphService {
     compStat: { lastSync: Date | null; sentMessages: number; receivedMessages: number } | null,
     uploadTargets: string[],
     interlocutors: GraphNode['interlocutors'],
+    businessApplications: GraphNode['businessApplications'],
   ): GraphNode {
     return {
       id: g.eic,
@@ -353,6 +365,7 @@ export class GraphService {
       receivedMessages: compStat?.receivedMessages ?? null,
       uploadTargets,
       interlocutors,
+      businessApplications,
       country: g.country,
       lat: g.lat,
       lng: g.lng,

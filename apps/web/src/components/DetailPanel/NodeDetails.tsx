@@ -36,6 +36,19 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
           </p>
         ) : null}
       </div>
+
+      {node.businessApplications.length > 0 ? (
+        <div>
+          <h3 className="mb-1 text-sm font-medium">
+            Applications métier ({node.businessApplications.length})
+          </h3>
+          <div className="flex flex-wrap gap-1">
+            {node.businessApplications.map((ba) => (
+              <BaBadge key={ba.code} code={ba.code} criticality={ba.criticality} />
+            ))}
+          </div>
+        </div>
+      ) : null}
       <dl className="text-sm">
         <div className="grid grid-cols-3 gap-2 py-1">
           <dt className="text-gray-500">EIC</dt>
@@ -315,6 +328,29 @@ function DirectionBadge({
       className={`inline-flex h-5 min-w-[2rem] items-center justify-center rounded px-1 text-[10px] font-semibold ${cfg.bg}`}
     >
       {cfg.label}
+    </span>
+  );
+}
+
+function BaBadge({
+  code,
+  criticality,
+}: {
+  code: string;
+  criticality: 'P1' | 'P2' | 'P3';
+}): JSX.Element {
+  const cfg = {
+    P1: { bg: 'bg-red-100 text-red-800 border-red-200', label: 'P1' },
+    P2: { bg: 'bg-amber-100 text-amber-800 border-amber-200', label: 'P2' },
+    P3: { bg: 'bg-gray-100 text-gray-700 border-gray-200', label: 'P3' },
+  }[criticality];
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${cfg.bg}`}
+      title={`Criticité ${cfg.label}`}
+    >
+      <span className="font-mono">{code}</span>
+      <span className="rounded bg-white/60 px-1 text-[9px] font-bold">{cfg.label}</span>
     </span>
   );
 }

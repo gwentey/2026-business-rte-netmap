@@ -76,6 +76,49 @@ describe('RegistryService', () => {
     });
   });
 
+  describe('resolveBusinessApplications (Slice 3b)', () => {
+    it('retourne les BAs pour INTERNET-2 triees P1 > P2 > P3', () => {
+      const bas = service.resolveBusinessApplications('17V000000498771C');
+      expect(bas.length).toBeGreaterThan(0);
+      // CIA et OCAPPI sont P1, doivent etre devant les P2
+      const codes = bas.map((b) => b.code);
+      const ciaIdx = codes.indexOf('CIA');
+      const ocappiIdx = codes.indexOf('OCAPPI');
+      const planetIdx = codes.indexOf('PLANET');
+      expect(ciaIdx).toBeGreaterThanOrEqual(0);
+      expect(ocappiIdx).toBeGreaterThanOrEqual(0);
+      expect(planetIdx).toBeGreaterThan(ciaIdx);
+      expect(planetIdx).toBeGreaterThan(ocappiIdx);
+    });
+
+    it('CIA attribuee a INTERNET-2, CWERPN et PCN-3 uniquement', () => {
+      const internet2 = service.resolveBusinessApplications('17V000000498771C');
+      const cwerpn = service.resolveBusinessApplications('17V0000009823063');
+      const pcn3 = service.resolveBusinessApplications('17V000002128089V');
+      const internet1 = service.resolveBusinessApplications('17V0000009927458');
+      expect(internet2.some((b) => b.code === 'CIA')).toBe(true);
+      expect(cwerpn.some((b) => b.code === 'CIA')).toBe(true);
+      expect(pcn3.some((b) => b.code === 'CIA')).toBe(true);
+      expect(internet1.some((b) => b.code === 'CIA')).toBe(false);
+    });
+
+    it('retourne vide pour un EIC externe non-RTE', () => {
+      const bas = service.resolveBusinessApplications('10X1001A1001A345');
+      expect(bas).toEqual([]);
+    });
+
+    it('retourne vide pour un EIC RTE sans BA mappee', () => {
+      // Un endpoint RTE hypothetique qui n'est dans aucune ligne endpoints[]
+      const bas = service.resolveBusinessApplications('17VRTE-BROKER-01');
+      expect(bas).toEqual([]);
+    });
+
+    it('inclut criticality pour chaque BA', () => {
+      const bas = service.resolveBusinessApplications('17V000000498771C');
+      expect(bas.every((b) => ['P1', 'P2', 'P3'].includes(b.criticality))).toBe(true);
+    });
+  });
+
   describe('registry path resolution', () => {
     const ORIGINAL_ENV = process.env.REGISTRY_PATH;
     const ORIGINAL_CWD = process.cwd();
