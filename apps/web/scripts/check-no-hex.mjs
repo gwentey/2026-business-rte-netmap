@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 // =============================================================================
-// check-no-hex.mjs — Garde-fou anti-hex dans apps/web/src/
+// check-no-hex.mjs — Garde-fou anti-hex dans apps/web/src/ (ADR-040)
 //
 // Usage : node apps/web/scripts/check-no-hex.mjs
 // Exit 0 si OK, exit 1 si hex hardcodés trouvés hors exceptions.
 //
-// Exceptions autorisées (data-driven ou tests uniquement) :
-// - apps/web/src/lib/process-colors.ts           (palette métier)
-// - apps/web/src/components/Admin/ProcessColorsEditor.test.tsx (tests)
-// - apps/web/src/components/Map/node-icon.ts{,test.ts}  (couleurs inline SVG)
-// - apps/web/src/components/Map/EdgePath.tsx    (couleurs process métier)
-// - apps/web/src/components/Map/HomeCdOverlay.tsx (config carto)
-// - apps/web/src/styles/brand.scss              (source unique des tokens)
-// - apps/web/src/styles/brand.test.ts           (tests des tokens)
-// - Tous les *.test.ts{,x}                       (fixtures de tests)
+// Exceptions autorisées (data-driven, source unique de tokens, ou tests) :
+// - lib/process-colors.ts                  (palette métier — source TS)
+// - components/Map/node-icon.tsx           (couleurs inline SVG markers)
+// - components/Map/EdgePath.tsx            (couleurs process Leaflet)
+// - components/Map/HomeCdOverlay.tsx       (config carto Leaflet)
+// - styles/brand.scss                      (source unique des tokens dark)
+// - styles/components.scss                 (primitives globales — overrides leaflet)
+// - styles/pages.scss                      (sections page-spécifiques)
+// - styles/brand.test.ts                   (tests des tokens)
+// - Tous les *.test.ts{,x} et *.spec.ts{,x}  (fixtures de tests)
 // =============================================================================
 
 import { readdir, readFile } from 'node:fs/promises';
@@ -27,12 +28,12 @@ const HEX_REGEX = /#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g;
 
 const ALLOWED_FILES = new Set([
   'lib/process-colors.ts',
-  'components/Map/node-icon.ts',
   'components/Map/node-icon.tsx',
-  'components/Map/node-icon.test.ts',
   'components/Map/EdgePath.tsx',
   'components/Map/HomeCdOverlay.tsx',
   'styles/brand.scss',
+  'styles/components.scss',
+  'styles/pages.scss',
   'styles/brand.test.ts',
 ]);
 
@@ -95,7 +96,7 @@ async function main() {
   for (const v of violations) {
     console.error('  ' + v.file + ':' + v.line + '  ' + v.hex + '  ← ' + v.context);
   }
-  console.error('\nRemplacez par des tokens --c-*/--r-*/--shadow-* depuis styles/brand.scss');
+  console.error('\nRemplacez par des tokens --cyan-*/--dark-*/--ink-*/--proc-*/--radius-* depuis styles/brand.scss');
   console.error('ou ajoutez le fichier aux exceptions dans scripts/check-no-hex.mjs s\'il est data-driven.');
   process.exit(1);
 }

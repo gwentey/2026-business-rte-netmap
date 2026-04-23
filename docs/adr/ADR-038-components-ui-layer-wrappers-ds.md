@@ -1,5 +1,11 @@
 # ADR-038 — Couche `components/ui/` (ré-exports DS + 4 composants maison)
 
+> **⚠ SUPERSEDED par ADR-040 (2026-04-24)** — La couche `components/ui/` est
+> entièrement supprimée (Table, RangeSlider, ColorField, DateTimeField,
+> EmptyState, Skeleton, ré-exports DS). Les classes CSS globales du nouveau
+> design suffisent. Voir `docs/adr/ADR-040-refonte-design-carto-rte-custom-dark.md`.
+
+
 | Champ      | Valeur                           |
 |------------|----------------------------------|
 | Numéro     | ADR-038                          |

@@ -8,6 +8,8 @@ Internal RTE application to visualize the ECP (Energy Communication Platform) ne
 
 Current state: **slice #1** delivered on branch `feature/slice-1`, dev-local only, no auth. The functional document is `carto-ecp-document-fonctionnel-v1.2.md`; the implementation design is `docs/superpowers/specs/2026-04-18-carto-ecp-slice-1-design.md`.
 
+**Visual design (since 2026-04-24, ADR-040)** : la skin web utilise un design system custom **dark** ("carto-rte"). Tokens dans `apps/web/src/styles/brand.scss`, primitives globales dans `components.scss`, sections page-spécifiques dans `pages.scss`. Plus de DS RTE, plus de Tailwind, plus de Radix, plus de `.module.scss` propres aux composants applicatifs. Les composants React posent des classes globales (`.btn`, `.badge`, `.card`, `.tbl`, `.modal`, `.dropzone`, `.timeline`, `.detail-panel`, `.admin-tabs`, …). Polices : Nunito Sans + JetBrains Mono via Google Fonts CDN (avec fallback Nunito local). Tile layer Leaflet : CartoDB Dark Matter. Voir `docs/specs/web/refonte-design-carto-rte/`.
+
 ## Monorepo layout
 
 pnpm workspaces — 4 packages:

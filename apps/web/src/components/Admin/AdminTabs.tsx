@@ -1,5 +1,3 @@
-import styles from './AdminTabs.module.scss';
-
 export type AdminTabId =
   | 'imports'
   | 'components'
@@ -8,7 +6,13 @@ export type AdminTabId =
   | 'registry'
   | 'danger';
 
-type TabDef = { id: AdminTabId; label: string; enabled: boolean; tooltip: string };
+type TabDef = {
+  id: AdminTabId;
+  label: string;
+  enabled: boolean;
+  tooltip: string;
+  danger?: boolean;
+};
 
 const TABS: TabDef[] = [
   { id: 'imports', label: 'Imports', enabled: true, tooltip: '' },
@@ -21,20 +25,28 @@ const TABS: TabDef[] = [
   },
   { id: 'entsoe', label: 'Annuaire ENTSO-E', enabled: true, tooltip: '' },
   { id: 'registry', label: 'Registry RTE', enabled: true, tooltip: '' },
-  { id: 'danger', label: '⚠ Zone danger', enabled: true, tooltip: '' },
+  { id: 'danger', label: '⚠ Zone danger', enabled: true, tooltip: '', danger: true },
 ];
 
 type Props = {
   active: AdminTabId;
   onChange: (id: AdminTabId) => void;
+  counts?: Partial<Record<AdminTabId, number>>;
 };
 
-export function AdminTabs({ active, onChange }: Props): JSX.Element {
+export function AdminTabs({ active, onChange, counts = {} }: Props): JSX.Element {
   return (
-    <nav className={styles.tabs} role="tablist">
+    <nav className="admin-tabs" role="tablist">
       {TABS.map((tab) => {
         const isActive = active === tab.id;
-        const classes = isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab;
+        const count = counts[tab.id];
+        const classes = [
+          'admin-tabs__trigger',
+          isActive ? 'is-active' : '',
+          tab.danger ? 'admin-tabs__trigger--danger' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
         return (
           <button
             key={tab.id}
@@ -49,6 +61,9 @@ export function AdminTabs({ active, onChange }: Props): JSX.Element {
             className={classes}
           >
             {tab.label}
+            {count !== undefined && count > 0 && (
+              <span className="count">{count.toLocaleString('fr-FR')}</span>
+            )}
           </button>
         );
       })}

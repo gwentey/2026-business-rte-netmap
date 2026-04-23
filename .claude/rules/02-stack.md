@@ -29,8 +29,8 @@
 - **Framework :** React 18.3
 - **Build tool :** Vite 5.4
 - **Langage :** TypeScript 5.5
-- **UI :** Tailwind CSS 3.4 + composants Radix UI (`@radix-ui/react-dialog`, `@radix-ui/react-tabs`, `@radix-ui/react-tooltip`, `@radix-ui/react-slot`) + `lucide-react`
-- **Utilitaires CSS :** `class-variance-authority`, `clsx`, `tailwind-merge`
+- **UI :** Design system custom dark "carto-rte" (ADR-040) — classes CSS globales dans `apps/web/src/styles/{brand,components,pages}.scss`. Plus de Tailwind, plus de DS RTE, plus de Radix. Icônes via `lucide-react`.
+- **Polices :** Nunito Sans (Google Fonts CDN) + JetBrains Mono (data : EIC, dates) + fallback Nunito local (`apps/web/public/fonts/nunito-*.woff2`)
 - **State management :** Zustand 4.5
 - **Routing :** React Router DOM 6.26
 - **Cartographie :** Leaflet 1.9 + react-leaflet 4.2 + leaflet-curve 1.0 (pas de types — stub dans `apps/web/src/env.d.ts`)
@@ -43,6 +43,8 @@
 - `leaflet-curve` n'a pas de types TS — utiliser le cast `L as unknown as { curve: ... }` dans les composants
 - `tsconfig.base.json` active `noUncheckedIndexedAccess: true` — tout accès tableau retourne `T | undefined`; utiliser `array[i]!` dans les tests, des guards dans le source
 - Les couleurs de process sont dupliquées entre `packages/registry/eic-rte-overlay.json` et `apps/web/src/lib/process-colors.ts` — les garder synchronisées
+- **Design system custom (ADR-040)** : tout le styling passe par les classes globales de `styles/{components,pages}.scss`. Pas de `.module.scss` propre aux composants. Les hex métiers (palette process, couleurs Leaflet impératives) sont autorisés dans `lib/process-colors.ts`, `components/Map/{node-icon,EdgePath,HomeCdOverlay}.tsx`, `styles/brand.scss`, `styles/components.scss`, `styles/pages.scss` (vérifié par `scripts/check-no-hex.mjs`).
+- **Tile layer Leaflet** : CartoDB Dark Matter par défaut (`https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png`). Override via `VITE_TILE_URL` pour fallback en cas de blocage firewall.
 
 ### Commandes frontend
 

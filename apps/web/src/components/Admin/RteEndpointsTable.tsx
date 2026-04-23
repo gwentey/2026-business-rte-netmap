@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { RegistryRteEndpointRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
-import styles from './RteEndpointsTable.module.scss';
 
-type Props = {
+export function RteEndpointsTable({
+  onEdit,
+}: {
   onEdit: (eic: string) => void;
-};
-
-export function RteEndpointsTable({ onEdit }: Props): JSX.Element {
+}): JSX.Element {
   const [rows, setRows] = useState<RegistryRteEndpointRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,63 +31,85 @@ export function RteEndpointsTable({ onEdit }: Props): JSX.Element {
   }, []);
 
   return (
-    <div className={styles.container}>
-      {error ? (
-        <p className={styles.alertError} role="alert">
-          {error}
-        </p>
-      ) : null}
-      {loading ? <p className={styles.loading}>Chargement…</p> : null}
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>EIC</th>
-            <th>Code</th>
-            <th>Nom affiché</th>
-            <th>Ville</th>
-            <th>Coord</th>
-            <th>Statut</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.eic}>
-              <td className={styles.mono}>{row.eic}</td>
-              <td className={styles.small}>{row.code}</td>
-              <td className={styles.small}>{row.displayName}</td>
-              <td className={styles.small}>{row.city}</td>
-              <td className={styles.small}>
-                {row.lat.toFixed(3)}, {row.lng.toFixed(3)}
-              </td>
-              <td>
-                {row.hasOverride ? (
-                  <span className={styles.badgeOverride}>surchargé</span>
-                ) : (
-                  <span className={styles.badgeDefault}>défaut</span>
-                )}
-              </td>
-              <td>
-                <button
-                  type="button"
-                  onClick={() => onEdit(row.eic)}
-                  className={styles.editButton}
-                  aria-label={`Modifier ${row.eic}`}
-                >
-                  Modifier
-                </button>
-              </td>
-            </tr>
-          ))}
-          {rows.length === 0 && !loading ? (
+    <>
+      {error !== null && (
+        <div className="banner banner--err" role="alert" style={{ marginBottom: 12 }}>
+          <div className="banner__ico">!</div>
+          <div>{error}</div>
+        </div>
+      )}
+
+      <div className="tab-content">
+        <table className="tbl">
+          <thead>
             <tr>
-              <td colSpan={7} className={styles.emptyRow}>
-                Aucun endpoint RTE chargé.
-              </td>
+              <th>EIC</th>
+              <th>Code</th>
+              <th>Nom affiché</th>
+              <th>Ville</th>
+              <th>Coord</th>
+              <th>Statut</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
             </tr>
-          ) : null}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.eic}>
+                <td className="mono" style={{ color: 'var(--cyan-1)' }}>
+                  {row.eic}
+                </td>
+                <td className="mono" style={{ color: 'var(--ink-2)' }}>
+                  {row.code}
+                </td>
+                <td style={{ color: 'var(--ink-0)', fontWeight: 600 }}>
+                  {row.displayName}
+                </td>
+                <td style={{ color: 'var(--ink-2)' }}>{row.city}</td>
+                <td className="mono" style={{ color: 'var(--ink-2)', fontSize: 11 }}>
+                  {row.lat.toFixed(3)}, {row.lng.toFixed(3)}
+                </td>
+                <td>
+                  {row.hasOverride ? (
+                    <span className="badge badge--override">surchargé</span>
+                  ) : (
+                    <span className="badge badge--muted">défaut</span>
+                  )}
+                </td>
+                <td style={{ textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--sm"
+                    onClick={() => onEdit(row.eic)}
+                    aria-label={`Modifier ${row.eic}`}
+                  >
+                    Modifier →
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {rows.length === 0 && !loading && (
+              <tr>
+                <td
+                  colSpan={7}
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
+                >
+                  Aucun endpoint RTE chargé.
+                </td>
+              </tr>
+            )}
+            {loading && (
+              <tr>
+                <td
+                  colSpan={7}
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
+                >
+                  Chargement…
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

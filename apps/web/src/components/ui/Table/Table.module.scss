@@ -1,7 +1,0 @@
-@use "@/styles/brand" as *;
-
-.table {
-  @include table-base;
-  border-radius: var(--r-md);
-  overflow: hidden;
-}

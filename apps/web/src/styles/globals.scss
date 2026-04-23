@@ -1,26 +1,19 @@
 // =============================================================================
-// globals.scss — Orchestration des styles globaux
-// Ordre critique — chaque import surcharge le précédent :
-//   1. brand.scss       → tokens app (CSS vars --c-*, mixins typo)
-//   2. ds-override.scss → surcharge des CSS vars du DS RTE
-//   3. reset.scss       → reset moderne + focus-visible
+// globals.scss — Orchestration des styles globaux (ADR-040)
+// Ordre :
+//   1. brand.scss      → tokens (CSS vars --dark-*, --cyan-*, --ink-*, --proc-*)
+//   2. reset.scss      → reset minimal
+//   3. components.scss → primitives globales (.btn, .badge, .input, .card, .tbl, .banner, .modal, .app-header, .sub-header, .check, .field, .icon-btn, .scroll, .mono)
+//   4. pages.scss      → sections page-spécifiques (.timeline, .detail-panel, .dropzone, .file-row, .progress, .dup-diff, .summary-stat, .admin-tabs, .danger-card, .org-row, .modal-backdrop, .map-overlay, .map-legend, .map-overlay-state, .state-card)
 // =============================================================================
 
 @use 'brand';
-@use 'ds-override';
 @use 'reset';
+@use 'components';
+@use 'pages';
 
-// App-level layout
 html,
 body,
 #root {
   height: 100%;
-}
-
-// Markers Carto ECP — neutralise le fond/bordure par défaut de .leaflet-div-icon
-// pour laisser visible le cercle coloré de buildNodeDivIcon
-// (apps/web/src/components/Map/node-icon.tsx).
-.leaflet-div-icon.carto-node-marker {
-  background: transparent;
-  border: none;
 }

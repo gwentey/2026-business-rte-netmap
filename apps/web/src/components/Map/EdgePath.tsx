@@ -7,14 +7,7 @@ import { useAppStore } from '../../store/app-store.js';
 const SAMPLES = 20;
 
 /**
- * Épaisseur d'edge dérivée du volume de messages (somme bi-directionnelle).
- * Échelle logarithmique :
- *   - 0 msg     → 1 px
- *   - 10        → ~2
- *   - 100       → ~3
- *   - 1 000     → ~4
- *   - 10 000    → ~5
- *   - 100 000+  → 6 (borne supérieure)
+ * Épaisseur d'edge dérivée du volume de messages (échelle log).
  */
 export function weightFromVolume(totalVolume: number): number {
   if (totalVolume <= 0) return 1;
@@ -66,9 +59,8 @@ export function EdgePath({ edge, nodes, selected, onSelect }: Props): JSX.Elemen
   const isPeering = edge.kind === 'PEERING';
   const volumeWeight = weightFromVolume(edge.activity.totalVolume);
   const baseWeight = isPeering ? 1.5 : volumeWeight;
-  // Peering : gris neutre, dashArray dense (1 4) pour bien se distinguer du
-  // trait-plein "flux métier actif" et du dashArray '6 6' "flux inactif".
-  const color = isPeering ? '#6b7280' : colorFor(edge.process, processColors);
+  // Peering = teal foncé pour bien se distinguer des flux process colorés.
+  const color = isPeering ? '#0f4a5e' : colorFor(edge.process, processColors);
   const dashArray = isPeering
     ? '2 4'
     : edge.activity.isRecent

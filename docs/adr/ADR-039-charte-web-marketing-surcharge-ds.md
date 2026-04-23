@@ -1,5 +1,11 @@
 # ADR-039 — Charte visuelle web/marketing : surcharge de la palette corporate du DS RTE
 
+> **⚠ SUPERSEDED par ADR-040 (2026-04-24)** — La surcharge `ds-override.scss`
+> n'a plus de cible (DS RTE désinstallé). La palette est désormais définie en
+> dur dans `brand.scss` (mode dark intégral). Voir
+> `docs/adr/ADR-040-refonte-design-carto-rte-custom-dark.md`.
+
+
 | Champ      | Valeur                         |
 |------------|--------------------------------|
 | Numéro     | ADR-039                        |

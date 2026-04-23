@@ -1,82 +1,110 @@
 // =============================================================================
-// brand.scss — Charte visuelle web/marketing (cyan / teal / dark)
-// Source unique de vérité des tokens app-level. Surcharge sélective du DS RTE
-// dans `ds-override.scss`. Voir ADR-039.
+// brand.scss — Tokens dark "carto-rte" (ADR-040)
+// Source unique des CSS custom properties. La chaîne d'imports est :
+//   brand.scss (tokens) → reset.scss → components.scss → pages.scss
+// Voir docs/adr/ADR-040 pour le contexte de la refonte totale.
 // =============================================================================
 
 :root {
-  // ---------- Palette -------------------------------------------------------
-  --c-primary: #00bded;
-  --c-primary-hover: #00a7d1;
-  --c-primary-pressed: #0090b4;
-  --c-primary-soft: rgba(0, 189, 237, 0.08);
-  --c-primary-border-soft: rgba(0, 189, 237, 0.2);
-  --c-primary-divider: rgba(0, 189, 237, 0.12);
-  --c-surface-deep-soft: rgba(12, 57, 73, 0.08);
+  // ---------- RTE brand palette --------------------------------------------
+  --rte-dark:  #10181d;
+  --rte-cyan:  #00bded;
+  --rte-teal:  #0c3949;
+  --rte-white: #ffffff;
 
-  --c-surface-dark: #10181d;
-  --c-surface-deep: #0c3949;
-  --c-surface: #ffffff;
-  --c-surface-sunken: #f4f6f8;
+  // ---------- Dark surfaces ------------------------------------------------
+  --dark-0:      #0a1114; // deepest bg (page)
+  --dark-1:      #10181d; // app chrome (header, inputs)
+  --dark-2:      #15222a; // panels, cards
+  --dark-3:      #1c2e38; // raised
+  --dark-4:      #24424f; // hover
+  --dark-sunken: #0d1418;
 
-  --c-border-subtle: #e3e8ec;
-  --c-border-strong: #c7d0d6;
+  // ---------- Teals --------------------------------------------------------
+  --teal-1: #0c3949;
+  --teal-2: #0f4a5e;
+  --teal-3: #14617c;
 
-  --c-text: #10181d;
-  --c-text-muted: #4a5a66;
-  --c-text-disabled: #7a8a95;
-  --c-text-inverse: #ffffff;
-  --c-text-link: var(--c-primary-pressed);
+  // ---------- Cyans (brand accents) ---------------------------------------
+  --cyan-0: #e5f8fd;
+  --cyan-1: #8ce1f4;
+  --cyan-2: #00bded;
+  --cyan-3: #00a3cf;
 
-  --c-error: #b3261e;
-  --c-error-hover: #9a211a;
-  --c-error-pressed: #821c16;
-  --c-error-bg: #fdecea;
-  --c-error-border: #e8a29c;
+  // ---------- Borders ------------------------------------------------------
+  --border-strong: #2a4756;
+  --border:        #1e333e;
+  --border-subtle: #172932;
 
-  // ---------- Radius --------------------------------------------------------
-  --r-xs: 2px;
-  --r-sm: 4px;
-  --r-md: 6px;
-  --r-lg: 10px;
-  --r-pill: 9999px;
+  // ---------- Text (ink) ---------------------------------------------------
+  --ink-0: #ffffff;
+  --ink-1: #e6eef2; // primary on dark
+  --ink-2: #9db0bb; // secondary
+  --ink-3: #6f8591; // muted
+  --ink-4: #4a5e69; // disabled
 
-  // ---------- Elevation (shadows) ------------------------------------------
-  --shadow-0: none;
-  --shadow-1: 0 1px 2px rgba(16, 24, 29, 0.06), 0 1px 1px rgba(16, 24, 29, 0.04);
-  --shadow-2: 0 2px 8px rgba(16, 24, 29, 0.08), 0 1px 2px rgba(16, 24, 29, 0.06);
-  --shadow-3: 0 12px 32px rgba(16, 24, 29, 0.14), 0 4px 8px rgba(16, 24, 29, 0.08);
-  --shadow-focus: 0 0 0 3px rgba(0, 189, 237, 0.35);
-  --shadow-error-focus: 0 0 0 3px rgba(179, 38, 30, 0.28);
+  // ---------- Status -------------------------------------------------------
+  --ok:        #2fb573;
+  --ok-bg:     #0e2a1f;
+  --ok-strong: #b8ecc9; // bold text sur ok-bg (banners)
+  --warn:        #e6a23c;
+  --warn-bg:     #2d2213;
+  --warn-strong: #f5d79a; // bold text sur warn-bg
+  --err:        #e74c4c;
+  --err-bg:     #2d1213;
+  --err-strong: #f4b4b4; // bold text sur err-bg
+  --info:       var(--cyan-2);
 
-  // ---------- Motion --------------------------------------------------------
-  --motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
-  --motion-std: 200ms cubic-bezier(0.2, 0, 0, 1);
-  --motion-slow: 320ms cubic-bezier(0.2, 0, 0, 1);
+  // ---------- Process colors (for map links) ------------------------------
+  // Voir aussi apps/web/src/lib/process-colors.ts (data métier).
+  --proc-tp:        #00bded; // cyan brand
+  --proc-uk-cc-in:  #e6a23c; // orange
+  --proc-core:      #c38cf5; // violet
+  --proc-mari:      #2fb573; // vert
+  --proc-picasso:   #f0c93f; // jaune
+  --proc-vp:        #ec85bd; // rose
+  --proc-mixte:     #9db0bb; // gris clair
+  --proc-unknown:   #6f8591; // gris muted
 
-  // ---------- Typography ----------------------------------------------------
-  --font-family-base: "Nunito", system-ui, -apple-system, sans-serif;
-  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  // ---------- Layout / radii ----------------------------------------------
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-pill: 999px;
+
+  // Aliases legacy (composants maison qui survivent)
+  --r-xs:   2px;
+  --r-sm:   4px;
+  --r-md:   6px;
+  --r-lg:   10px;
+  --r-pill: 999px;
+
+  // ---------- Type scale ---------------------------------------------------
+  --font-sans: "Nunito Sans", "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --font-family-base: var(--font-sans);
+  --font-family-mono: var(--font-mono);
 
   --t-display-size: 28px;
-  --t-display-weight: 700;
+  --t-display-weight: 800;
   --t-display-lh: 1.2;
 
   --t-h1-size: 22px;
-  --t-h1-weight: 700;
+  --t-h1-weight: 800;
   --t-h1-lh: 1.3;
 
   --t-h2-size: 18px;
-  --t-h2-weight: 600;
+  --t-h2-weight: 700;
   --t-h2-lh: 1.35;
 
-  --t-h3-size: 15px;
-  --t-h3-weight: 600;
+  --t-h3-size: 13px;
+  --t-h3-weight: 700;
   --t-h3-lh: 1.4;
 
-  --t-body-size: 14px;
+  --t-body-size: 13px;
   --t-body-weight: 400;
-  --t-body-lh: 1.55;
+  --t-body-lh: 1.5;
 
   --t-body-strong-weight: 600;
 
@@ -87,22 +115,71 @@
   --t-caps-size: 11px;
   --t-caps-weight: 700;
   --t-caps-lh: 1.4;
-  --t-caps-tracking: 0.08em;
+  --t-caps-tracking: 0.06em;
 
-  --t-mono-size: 13px;
+  --t-mono-size: 12px;
   --t-mono-weight: 400;
   --t-mono-lh: 1.5;
 
-  // ---------- Layout --------------------------------------------------------
-  --layout-header-h: 56px;
-  --layout-page-px: 24px;
-  --layout-page-px-mobile: 16px;
-  --layout-page-max-w: 960px;
-  --layout-map-toolbar-gap: 12px;
+  // ---------- Elevation ----------------------------------------------------
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45);
+  --glow-cyan: 0 0 0 3px rgba(0, 189, 237, 0.18);
+
+  // Aliases legacy
+  --shadow-0: none;
+  --shadow-1: var(--shadow-sm);
+  --shadow-2: var(--shadow-md);
+  --shadow-3: var(--shadow-lg);
+  --shadow-focus: var(--glow-cyan);
+
+  // ---------- Motion -------------------------------------------------------
+  --motion-fast: 120ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-std:  200ms cubic-bezier(0.2, 0, 0, 1);
+  --motion-slow: 320ms cubic-bezier(0.2, 0, 0, 1);
+
+  // ---------- Layout -------------------------------------------------------
+  --layout-header-h:        56px;
+  --layout-sub-header-h:    48px;
+  --layout-page-px:         24px;
+  --layout-page-px-mobile:  16px;
+  --layout-page-max-w:      960px;
+  --layout-admin-page-max-w: 1200px;
+
+  // ---------- Aliases pour composants maison legacy -----------------------
+  // (Table, RangeSlider, ColorField, DateTimeField, EmptyState, Skeleton)
+  --c-primary:           var(--cyan-2);
+  --c-primary-hover:     var(--cyan-3);
+  --c-primary-pressed:   var(--cyan-3);
+  --c-primary-soft:      rgba(0, 189, 237, 0.1);
+  --c-primary-border-soft: rgba(0, 189, 237, 0.25);
+  --c-primary-divider:   rgba(0, 189, 237, 0.2);
+  --c-surface-deep-soft: rgba(12, 57, 73, 0.16);
+
+  --c-surface:           var(--dark-2);
+  --c-surface-dark:      var(--dark-1);
+  --c-surface-deep:      var(--teal-2);
+  --c-surface-sunken:    var(--dark-0);
+
+  --c-border-subtle:     var(--border-subtle);
+  --c-border-strong:     var(--border-strong);
+
+  --c-text:              var(--ink-1);
+  --c-text-muted:        var(--ink-2);
+  --c-text-disabled:     var(--ink-4);
+  --c-text-inverse:      var(--ink-0);
+  --c-text-link:         var(--cyan-2);
+
+  --c-error:             var(--err);
+  --c-error-hover:       #c93b3b;
+  --c-error-pressed:     #b22f2f;
+  --c-error-bg:          var(--err-bg);
+  --c-error-border:      rgba(231, 76, 76, 0.35);
 }
 
 // =============================================================================
-// Mixins de composition typographique (usage dans les .module.scss)
+// Mixins de composition typographique (usage dans .module.scss restants)
 // =============================================================================
 
 @mixin t-display {
@@ -160,228 +237,4 @@
   font-size: var(--t-mono-size);
   font-weight: var(--t-mono-weight);
   line-height: var(--t-mono-lh);
-}
-
-// =============================================================================
-// Mixins de composants (Slice 5d — factorisation inputs/boutons/alertes/modales)
-// =============================================================================
-
-@mixin input-base {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid var(--c-border-strong);
-  border-radius: var(--r-sm);
-  background: var(--c-surface);
-  color: var(--c-text);
-  @include t-body;
-  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
-
-  &:hover:not(:disabled) {
-    border-color: var(--c-text-muted);
-  }
-
-  &:focus {
-    outline: none;
-    border-color: var(--c-primary);
-    box-shadow: var(--shadow-focus);
-  }
-
-  &:disabled {
-    background: var(--c-surface-sunken);
-    color: var(--c-text-disabled);
-    cursor: not-allowed;
-  }
-}
-
-@mixin button-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--c-primary);
-  color: var(--c-text);
-  border: none;
-  border-radius: var(--r-sm);
-  @include t-body;
-  font-weight: var(--t-body-strong-weight);
-  cursor: pointer;
-  box-shadow: var(--shadow-1);
-  transition: background var(--motion-fast), box-shadow var(--motion-fast);
-
-  &:hover:not(:disabled) {
-    background: var(--c-primary-hover);
-    box-shadow: var(--shadow-2);
-  }
-
-  &:active:not(:disabled) {
-    background: var(--c-primary-pressed);
-    color: var(--c-text-inverse);
-  }
-
-  &:disabled {
-    background: var(--c-surface-sunken);
-    color: var(--c-text-disabled);
-    cursor: not-allowed;
-    box-shadow: none;
-  }
-}
-
-@mixin button-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--c-surface);
-  color: var(--c-text-muted);
-  border: 1px solid var(--c-border-strong);
-  border-radius: var(--r-sm);
-  @include t-body;
-  cursor: pointer;
-  transition:
-    background var(--motion-fast),
-    color var(--motion-fast),
-    border-color var(--motion-fast);
-
-  &:hover:not(:disabled) {
-    color: var(--c-text);
-    border-color: var(--c-text-muted);
-    background: var(--c-surface-sunken);
-  }
-
-  &:disabled {
-    color: var(--c-text-disabled);
-    cursor: not-allowed;
-  }
-}
-
-@mixin button-danger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--c-error);
-  color: var(--c-text-inverse);
-  border: none;
-  border-radius: var(--r-sm);
-  @include t-body;
-  font-weight: var(--t-body-strong-weight);
-  cursor: pointer;
-  transition: background var(--motion-fast);
-
-  &:hover:not(:disabled) {
-    background: var(--c-error-hover);
-  }
-
-  &:active:not(:disabled) {
-    background: var(--c-error-pressed);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-@mixin button-danger-outline {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: var(--c-surface);
-  color: var(--c-error);
-  border: 1px solid var(--c-error);
-  border-radius: var(--r-sm);
-  @include t-body;
-  cursor: pointer;
-  transition: background var(--motion-fast);
-
-  &:hover:not(:disabled) {
-    background: var(--c-error-bg);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-@mixin alert-error {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--c-error-bg);
-  color: var(--c-error);
-  border: 1px solid var(--c-error-border);
-  border-radius: var(--r-md);
-  @include t-small;
-}
-
-@mixin alert-success {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--c-primary-soft);
-  color: var(--c-primary-pressed);
-  border: 1px solid var(--c-primary-border-soft);
-  border-radius: var(--r-md);
-  @include t-small;
-}
-
-@mixin modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(16, 24, 29, 0.48);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-}
-
-@mixin modal-box {
-  max-height: 90vh;
-  overflow-y: auto;
-  background: var(--c-surface);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-3);
-  padding: 24px;
-}
-
-@mixin table-base {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid var(--c-border-subtle);
-  background: var(--c-surface);
-  @include t-small;
-
-  thead {
-    background: var(--c-surface-sunken);
-
-    th {
-      padding: 10px 12px;
-      text-align: left;
-      border-bottom: 1px solid var(--c-border-strong);
-      color: var(--c-text-muted);
-      @include t-caps;
-    }
-  }
-
-  tbody tr {
-    transition: background var(--motion-fast);
-    border-top: 1px solid var(--c-border-subtle);
-
-    &:hover {
-      background: var(--c-primary-soft);
-    }
-
-    td {
-      padding: 8px 12px;
-      color: var(--c-text);
-      vertical-align: middle;
-    }
-  }
 }

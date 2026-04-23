@@ -1,32 +1,28 @@
-import { Link, Navigate, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AppHeader } from './components/AppHeader/AppHeader.js';
 import { MapPage } from './pages/MapPage.js';
 import { UploadPage } from './pages/UploadPage.js';
 import { AdminPage } from './pages/AdminPage.js';
-import { EnvSelector } from './components/EnvSelector/EnvSelector.js';
-import styles from './App.module.scss';
+import { useAppStore } from './store/app-store.js';
 
 export function App(): JSX.Element {
+  const loadEnvs = useAppStore((s) => s.loadEnvs);
+
+  useEffect(() => {
+    void loadEnvs();
+  }, [loadEnvs]);
+
   return (
-    <div className={styles.root}>
-      <header className={styles.header}>
-        <Link to="/" className={styles.brand}>
-          <span className={styles.brandMark}>CARTO ECP · RTE</span>
-          <span className={styles.brandTagline}>Cartographie du réseau ECP</span>
-        </Link>
-        <div className={styles.rightNav}>
-          <EnvSelector />
-          <Link to="/admin" className={styles.adminLink}>Admin</Link>
-        </div>
-      </header>
-      <main className={styles.main}>
-        <Routes>
-          <Route path="/" element={<MapPage />} />
-          <Route path="/map" element={<Navigate to="/" replace />} />
-          <Route path="/upload" element={<UploadPage />} />
-          <Route path="/admin" element={<AdminPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </main>
+    <div className="app">
+      <AppHeader />
+      <Routes>
+        <Route path="/" element={<MapPage />} />
+        <Route path="/map" element={<Navigate to="/" replace />} />
+        <Route path="/upload" element={<UploadPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 }

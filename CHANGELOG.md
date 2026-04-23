@@ -7,6 +7,80 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.20 — Refonte totale du design "carto-rte" (dark) (2026-04-24)
+
+**Refonte visuelle complète.** Migration de la skin DS RTE vers un design system
+custom dark inspiré du bundle Anthropic « carto-rte » (récupéré le 2026-04-23).
+ADR-037, ADR-038, ADR-039 marqués SUPERSEDED par le nouvel **ADR-040**.
+
+- **Désinstallation** de `@design-system-rte/{react,core}` du `apps/web/package.json`.
+  Suppression du dossier complet `apps/web/src/components/ui/` (Table, RangeSlider,
+  ColorField, DateTimeField, EmptyState, Skeleton, barrel `index.ts`).
+- **Nouvelles fondations CSS** : `brand.scss` (tokens dark `--dark-*`,
+  `--cyan-*`, `--ink-*`, `--proc-*`, `--ok|warn|err-*`), `components.scss`
+  (primitives globales `.app`, `.app-header`, `.sub-header`, `.btn`, `.badge`,
+  `.input`, `.select`, `.check`, `.field`, `.icon-btn`, `.card`, `.tbl`,
+  `.banner`, `.modal`, `.scroll`, `.mono`, `.page-title`), `pages.scss`
+  (sections page-spécifiques `.timeline*`, `.detail-panel*`, `.map-overlay*`,
+  `.map-legend*`, `.map-overlay-state`, `.state-card`, `.dropzone*`,
+  `.file-row*`, `.progress*`, `.dup-diff*`, `.summary-grid`, `.summary-stat*`,
+  `.admin-tabs*`, `.danger-card*`, `.org-row*`, `.modal-backdrop`).
+- **Suppression** de `apps/web/src/styles/{tokens,ds-override}.scss` et de
+  `apps/web/src/App.module.scss` + tous les `.module.scss` des composants
+  applicatifs.
+- **Polices** : Nunito Sans (corps) + JetBrains Mono (data) chargées via
+  Google Fonts CDN dans `index.html`. Fallback Nunito local conservé.
+- **Shell global** : nouveaux composants `AppHeader` (brand cyan + nav
+  NavLink + EnvSelector + bloc utilisateur version+avatar) et `SubHeader`
+  (breadcrumb + slot droite). Chaque page rend son propre `<SubHeader>`.
+- **MapPage** refonte complète : tile layer **CartoDB Dark Matter**
+  (`https://{s}.basemaps.cartocdn.com/dark_all/...`, override possible via
+  `VITE_TILE_URL`), `MapOverlaysTopRight` (3 cartes : checkbox hierarchy CD +
+  filtre BA + boutons icônes), `MapLegend` footer (process + nœuds + counter),
+  `MapStates` (Empty/Loading/Error avec `.state-card`), refonte
+  `TimelineSlider` (markup `.timeline*` avec track gradient teal→cyan, ticks,
+  thumb glowy cyan, scale 7 ticks), refonte `DetailPanel` complète (markup
+  `.detail-panel*` avec head/body/foot, kicker uppercase cyan, `DetailSection`
+  + `Kv`, `.detail-conn-row` cliquables).
+- **UploadPage** refonte complète : dropzone animé spin 24s, banner
+  contextuel doublons/properties, `UploadBatchTable` en grid 6 cols
+  (`.file-row` 24px/1fr/180px/140px/110px/32px), summary à la complétion
+  avec `summary-grid` 3 stats + CTA "Voir sur la carte →".
+- **AdminPage** refonte complète des 6 onglets : `AdminTabs` avec underline
+  cyan + count chips (rouge sur "⚠ Zone danger"), `ImportsAdminTable` avec
+  `.admin-toolbar` + `.tbl` + modale de suppression, `ComponentsAdminTable`
+  identique + 2 modales liées, `OrganizationsAdminTab` en `.org-row` grid +
+  import/export JSON, `EntsoeAdminTab` 2 cartes statut + form upload,
+  `RegistryAdminTab` (banner info + `ProcessColorsEditor` + `RteEndpointsTable`),
+  `DangerZoneTab` 3 `.danger-card` + modale de confirmation par mot-clé.
+  Toutes les modales (`ComponentConfigModal`, `ComponentOverrideModal`,
+  `OrganizationEditModal`) passent au markup `.modal-backdrop > .modal`
+  (520/720px, head + body + foot).
+- **Palette process** réalignée — toujours les **8 codes RTE officiels** mais
+  nouvelles valeurs hex : `TP #00bded` (cyan brand), `UK-CC-IN #e6a23c`
+  (orange), `CORE #c38cf5` (violet), `MARI #2fb573` (vert),
+  `PICASSO #f0c93f` (jaune), `VP #ec85bd` (rose), `MIXTE #9db0bb`,
+  `UNKNOWN #6f8591`. Sync entre `lib/process-colors.ts` et
+  `packages/registry/eic-rte-overlay.json`.
+- **`vite.config.ts`** simplifié : suppression de l'auto-injection
+  `additionalData` qui forwardait `tokens.scss` dans chaque module SCSS
+  (tokens désormais globaux via `globals.scss`).
+- **`check:no-hex`** : exceptions étendues à `styles/components.scss` +
+  `styles/pages.scss`. 0 violation après refonte.
+- **Tests** : 159/159 Vitest passent (27 fichiers). `pnpm typecheck`,
+  `pnpm --filter @carto-ecp/web build` passent. Sélecteurs E2E préservés
+  (`.leaflet-container`, `.leaflet-interactive`, `aside h2` désormais via
+  `NodeDetails`/`EdgeDetails` à l'intérieur de `<aside className="detail-panel">`,
+  pattern EIC `/17V|10X|26X/`).
+
+**Risques connus / suivi** :
+- `basemaps.cartocdn.com` : à valider en réseau RTE. Fallback via
+  `VITE_TILE_URL` si bloqué.
+- Google Fonts CDN : si bloqué, le navigateur tombe sur Nunito local
+  (déjà servi depuis `apps/web/public/fonts/`).
+- Aucun changement backend (`apps/api/`) — DTO, Prisma, ingestion pipeline,
+  registry, fixtures inchangés.
+
 ### v3.0-alpha.19 — Slice 5e : Finitions UX — Skeleton + EmptyState + check:no-hex (2026-04-23)
 
 **Dernière slice de la refonte visuelle (5a → 5e).** Clôture la migration

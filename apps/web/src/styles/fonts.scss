@@ -1,3 +1,10 @@
+// =============================================================================
+// fonts.scss — Polices web (ADR-040)
+// Stratégie : Google Fonts CDN dans index.html pour Nunito Sans + JetBrains Mono
+// (cohérent avec le bundle de design fourni). Fallback local Nunito conservé
+// (4 fichiers .woff2 dans public/fonts/) au cas où la CDN serait injoignable.
+// =============================================================================
+
 @font-face {
   font-family: 'Nunito';
   font-weight: 300;

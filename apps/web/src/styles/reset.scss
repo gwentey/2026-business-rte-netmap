@@ -1,90 +1,50 @@
 // =============================================================================
-// reset.scss — Reset CSS moderne
-// - Box model prévisible
-// - Typography base (Nunito, rendu optimisé)
-// - Focus-visible cyan universel (accessibilité)
-// - Respect de prefers-reduced-motion
+// reset.scss — Reset minimal sur fond dark (ADR-040)
+// Box model, focus-visible cyan, prefers-reduced-motion. La typo et le fond
+// sont définis dans components.scss (body{...}).
 // =============================================================================
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
 
-body {
-  margin: 0;
-  font-family: var(--font-family-base);
-  font-size: var(--t-body-size);
-  font-weight: var(--t-body-weight);
-  line-height: var(--t-body-lh);
-  color: var(--c-text);
-  background: var(--c-surface);
-}
-
-// Supprime les outlines par défaut — remplacés par focus-visible cyan
+// Outline natif neutralisé — focus-visible géré dans components.scss
 *:focus {
   outline: none;
 }
 
-*:focus-visible {
-  outline: 3px solid var(--c-primary);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
+// Liens globaux par défaut (utiles dans textes longs Markdown). Les composants
+// utilisent .btn / .btn--ghost ou des handlers React, donc ce reset s'applique
+// rarement.
+a {
+  color: var(--cyan-2);
+  text-decoration: none;
+  transition: color var(--motion-fast);
+
+  &:hover {
+    color: var(--cyan-3);
+  }
 }
 
-// Typographie de base — hiérarchie par défaut si pas de .module.scss
 h1,
 h2,
 h3,
 h4,
 h5,
-h6 {
-  margin: 0;
-  color: var(--c-text);
-}
-
+h6,
 p {
   margin: 0;
 }
 
-// Liens globaux — peuvent être surchargés localement
-a {
-  color: var(--c-text);
-  text-decoration: underline;
-  text-decoration-color: var(--c-primary);
-  text-underline-offset: 3px;
-  text-decoration-thickness: 2px;
-  transition: color var(--motion-fast), text-decoration-color var(--motion-fast);
-}
-
-a:hover {
-  color: var(--c-primary-pressed);
-  text-decoration-color: var(--c-primary-pressed);
-}
-
-// Boutons natifs : reset (les composants utilisent DS Button ou .module.scss)
-button {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-// Inputs natifs : héritent de la typo
 input,
 textarea,
 select {
   font-family: inherit;
   font-size: inherit;
+  color: inherit;
 }
 
-// Images réactives par défaut
 img,
 svg,
 video {
@@ -93,7 +53,6 @@ video {
   display: block;
 }
 
-// Respect du prefers-reduced-motion utilisateur
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

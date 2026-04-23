@@ -1,27 +1,40 @@
 import { useState } from 'react';
 import { api } from '../../lib/api.js';
-import styles from './DangerZoneTab.module.scss';
 
 type Action = 'purge-imports' | 'purge-overrides' | 'purge-all';
 
-const ACTION_CONFIG: Record<Action, { label: string; description: string; keyword: string }> = {
+interface ActionConfig {
+  label: string;
+  icon: string;
+  description: string;
+  keyword: string;
+  variant: 'outline' | 'solid';
+}
+
+const ACTION_CONFIG: Record<Action, ActionConfig> = {
   'purge-imports': {
     label: 'Purger tous les imports',
+    icon: '⟲',
     description:
       "Supprime TOUS les imports (tous envs), tous les composants et paths associés, et les zips stockés sur disque. Les overrides et l'annuaire ENTSO-E ne sont pas touchés.",
     keyword: 'PURGER',
+    variant: 'outline',
   },
   'purge-overrides': {
     label: 'Purger toutes les surcharges',
+    icon: '⟳',
     description:
       "Supprime TOUS les ComponentOverride. Les imports et l'annuaire ENTSO-E ne sont pas touchés.",
     keyword: 'PURGER',
+    variant: 'outline',
   },
   'purge-all': {
-    label: '⚠ Reset total (imports + overrides + ENTSO-E)',
+    label: 'Reset total — détruire la base',
+    icon: '💣',
     description:
       "DÉTRUIT toutes les données applicatives : imports + composants + paths + overrides + entrées ENTSO-E. Le registry RTE (fichier JSON) n'est pas touché.",
     keyword: 'RESET',
+    variant: 'solid',
   },
 };
 
@@ -73,78 +86,120 @@ export function DangerZoneTab(): JSX.Element {
   const canConfirm = pendingCfg !== null && confirmText === pendingCfg.keyword;
 
   return (
-    <div className={styles.container}>
-      <h2 className={styles.title}>⚠ Zone danger</h2>
-      <p className={styles.intro}>
-        Les actions ci-dessous sont <strong>irréversibles</strong>. Une confirmation par saisie de
-        mot-clé est requise.
-      </p>
-
-      <div className={styles.actionsList}>
-        {(Object.keys(ACTION_CONFIG) as Action[]).map((action) => {
-          const cfg = ACTION_CONFIG[action];
-          return (
-            <div key={action} className={styles.actionCard}>
-              <p className={styles.actionLabel}>{cfg.label}</p>
-              <p className={styles.actionDescription}>{cfg.description}</p>
-              <button
-                type="button"
-                onClick={() => openConfirm(action)}
-                className={styles.actionButton}
-              >
-                {cfg.label}
-              </button>
-            </div>
-          );
-        })}
+    <>
+      <div className="banner banner--err" style={{ marginBottom: 20 }}>
+        <div className="banner__ico">⚠</div>
+        <div>
+          <b style={{ color: 'var(--err-strong)' }}>Zone protégée — actions irréversibles.</b>{' '}
+          Conformément à l'ADR-040, c'est la seule zone de l'application habilitée à
+          utiliser le rouge d'alerte. Une confirmation par saisie de mot-clé est requise.
+        </div>
       </div>
 
-      {result !== null ? <p className={styles.alertSuccess}>{result}</p> : null}
-      {error !== null ? (
-        <p className={styles.alertError} role="alert">
-          {error}
-        </p>
-      ) : null}
+      {(Object.keys(ACTION_CONFIG) as Action[]).map((action) => {
+        const cfg = ACTION_CONFIG[action];
+        return (
+          <div className="danger-card" key={action}>
+            <div className="danger-card__icon" aria-hidden>
+              {cfg.icon}
+            </div>
+            <div className="danger-card__body">
+              <h3>{cfg.label}</h3>
+              <p>{cfg.description}</p>
+            </div>
+            <button
+              type="button"
+              className={
+                cfg.variant === 'solid' ? 'btn btn--danger' : 'btn btn--danger-outline'
+              }
+              onClick={() => openConfirm(action)}
+              aria-label={cfg.label}
+            >
+              {cfg.keyword}
+            </button>
+          </div>
+        );
+      })}
 
-      {pending !== null && pendingCfg !== null ? (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalBox}>
-            <h3 className={styles.modalTitle}>{pendingCfg.label}</h3>
-            <p className={styles.modalDescription}>{pendingCfg.description}</p>
-            <p className={styles.modalHint}>
-              Tapez exactement <code>{pendingCfg.keyword}</code> pour confirmer :
-            </p>
-            <input
-              type="text"
-              value={confirmText}
-              onChange={(e) => setConfirmText(e.target.value)}
-              className={styles.modalInput}
-              aria-label="Confirmation"
-              autoFocus
-            />
-            <div className={styles.modalActions}>
+      {result !== null && (
+        <div className="banner banner--ok" style={{ marginTop: 16 }}>
+          <div className="banner__ico">✓</div>
+          <div>{result}</div>
+        </div>
+      )}
+
+      {error !== null && (
+        <div className="banner banner--err" role="alert" style={{ marginTop: 16 }}>
+          <div className="banner__ico">!</div>
+          <div>{error}</div>
+        </div>
+      )}
+
+      {pending !== null && pendingCfg !== null && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal__head">
+              <div>
+                <div className="modal__kicker" style={{ color: 'var(--err)' }}>
+                  Action irréversible
+                </div>
+                <h3>{pendingCfg.label}</h3>
+              </div>
+            </div>
+            <div className="modal__body">
+              <p style={{ color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.5 }}>
+                {pendingCfg.description}
+              </p>
+              <div className="confirm-line" style={{ marginTop: 16 }}>
+                <span>
+                  Tapez exactement{' '}
+                  <code
+                    className="mono"
+                    style={{
+                      background: 'var(--dark-1)',
+                      padding: '2px 6px',
+                      borderRadius: 3,
+                      color: 'var(--err)',
+                    }}
+                  >
+                    {pendingCfg.keyword}
+                  </code>{' '}
+                  pour confirmer :
+                </span>
+              </div>
+              <input
+                type="text"
+                value={confirmText}
+                onChange={(e) => setConfirmText(e.target.value)}
+                className="input mono"
+                aria-label="Confirmation"
+                autoFocus
+                style={{ marginTop: 8, width: '100%' }}
+              />
+            </div>
+            <div className="modal__foot">
               <button
                 type="button"
+                className="btn btn--outline"
                 onClick={closeConfirm}
                 disabled={running}
-                className={styles.cancelButton}
               >
                 Annuler
               </button>
               <button
                 type="button"
+                className="btn btn--danger"
                 onClick={() => {
                   void execute();
                 }}
                 disabled={!canConfirm || running}
-                className={styles.confirmButton}
               >
                 {running ? 'Exécution…' : 'Confirmer'}
               </button>
             </div>
           </div>
         </div>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }

@@ -1,7 +1,21 @@
 import { useEffect, useState } from 'react';
 import type { ComponentConfigResponse } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
-import styles from './ComponentConfigModal.module.scss';
+
+const CloseIcon = (): JSX.Element => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M4 4l8 8M12 4l-8 8" />
+  </svg>
+);
 
 type Props = {
   eic: string;
@@ -38,35 +52,46 @@ export function ComponentConfigModal({ eic, onClose }: Props): JSX.Element {
 
   return (
     <div
-      className={styles.backdrop}
+      className="modal-backdrop"
       role="dialog"
       aria-modal="true"
       aria-label={`Configuration ECP de ${eic}`}
     >
-      <div className={styles.modal}>
-        <div className={styles.header}>
+      <div className="modal modal--lg">
+        <div className="modal__head">
           <div>
-            <h3 className={styles.headerTitle}>Configuration ECP</h3>
-            <p className={styles.eic}>{eic}</p>
+            <div className="modal__kicker">Configuration ECP</div>
+            <h3 className="mono">{eic}</h3>
           </div>
           <button
             type="button"
+            className="icon-btn"
             onClick={onClose}
-            className={styles.closeButton}
             aria-label="Fermer"
           >
-            ✕
+            <CloseIcon />
           </button>
         </div>
 
-        <div className={styles.body}>
-          {loading ? <p className={styles.loading}>Chargement…</p> : null}
-          {error ? (
-            <p className={styles.alertError} role="alert">
-              {error}
+        <div className="modal__body scroll">
+          {loading && (
+            <p style={{ color: 'var(--ink-3)', textAlign: 'center', padding: 18 }}>
+              Chargement…
             </p>
-          ) : null}
-          {!loading && !error && data != null ? <ConfigContent data={data} /> : null}
+          )}
+          {error !== null && (
+            <div className="banner banner--err" role="alert">
+              <div className="banner__ico">!</div>
+              <div>{error}</div>
+            </div>
+          )}
+          {!loading && error === null && data !== null && <ConfigContent data={data} />}
+        </div>
+
+        <div className="modal__foot">
+          <button type="button" className="btn btn--outline" onClick={onClose}>
+            OK
+          </button>
         </div>
       </div>
     </div>
@@ -74,63 +99,111 @@ export function ComponentConfigModal({ eic, onClose }: Props): JSX.Element {
 }
 
 function ConfigContent({ data }: { data: ComponentConfigResponse }): JSX.Element {
-  if (data.source == null) {
+  if (data.source === null) {
     return (
-      <div className={styles.noSource}>
-        Aucun dump dans la base n'a ce composant comme source ; impossible d'afficher ses
-        propriétés. Importez un dump du composant {data.eic} pour voir sa configuration ECP.
+      <div className="banner banner--warn">
+        <div className="banner__ico">!</div>
+        <div>
+          Aucun dump dans la base n'a ce composant comme source. Importez un dump de{' '}
+          <span className="mono">{data.eic}</span> pour voir sa configuration ECP.
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.contentWrapper}>
-      <div className={styles.sourceBox}>
-        <div className={styles.sourceRow}>
-          <span>
-            Import source : <strong className={styles.sourceMono}>{data.source.label}</strong>
-            {' · '}
-            <span>env {data.source.envName}</span>
-            {' · '}
-            <span>
-              {new Date(data.source.uploadedAt).toLocaleString('fr-FR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div
+        style={{
+          padding: 12,
+          background: 'var(--dark-1)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-sm)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          fontSize: 12,
+        }}
+      >
+        <span>
+          Import source :{' '}
+          <strong className="mono" style={{ color: 'var(--cyan-1)' }}>
+            {data.source.label}
+          </strong>{' '}
+          · env <strong>{data.source.envName}</strong> ·{' '}
+          <span style={{ color: 'var(--ink-3)' }}>
+            {new Date(data.source.uploadedAt).toLocaleString('fr-FR', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </span>
-          <span
-            className={`${styles.propsBadge} ${
-              data.source.hasConfigurationProperties
-                ? styles.propsBadgeOk
-                : styles.propsBadgeMissing
-            }`}
-            title={
-              data.source.hasConfigurationProperties
-                ? ".properties externe fourni à l'ingestion"
-                : 'Valeurs issues uniquement du CSV interne au zip'
-            }
-          >
-            {data.source.hasConfigurationProperties ? '✓ Properties' : '✗ Properties'}
-          </span>
-        </div>
+        </span>
+        <span
+          className={
+            data.source.hasConfigurationProperties
+              ? 'badge badge--ok'
+              : 'badge badge--muted'
+          }
+          title={
+            data.source.hasConfigurationProperties
+              ? '.properties externe fourni'
+              : 'CSV interne uniquement'
+          }
+        >
+          {data.source.hasConfigurationProperties ? '✓ Properties' : '✗ Properties'}
+        </span>
       </div>
 
       {data.sections.map((section) => (
-        <section key={section.slug} className={styles.section}>
-          <h4 className={styles.sectionHeader}>
+        <section key={section.slug}>
+          <h4
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: 0.4,
+              textTransform: 'uppercase',
+              color: 'var(--ink-3)',
+              margin: '0 0 8px 0',
+            }}
+          >
             {section.name}{' '}
-            <span className={styles.sectionCount}>({section.properties.length})</span>
+            <span style={{ color: 'var(--ink-4)' }}>({section.properties.length})</span>
           </h4>
-          <dl className={styles.propsList}>
+          <dl style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {section.properties.map((p) => (
-              <div key={p.key} className={styles.propRow}>
-                <dt className={styles.propKey}>{p.key}</dt>
-                <dd className={styles.propValue}>
-                  {p.value === '' ? <span className={styles.emptyValue}>(vide)</span> : p.value}
+              <div
+                key={p.key}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '220px 1fr',
+                  gap: 8,
+                  padding: '4px 0',
+                  fontSize: 12,
+                }}
+              >
+                <dt
+                  className="mono"
+                  style={{ color: 'var(--ink-3)', wordBreak: 'break-word' }}
+                >
+                  {p.key}
+                </dt>
+                <dd
+                  className="mono"
+                  style={{
+                    margin: 0,
+                    color: 'var(--ink-1)',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {p.value === '' ? (
+                    <span style={{ color: 'var(--ink-4)' }}>(vide)</span>
+                  ) : (
+                    p.value
+                  )}
                 </dd>
               </div>
             ))}
@@ -138,11 +211,12 @@ function ConfigContent({ data }: { data: ComponentConfigResponse }): JSX.Element
         </section>
       ))}
 
-      {data.sections.length === 0 ? (
-        <p className={styles.emptySections}>
-          L'import source n'a persisté aucune propriété `ecp.*` pour ce composant.
+      {data.sections.length === 0 && (
+        <p style={{ color: 'var(--ink-3)', fontSize: 13, textAlign: 'center' }}>
+          L'import source n'a persisté aucune propriété <span className="mono">ecp.*</span>{' '}
+          pour ce composant.
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

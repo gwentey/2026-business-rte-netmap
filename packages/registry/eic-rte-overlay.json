@@ -157,14 +157,14 @@
     ]
   },
   "processColors": {
-    "TP":       "#3b82f6",
-    "UK-CC-IN": "#f97316",
-    "CORE":     "#a855f7",
-    "MARI":     "#22c55e",
-    "PICASSO":  "#f59e0b",
-    "VP":       "#ec4899",
-    "MIXTE":    "#4b5563",
-    "UNKNOWN":  "#9ca3af"
+    "TP":       "#00bded",
+    "UK-CC-IN": "#e6a23c",
+    "CORE":     "#c38cf5",
+    "MARI":     "#2fb573",
+    "PICASSO":  "#f0c93f",
+    "VP":       "#ec85bd",
+    "MIXTE":    "#9db0bb",
+    "UNKNOWN":  "#6f8591"
   },
   "mapConfig": {
     "rteClusterLat": 48.8918,

@@ -1,5 +1,10 @@
 # ADR-037 — Adoption du Design System RTE (packages npm officiels)
 
+> **⚠ SUPERSEDED par ADR-040 (2026-04-24)** — Le DS RTE est désinstallé. La
+> skin web migre vers un design system custom dark "carto-rte" à base de
+> classes CSS globales. Voir `docs/adr/ADR-040-refonte-design-carto-rte-custom-dark.md`.
+
+
 | Champ      | Valeur                         |
 |------------|--------------------------------|
 | Numéro     | ADR-037                        |

@@ -15,8 +15,6 @@
   },
   "dependencies": {
     "@carto-ecp/shared": "workspace:*",
-    "@design-system-rte/core": "^1.7.0",
-    "@design-system-rte/react": "^1.8.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.452.0",
     "react": "^18.3.1",

@@ -5,7 +5,21 @@ import type {
 } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { OrganizationEditModal } from './OrganizationEditModal.js';
-import styles from './OrganizationsAdminTab.module.scss';
+
+const EditIcon = (): JSX.Element => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M11 2l3 3-8 8H3v-3l8-8z" />
+  </svg>
+);
 
 export function OrganizationsAdminTab(): JSX.Element {
   const [rows, setRows] = useState<OrganizationEntryRow[]>([]);
@@ -65,11 +79,9 @@ export function OrganizationsAdminTab(): JSX.Element {
     }
   };
 
-  const handleImportClick = (): void => {
-    fileInputRef.current?.click();
-  };
-
-  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
+  const handleImportFile = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
@@ -87,165 +99,173 @@ export function OrganizationsAdminTab(): JSX.Element {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher (nom, pays, type, adresse)…"
-            className={styles.searchInput}
-          />
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className={styles.primaryButton}
-          >
-            + Nouvelle organisation
-          </button>
-        </div>
-        <div className={styles.toolbarRight}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json,.json"
-            onChange={handleImportFile}
-            className={styles.hiddenInput}
-          />
-          <button type="button" onClick={handleImportClick} className={styles.secondaryButton}>
-            ⬆ Importer JSON
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              void handleExport();
-            }}
-            className={styles.secondaryButton}
-          >
-            ⬇ Exporter JSON
-          </button>
-        </div>
+    <>
+      <div className="admin-toolbar">
+        <input
+          type="text"
+          className="input grow"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher (nom, pays, type, adresse)…"
+          aria-label="Recherche"
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="application/json,.json"
+          onChange={handleImportFile}
+          style={{ display: 'none' }}
+        />
+        <button
+          type="button"
+          className="btn btn--outline"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          ⬆ Importer JSON
+        </button>
+        <button
+          type="button"
+          className="btn btn--outline"
+          onClick={() => {
+            void handleExport();
+          }}
+        >
+          ⬇ Exporter JSON
+        </button>
+        <button
+          type="button"
+          className="btn btn--primary"
+          onClick={() => setCreating(true)}
+        >
+          + Nouvelle organisation
+        </button>
       </div>
 
-      {error ? (
-        <p className={styles.alertError} role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error !== null && (
+        <div className="banner banner--err" role="alert" style={{ marginBottom: 12 }}>
+          <div className="banner__ico">!</div>
+          <div>{error}</div>
+        </div>
+      )}
 
-      {importResult ? (
-        <div className={styles.importResult}>
-          <div className={styles.importResultHeader}>
+      {importResult !== null && (
+        <div
+          className={
+            importResult.errors.length > 0 ? 'banner banner--warn' : 'banner banner--ok'
+          }
+          style={{ marginBottom: 12 }}
+        >
+          <div className="banner__ico">{importResult.errors.length > 0 ? '!' : '✓'}</div>
+          <div style={{ flex: 1 }}>
             <div>
               Import terminé : <strong>{importResult.inserted}</strong> inséré(s) ·{' '}
               <strong>{importResult.updated}</strong> mis à jour ·{' '}
               <strong>{importResult.skipped}</strong> ignoré(s)
-              {importResult.errors.length > 0 ? (
-                <span className={styles.importErrorCount}>
-                  {importResult.errors.length} erreur(s)
-                </span>
-              ) : null}
+              {importResult.errors.length > 0 && (
+                <> · <strong>{importResult.errors.length}</strong> erreur(s)</>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setImportResult(null)}
-              className={styles.importResultClose}
-              aria-label="Masquer"
-            >
-              ✕
-            </button>
+            {importResult.errors.length > 0 && (
+              <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 12 }}>
+                {importResult.errors.slice(0, 10).map((err, i) => (
+                  <li key={i}>
+                    {err.organizationName} : {err.reason}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-          {importResult.errors.length > 0 ? (
-            <ul className={styles.importResultErrors}>
-              {importResult.errors.slice(0, 10).map((err, i) => (
-                <li key={i}>
-                  {err.organizationName} : {err.reason}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-
-      <div className={styles.counter}>
-        {filtered.length} / {rows.length} organisations affichées · {editedCount} éditée(s)
-        par l'utilisateur
-      </div>
-
-      {loading ? (
-        <p className={styles.loading}>Chargement…</p>
-      ) : (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Pays</th>
-                <th>Type</th>
-                <th>Adresse</th>
-                <th>Position</th>
-                <th>Édité</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <div>{row.displayName}</div>
-                    <div className={styles.normalizedName}>{row.organizationName}</div>
-                  </td>
-                  <td className={styles.mono}>
-                    {row.country ?? <span className={styles.muted}>—</span>}
-                  </td>
-                  <td>{row.typeHint ?? <span className={styles.muted}>—</span>}</td>
-                  <td className={styles.address}>
-                    {row.address ?? <span className={styles.muted}>—</span>}
-                  </td>
-                  <td className={styles.coord}>
-                    {row.lat != null && row.lng != null ? (
-                      `${row.lat.toFixed(3)}, ${row.lng.toFixed(3)}`
-                    ) : (
-                      <span className={styles.muted}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    {row.userEdited ? (
-                      <span
-                        className={styles.editedBadge}
-                        title={`Édité · seedVersion ${row.seedVersion}`}
-                      >
-                        ✓
-                      </span>
-                    ) : (
-                      <span className={styles.muted}>—</span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => setEditing(row)}
-                      className={styles.editButton}
-                    >
-                      🖊 Éditer
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 ? (
-            <p className={styles.emptyMessage}>
-              {rows.length === 0
-                ? 'Aucune organisation en mémoire.'
-                : 'Aucun résultat pour la recherche.'}
-            </p>
-          ) : null}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setImportResult(null)}
+            aria-label="Masquer"
+          >
+            ✕
+          </button>
         </div>
       )}
 
-      {editing ? (
+      <p style={{ color: 'var(--ink-3)', fontSize: 12, marginBottom: 12 }}>
+        {filtered.length} / {rows.length} organisations · {editedCount} éditée(s) par
+        l'utilisateur
+      </p>
+
+      <div className="tab-content" style={{ padding: 0 }}>
+        <div className="org-row__head">
+          <span>EIC · Nom</span>
+          <span>Pays</span>
+          <span>Adresse</span>
+          <span>Type</span>
+          <span style={{ textAlign: 'right' }}>Actions</span>
+        </div>
+
+        {loading && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink-3)' }}>
+            Chargement…
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink-3)' }}>
+            {rows.length === 0
+              ? 'Aucune organisation en mémoire.'
+              : 'Aucun résultat pour la recherche.'}
+          </div>
+        )}
+
+        {!loading &&
+          filtered.map((row) => (
+            <div className="org-row" key={row.id}>
+              <div>
+                <div style={{ color: 'var(--ink-0)', fontWeight: 600, fontSize: 13 }}>
+                  {row.displayName}
+                </div>
+                <div className="mono" style={{ color: 'var(--cyan-1)', fontSize: 11, marginTop: 2 }}>
+                  {row.organizationName}
+                </div>
+              </div>
+              <div>
+                {row.country !== null && row.country !== undefined ? (
+                  <span className="badge badge--muted mono">{row.country}</span>
+                ) : (
+                  <span style={{ color: 'var(--ink-4)' }}>—</span>
+                )}
+              </div>
+              <div style={{ color: 'var(--ink-2)', fontSize: 12 }}>
+                {row.address ?? <span style={{ color: 'var(--ink-4)' }}>—</span>}
+              </div>
+              <div>
+                {row.typeHint !== null && row.typeHint !== undefined ? (
+                  <span className="badge badge--teal">{row.typeHint}</span>
+                ) : (
+                  <span style={{ color: 'var(--ink-4)' }}>—</span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                {row.userEdited && (
+                  <span
+                    className="badge badge--cyan"
+                    title={`Édité · seedVersion ${row.seedVersion}`}
+                  >
+                    ✓
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="btn btn--ghost btn--sm"
+                  title="Modifier"
+                  onClick={() => setEditing(row)}
+                >
+                  <EditIcon />
+                  <span style={{ marginLeft: 4 }}>🖊 Éditer</span>
+                </button>
+              </div>
+            </div>
+          ))}
+      </div>
+
+      {editing !== null && (
         <OrganizationEditModal
           entry={editing}
           onClose={() => setEditing(null)}
@@ -254,8 +274,8 @@ export function OrganizationsAdminTab(): JSX.Element {
             await reload();
           }}
         />
-      ) : null}
-      {creating ? (
+      )}
+      {creating && (
         <OrganizationEditModal
           entry={null}
           onClose={() => setCreating(false)}
@@ -264,7 +284,7 @@ export function OrganizationsAdminTab(): JSX.Element {
             await reload();
           }}
         />
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }

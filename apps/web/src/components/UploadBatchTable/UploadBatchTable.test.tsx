@@ -4,7 +4,7 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { useAppStore } from '../../store/app-store.js';
 import { UploadBatchTable } from './UploadBatchTable.js';
 
-describe('UploadBatchTable', () => {
+describe('UploadBatchTable (ADR-040 — markup .file-row)', () => {
   beforeEach(() => {
     useAppStore.setState({
       uploadBatch: [],
@@ -12,9 +12,9 @@ describe('UploadBatchTable', () => {
     });
   });
 
-  it('renders empty state message when batch is empty', () => {
-    render(<UploadBatchTable />);
-    expect(screen.getByText(/Aucun fichier/i)).toBeInTheDocument();
+  it('renders nothing when batch is empty (table is hidden)', () => {
+    const { container } = render(<UploadBatchTable />);
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders one row per batch item', () => {
@@ -31,7 +31,7 @@ describe('UploadBatchTable', () => {
     render(<UploadBatchTable />);
     expect(screen.getByText('a.zip')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Item A')).toBeInTheDocument();
-    expect(screen.getByText('17V-A')).toBeInTheDocument();
+    expect(screen.getByText(/17V-A/)).toBeInTheDocument();
   });
 
   it('shows duplicate warning and replace checkbox', () => {
@@ -46,8 +46,8 @@ describe('UploadBatchTable', () => {
       ],
     });
     render(<UploadBatchTable />);
-    expect(screen.getByText(/doublon/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Remplacer/i)).toBeInTheDocument();
+    expect(screen.getByText(/Doublon/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Remplacer/i, { selector: 'input' })).toBeInTheDocument();
   });
 
   it('calls updateBatchItem when label is edited', async () => {
@@ -66,7 +66,6 @@ describe('UploadBatchTable', () => {
     const input = screen.getByDisplayValue('original');
     await userEvent.clear(input);
     await userEvent.type(input, 'X');
-    // Le dernier appel doit cibler l'item id '1' avec label='X'
     const lastCall = updateBatchItem.mock.calls[updateBatchItem.mock.calls.length - 1];
     expect(lastCall?.[0]).toBe('1');
     expect(lastCall?.[1]).toEqual({ label: 'X' });
@@ -84,6 +83,6 @@ describe('UploadBatchTable', () => {
       ],
     });
     render(<UploadBatchTable />);
-    expect(screen.getByText('INVALID_MAGIC')).toBeInTheDocument();
+    expect(screen.getByText(/INVALID_MAGIC/)).toBeInTheDocument();
   });
 });

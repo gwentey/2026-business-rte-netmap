@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import type { ProcessKey, RegistryColorRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { useAppStore } from '../../store/app-store.js';
-import styles from './ProcessColorsEditor.module.scss';
 
 export function ProcessColorsEditor(): JSX.Element {
   const [rows, setRows] = useState<RegistryColorRow[]>([]);
@@ -57,102 +56,131 @@ export function ProcessColorsEditor(): JSX.Element {
   };
 
   return (
-    <div className={styles.container}>
-      {error ? (
-        <p className={styles.alertError} role="alert">
-          {error}
-        </p>
-      ) : null}
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Process</th>
-            <th>Couleur actuelle</th>
-            <th>Choisir</th>
-            <th>Défaut</th>
-            <th>Statut</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => {
-            const inputId = `process-color-${row.process}`;
-            const current = draft[row.process] ?? row.color;
-            const changed = current.toLowerCase() !== row.color.toLowerCase();
-            const isBusy = busy === row.process;
-            return (
-              <tr key={row.process}>
-                <td className={styles.processName}>{row.process}</td>
-                <td>
-                  <span className={styles.currentColor}>
+    <>
+      {error !== null && (
+        <div className="banner banner--err" role="alert" style={{ marginBottom: 12 }}>
+          <div className="banner__ico">!</div>
+          <div>{error}</div>
+        </div>
+      )}
+
+      <div className="tab-content">
+        <table className="tbl">
+          <thead>
+            <tr>
+              <th>Process</th>
+              <th>Couleur actuelle</th>
+              <th>Choisir</th>
+              <th>Défaut</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => {
+              const inputId = `process-color-${row.process}`;
+              const current = draft[row.process] ?? row.color;
+              const changed = current.toLowerCase() !== row.color.toLowerCase();
+              const isBusy = busy === row.process;
+              return (
+                <tr key={row.process}>
+                  <td className="mono" style={{ fontWeight: 700, color: 'var(--ink-0)' }}>
+                    {row.process}
+                  </td>
+                  <td>
                     <span
-                      className={styles.swatch}
-                      style={{ backgroundColor: row.color }}
-                      aria-label={`Couleur actuelle ${row.color}`}
-                    />
-                    <span className={styles.hex}>{row.color}</span>
-                  </span>
-                </td>
-                <td>
-                  <label htmlFor={inputId} className={styles.srOnly}>
-                    Choisir la couleur pour {row.process}
-                  </label>
-                  <input
-                    id={inputId}
-                    type="color"
-                    value={current}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, [row.process]: e.target.value }))
-                    }
-                    className={styles.picker}
-                  />
-                </td>
-                <td className={styles.defaultColor}>{row.default}</td>
-                <td className={styles.status}>
-                  {row.isOverride ? (
-                    <span className={styles.badgeOverride}>surchargé</span>
-                  ) : (
-                    <span className={styles.badgeDefault}>défaut</span>
-                  )}
-                </td>
-                <td>
-                  <div className={styles.actions}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void save(row.process, current);
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
                       }}
-                      disabled={!changed || isBusy}
-                      className={styles.saveButton}
                     >
-                      {isBusy ? '…' : 'Enregistrer'}
-                    </button>
+                      <span
+                        className="swatch"
+                        style={{
+                          background: row.color,
+                          width: 14,
+                          height: 14,
+                          border: '1px solid var(--border-strong)',
+                        }}
+                        aria-label={`Couleur actuelle ${row.color}`}
+                      />
+                      <span className="mono">{row.color}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <label htmlFor={inputId} style={{ position: 'absolute', left: -9999 }}>
+                      Choisir la couleur pour {row.process}
+                    </label>
+                    <input
+                      id={inputId}
+                      type="color"
+                      value={current}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, [row.process]: e.target.value }))
+                      }
+                      style={{
+                        width: 36,
+                        height: 28,
+                        border: '1px solid var(--border-strong)',
+                        borderRadius: 'var(--radius-sm)',
+                        background: 'var(--dark-1)',
+                        cursor: 'pointer',
+                      }}
+                    />
+                  </td>
+                  <td className="mono" style={{ color: 'var(--ink-3)', fontSize: 11 }}>
+                    {row.default}
+                  </td>
+                  <td>
                     {row.isOverride ? (
+                      <span className="badge badge--override">surchargé</span>
+                    ) : (
+                      <span className="badge badge--muted">défaut</span>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         type="button"
+                        className="btn btn--primary btn--sm"
                         onClick={() => {
-                          void reset(row.process);
+                          void save(row.process, current);
                         }}
-                        disabled={isBusy}
-                        className={styles.resetButton}
+                        disabled={!changed || isBusy}
                       >
-                        Réinitialiser
+                        {isBusy ? '…' : 'Enregistrer'}
                       </button>
-                    ) : null}
-                  </div>
+                      {row.isOverride && (
+                        <button
+                          type="button"
+                          className="btn btn--outline btn--sm"
+                          onClick={() => {
+                            void reset(row.process);
+                          }}
+                          disabled={isBusy}
+                        >
+                          Réinitialiser
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={6}
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
+                >
+                  Chargement…
                 </td>
               </tr>
-            );
-          })}
-          {rows.length === 0 ? (
-            <tr>
-              <td colSpan={6} className={styles.emptyRow}>
-                Chargement…
-              </td>
-            </tr>
-          ) : null}
-        </tbody>
-      </table>
-    </div>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

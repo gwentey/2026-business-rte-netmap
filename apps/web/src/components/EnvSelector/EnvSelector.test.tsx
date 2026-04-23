@@ -1,7 +1,15 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import { useAppStore } from '../../store/app-store.js';
 import { EnvSelector } from './EnvSelector.js';
+
+const renderSelector = (): ReturnType<typeof render> =>
+  render(
+    <MemoryRouter>
+      <EnvSelector />
+    </MemoryRouter>,
+  );
 
 describe('EnvSelector', () => {
   beforeEach(() => {
@@ -17,17 +25,31 @@ describe('EnvSelector', () => {
     });
   });
 
-  // Les tests d'interaction (role combobox, selectOptions) sont désactivés car
-  // le Select de @design-system-rte/react rend un DOM custom (pas un <select> natif).
-  // À réécrire en Slice 4b.2 quand l'API DOM du DS Select sera documentée
-  // (ou quand on aura décidé d'une stratégie data-testid pour ce composant).
-  it.todo('renders all envs as options');
-  it.todo('marks the active env as selected');
-  it.todo('calls setActiveEnv on change');
+  it('renders the active env in the chip', () => {
+    renderSelector();
+    expect(screen.getByText('OPF')).toBeInTheDocument();
+  });
 
-  it('renders fallback text when envs is empty', () => {
+  it('opens a listbox on click and lists every env', () => {
+    renderSelector();
+    fireEvent.click(screen.getByRole('button', { name: /env/i }));
+    const listbox = screen.getByRole('listbox', { name: /environnement/i });
+    expect(listbox).toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+  });
+
+  it('calls setActiveEnv when picking another env', () => {
+    const setActiveEnv = vi.fn(() => Promise.resolve());
+    useAppStore.setState({ setActiveEnv });
+    renderSelector();
+    fireEvent.click(screen.getByRole('button', { name: /env/i }));
+    fireEvent.click(screen.getByRole('option', { name: /PROD/i }));
+    expect(setActiveEnv).toHaveBeenCalledWith('PROD');
+  });
+
+  it('renders fallback chip when envs is empty', () => {
     useAppStore.setState({ envs: [], activeEnv: null });
-    render(<EnvSelector />);
-    expect(screen.getByText(/Aucun env/i)).toBeInTheDocument();
+    renderSelector();
+    expect(screen.getByText(/aucun/i)).toBeInTheDocument();
   });
 });

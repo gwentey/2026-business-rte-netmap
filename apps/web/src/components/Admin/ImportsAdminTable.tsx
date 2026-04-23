@@ -4,7 +4,67 @@ import type { ImportDetail } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { useAppStore } from '../../store/app-store.js';
 import { debounce } from '../../lib/debounce.js';
-import styles from './ImportsAdminTable.module.scss';
+
+const TrashIcon = (): JSX.Element => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M3 4h10M6.5 4V2.5h3V4M5 4l1 9h4l1-9" />
+  </svg>
+);
+
+function formatDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function toDatetimeLocalInput(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n: number): string => n.toString().padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function TypeBadge({ dumpType }: { dumpType: ImportDetail['dumpType'] }): JSX.Element {
+  if (dumpType === 'COMPONENT_DIRECTORY')
+    return <span className="badge badge--cyan">CD</span>;
+  if (dumpType === 'BROKER') return <span className="badge badge--teal">BROKER</span>;
+  return <span className="badge badge--ok">ENDPOINT</span>;
+}
+
+function PropertiesBadge({ present }: { present: boolean }): JSX.Element {
+  if (present)
+    return (
+      <span
+        className="badge badge--ok"
+        title=".properties externe fourni à l'ingestion"
+      >
+        ✓
+      </span>
+    );
+  return (
+    <span
+      className="badge badge--muted"
+      title="Aucun .properties — valeurs depuis CSV interne"
+    >
+      ✗
+    </span>
+  );
+}
 
 export function ImportsAdminTable(): JSX.Element {
   const envs = useAppStore((s) => s.envs);
@@ -63,120 +123,133 @@ export function ImportsAdminTable(): JSX.Element {
   };
 
   const deletingItem =
-    confirmDeleteId !== null ? imports.find((i) => i.id === confirmDeleteId) ?? null : null;
+    confirmDeleteId !== null
+      ? (imports.find((i) => i.id === confirmDeleteId) ?? null)
+      : null;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.toolbar}>
-        <label className={styles.filterLabel}>
-          <span>Env :</span>
-          <select
-            value={envFilter}
-            onChange={(e) => setEnvFilter(e.target.value)}
-            className={styles.select}
-            aria-label="Env"
-          >
-            <option value="">Tous</option>
-            {envs.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label className={styles.searchWrapper}>
-          <span>Recherche :</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="label, filename, EIC..."
-            className={`${styles.input} ${styles.searchInput}`}
-          />
-        </label>
-
+    <>
+      <div className="admin-toolbar">
+        <input
+          type="text"
+          className="input grow"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Rechercher (label, filename, EIC)…"
+          aria-label="Recherche"
+        />
+        <select
+          className="select"
+          value={envFilter}
+          onChange={(e) => setEnvFilter(e.target.value)}
+          aria-label="Environnement"
+        >
+          <option value="">Tous les envs</option>
+          {envs.map((e) => (
+            <option key={e} value={e}>
+              {e}
+            </option>
+          ))}
+        </select>
         <Link
           to={`/upload${envFilter ? `?env=${encodeURIComponent(envFilter)}` : ''}`}
-          className={styles.primaryLink}
+          className="btn btn--primary"
         >
           + Importer des dumps
         </Link>
       </div>
 
-      {error ? (
-        <p className={styles.alertError} role="alert">
-          {error}
-        </p>
-      ) : null}
+      {error !== null && (
+        <div className="banner banner--err" role="alert" style={{ marginBottom: 12 }}>
+          <div className="banner__ico">!</div>
+          <div>{error}</div>
+        </div>
+      )}
 
-      {loading ? <p className={styles.loading}>Chargement…</p> : null}
-
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            <th>Fichier</th>
-            <th>Source EIC</th>
-            <th>Label</th>
-            <th>Type</th>
-            <th>Props</th>
-            <th>Effective date</th>
-            <th>Uploaded at</th>
-            <th>Stats</th>
-            <th>Warn.</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((item) => (
-            <AdminImportRow
-              key={item.id}
-              item={item}
-              onDelete={() => setConfirmDeleteId(item.id)}
-              onReload={() => reloadImports(envFilter)}
-            />
-          ))}
-          {filtered.length === 0 && !loading ? (
+      <div className="tab-content">
+        <table className="tbl">
+          <thead>
             <tr>
-              <td colSpan={10} className={styles.emptyRow}>
-                Aucun import pour ce filtre.
-              </td>
+              <th>Fichier</th>
+              <th>EIC</th>
+              <th>Label</th>
+              <th>Type</th>
+              <th>Props</th>
+              <th>Effective date</th>
+              <th>Uploaded</th>
+              <th>Stats</th>
+              <th>Warn.</th>
+              <th></th>
             </tr>
-          ) : null}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {filtered.map((item) => (
+              <AdminImportRow
+                key={item.id}
+                item={item}
+                onDelete={() => setConfirmDeleteId(item.id)}
+                onReload={() => reloadImports(envFilter)}
+              />
+            ))}
+            {filtered.length === 0 && !loading && (
+              <tr>
+                <td
+                  colSpan={10}
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
+                >
+                  Aucun import pour ce filtre.
+                </td>
+              </tr>
+            )}
+            {loading && (
+              <tr>
+                <td
+                  colSpan={10}
+                  style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
+                >
+                  Chargement…
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {deletingItem !== null ? (
-        <div className={styles.modalBackdrop}>
-          <div className={styles.modalBox}>
-            <h3 className={styles.modalTitle}>Supprimer l'import ?</h3>
-            <p className={styles.modalDescription}>
-              L'import « {deletingItem.label} » sera définitivement supprimé. Les composants
-              et paths qu'il apportait seront retirés du graph (sauf s'ils sont apportés
-              aussi par un autre import).
-            </p>
-            <div className={styles.modalActions}>
+      {deletingItem !== null && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal">
+            <div className="modal__head">
+              <h3>Supprimer l'import ?</h3>
+            </div>
+            <div className="modal__body">
+              <p style={{ color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.5 }}>
+                L'import «&nbsp;<strong style={{ color: 'var(--ink-0)' }}>{deletingItem.label}</strong>&nbsp;»
+                sera définitivement supprimé. Les composants et paths qu'il apportait seront
+                retirés du graph (sauf s'ils sont apportés aussi par un autre import).
+              </p>
+            </div>
+            <div className="modal__foot">
               <button
                 type="button"
+                className="btn btn--outline"
                 onClick={() => setConfirmDeleteId(null)}
-                className={styles.cancelButton}
               >
                 Annuler
               </button>
               <button
                 type="button"
+                className="btn btn--danger"
                 onClick={() => {
                   void handleDeleteConfirmed();
                 }}
-                className={styles.confirmDeleteButton}
               >
                 Supprimer
               </button>
             </div>
           </div>
         </div>
-      ) : null}
-    </div>
+      )}
+    </>
   );
 }
 
@@ -227,17 +300,16 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
     }
   };
 
-  const statsLabel = `${item.stats.componentsCount} comp · ${item.stats.pathsCount} paths · ${item.stats.messagingStatsCount} stats`;
-  const uploadedDisplay = formatDateTime(item.uploadedAt);
+  const statsLabel = `${item.stats.componentsCount} comp · ${item.stats.pathsCount} paths`;
 
   return (
     <tr>
-      <td>
-        <div className={styles.fileName} title={item.fileName}>
-          {item.fileName.length > 36 ? `${item.fileName.slice(0, 33)}…` : item.fileName}
-        </div>
+      <td className="mono" title={item.fileName}>
+        {item.fileName.length > 36 ? `${item.fileName.slice(0, 33)}…` : item.fileName}
       </td>
-      <td className={styles.mono}>{item.sourceComponentEic ?? '—'}</td>
+      <td className="mono" style={{ color: 'var(--cyan-1)' }}>
+        {item.sourceComponentEic ?? '—'}
+      </td>
       <td>
         <input
           type="text"
@@ -246,9 +318,9 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
             setLabelValue(e.target.value);
             saveLabel(e.target.value);
           }}
-          className={styles.labelInput}
+          className="inline-edit"
         />
-        {saving ? <span className={styles.savingIndicator}>…</span> : null}
+        {saving && <span style={{ color: 'var(--ink-3)', marginLeft: 4 }}>…</span>}
       </td>
       <td>
         <TypeBadge dumpType={item.dumpType} />
@@ -263,86 +335,37 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
           onBlur={(e) => {
             void saveEffectiveDate(e.target.value);
           }}
-          className={styles.dateInput}
+          className="input"
+          style={{ height: 28, fontSize: 11.5, width: 170 }}
         />
       </td>
-      <td className={styles.small}>{uploadedDisplay}</td>
-      <td className={`${styles.small} ${styles.muted}`}>{statsLabel}</td>
+      <td className="mono" style={{ fontSize: 11, color: 'var(--ink-2)' }}>
+        {formatDateTime(item.uploadedAt)}
+      </td>
+      <td style={{ fontSize: 11, color: 'var(--ink-3)' }}>{statsLabel}</td>
       <td>
         {item.warnings.length > 0 ? (
           <span
-            className={styles.warningBadge}
+            className="badge badge--warn"
             title={item.warnings.map((w) => w.code).join(', ')}
           >
             {item.warnings.length}
           </span>
         ) : (
-          <span className={`${styles.small} ${styles.muted}`}>0</span>
+          <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>0</span>
         )}
       </td>
       <td>
         <button
           type="button"
+          className="icon-btn"
           onClick={onDelete}
           aria-label={`Supprimer import ${item.label}`}
-          className={styles.deleteButton}
+          title="Supprimer"
         >
-          🗑
+          <TrashIcon />
         </button>
       </td>
     </tr>
   );
-}
-
-function PropertiesBadge({ present }: { present: boolean }): JSX.Element {
-  if (present) {
-    return (
-      <span
-        className={`${styles.propsBadge} ${styles.propsBadgeOk}`}
-        title="Fichier <EIC>-configuration.properties fourni à l'ingestion"
-      >
-        ✓
-      </span>
-    );
-  }
-  return (
-    <span
-      className={`${styles.propsBadge} ${styles.propsBadgeMissing}`}
-      title="Aucun fichier .properties fourni : valeurs projectName/envName/NAT issues uniquement du CSV interne au zip."
-    >
-      ✗
-    </span>
-  );
-}
-
-function TypeBadge({ dumpType }: { dumpType: ImportDetail['dumpType'] }): JSX.Element {
-  let typeClass = styles.typeEndpoint;
-  let short = 'ENDPOINT';
-  if (dumpType === 'COMPONENT_DIRECTORY') {
-    typeClass = styles.typeCd;
-    short = 'CD';
-  } else if (dumpType === 'BROKER') {
-    typeClass = styles.typeBroker;
-    short = 'BROKER';
-  }
-  return <span className={`${styles.typeBadge} ${typeClass}`}>{short}</span>;
-}
-
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function toDatetimeLocalInput(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n: number): string => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

@@ -1,13 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import type { BusinessApplicationSummary, GraphResponse } from '@carto-ecp/shared';
 import { useAppStore } from '../../store/app-store.js';
-import styles from './BaFilter.module.scss';
 
+/**
+ * BaFilter — filtre Business Applications dans le bandeau map-overlay top-right.
+ * Refonte ADR-040 : intégré directement dans `MapOverlaysTopRight`. Utilise
+ * `<select multiple>` natif (.select) pour rester accessible et compact.
+ */
 export function BaFilter({ graph }: { graph: GraphResponse | null }): JSX.Element | null {
   const selectedBaCodes = useAppStore((s) => s.selectedBaCodes);
   const toggleBaFilter = useAppStore((s) => s.toggleBaFilter);
   const clearBaFilter = useAppStore((s) => s.clearBaFilter);
-  const [open, setOpen] = useState(false);
 
   const bas = useMemo<BusinessApplicationSummary[]>(() => {
     if (!graph) return [];
@@ -28,66 +31,92 @@ export function BaFilter({ graph }: { graph: GraphResponse | null }): JSX.Elemen
   if (bas.length === 0) return null;
 
   const activeCount = selectedBaCodes.length;
-  const label = activeCount === 0 ? 'BA' : `BA (${activeCount})`;
-
-  const toggleClass =
-    activeCount > 0 ? `${styles.toggle} ${styles.toggleActive}` : styles.toggle;
-
-  const getCritClass = (crit: string): string => {
-    if (crit === 'P1') return `${styles.criticality} ${styles.critP1}`;
-    if (crit === 'P2') return `${styles.criticality} ${styles.critP2}`;
-    return `${styles.criticality} ${styles.critP3}`;
-  };
 
   return (
-    <div className={styles.container}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-pressed={activeCount > 0}
-        className={toggleClass}
-        title="Filtrer les noeuds par Business Application"
+    <div className="map-overlay">
+      <div
+        style={{
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: 0.5,
+          color: 'var(--ink-3)',
+          textTransform: 'uppercase',
+          marginBottom: 6,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
       >
-        {activeCount > 0 ? `✓ ${label}` : `Filtre ${label}`}
-      </button>
-      {open ? (
-        <div className={styles.dropdown}>
-          <div className={styles.header}>
-            <h4 className={styles.headerTitle}>Business Applications</h4>
-            {activeCount > 0 ? (
-              <button
-                type="button"
-                onClick={() => clearBaFilter()}
-                className={styles.resetLink}
+        <span>Filtre BA {activeCount > 0 ? `(${activeCount})` : ''}</span>
+        {activeCount > 0 && (
+          <button
+            type="button"
+            onClick={() => clearBaFilter()}
+            className="btn btn--ghost btn--sm"
+            style={{ height: 22, padding: '0 8px', fontSize: 10 }}
+          >
+            Réinitialiser
+          </button>
+        )}
+      </div>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 4,
+          maxHeight: 180,
+          overflow: 'auto',
+        }}
+        className="scroll"
+      >
+        {bas.map((ba) => {
+          const isOn = selectedBaCodes.includes(ba.code);
+          return (
+            <label
+              key={ba.code}
+              className="check"
+              style={{
+                fontSize: 12,
+                color: isOn ? 'var(--ink-0)' : 'var(--ink-2)',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isOn}
+                onChange={() => toggleBaFilter(ba.code)}
+                aria-label={`Filtrer ${ba.code}`}
+              />
+              <span className="box" />
+              <span className="mono" style={{ flex: 1 }}>
+                {ba.code}
+              </span>
+              <span
+                className="badge"
+                style={{
+                  marginLeft: 'auto',
+                  padding: '0 6px',
+                  fontSize: 9,
+                  background:
+                    ba.criticality === 'P1'
+                      ? 'rgba(231,76,76,0.15)'
+                      : ba.criticality === 'P2'
+                        ? 'rgba(230,162,60,0.15)'
+                        : 'rgba(110,133,145,0.15)',
+                  color:
+                    ba.criticality === 'P1'
+                      ? 'var(--err)'
+                      : ba.criticality === 'P2'
+                        ? 'var(--warn)'
+                        : 'var(--ink-3)',
+                  borderColor: 'transparent',
+                }}
               >
-                Réinitialiser
-              </button>
-            ) : null}
-          </div>
-          <ul className={styles.list}>
-            {bas.map((ba) => {
-              const isOn = selectedBaCodes.includes(ba.code);
-              const itemClass = isOn
-                ? `${styles.item} ${styles.itemActive}`
-                : styles.item;
-              return (
-                <li key={ba.code}>
-                  <button
-                    type="button"
-                    onClick={() => toggleBaFilter(ba.code)}
-                    aria-pressed={isOn}
-                    className={itemClass}
-                  >
-                    <span className={styles.code}>{ba.code}</span>
-                    <span className={getCritClass(ba.criticality)}>{ba.criticality}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
+                {ba.criticality}
+              </span>
+            </label>
+          );
+        })}
+      </div>
     </div>
   );
 }

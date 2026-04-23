@@ -5,8 +5,13 @@ import { useMapData } from './useMapData.js';
 import { NodeMarker } from './NodeMarker.js';
 import { EdgePath } from './EdgePath.js';
 import { HomeCdOverlay } from './HomeCdOverlay.js';
-import { BaFilter } from './BaFilter.js';
-import styles from './NetworkMap.module.scss';
+
+const TILE_URL =
+  (import.meta.env.VITE_TILE_URL as string | undefined) ??
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+
+const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export function NetworkMap(): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -15,8 +20,8 @@ export function NetworkMap(): JSX.Element {
   const selectNodeStore = useAppStore((s) => s.selectNode);
   const selectEdgeStore = useAppStore((s) => s.selectEdge);
   const showHomeCdOverlay = useAppStore((s) => s.showHomeCdOverlay);
-  const toggleHomeCdOverlay = useAppStore((s) => s.toggleHomeCdOverlay);
   const selectedBaCodes = useAppStore((s) => s.selectedBaCodes);
+
   const selectNode = useCallback(
     (eic: string | null) => selectNodeStore(eic),
     [selectNodeStore],
@@ -25,6 +30,7 @@ export function NetworkMap(): JSX.Element {
     (id: string | null) => selectEdgeStore(id),
     [selectEdgeStore],
   );
+
   const { nodes, edges, bounds } = useMapData(graph, selectedBaCodes);
   const nodesById = useMemo(() => new Map(nodes.map((n) => [n.eic, n])), [nodes]);
 
@@ -32,62 +38,50 @@ export function NetworkMap(): JSX.Element {
     ? [(bounds.north + bounds.south) / 2, (bounds.east + bounds.west) / 2]
     : [50, 5];
 
-  const toggleClass = showHomeCdOverlay
-    ? `${styles.toggle} ${styles.toggleActive}`
-    : styles.toggle;
-
   return (
-    <div className={styles.container}>
-      <MapContainer
-        center={center}
-        zoom={4}
-        bounds={
-          bounds
-            ? [
-                [bounds.south, bounds.west],
-                [bounds.north, bounds.east],
-              ]
-            : undefined
-        }
-        style={{ height: '100%', width: '100%' }}
-      >
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <HomeCdOverlay
+    <MapContainer
+      center={center}
+      zoom={4}
+      bounds={
+        bounds
+          ? [
+              [bounds.south, bounds.west],
+              [bounds.north, bounds.east],
+            ]
+          : undefined
+      }
+      zoomControl
+      attributionControl={false}
+      style={{ height: '100%', width: '100%', background: 'var(--dark-0)' }}
+    >
+      <TileLayer
+        attribution={TILE_ATTRIBUTION}
+        url={TILE_URL}
+        subdomains="abcd"
+        maxZoom={19}
+      />
+      <HomeCdOverlay
+        nodes={nodesById}
+        visible={showHomeCdOverlay}
+        selectedNodeEic={selectedNodeEic}
+      />
+      {edges.map((edge) => (
+        <EdgePath
+          key={edge.id}
+          edge={edge}
           nodes={nodesById}
-          visible={showHomeCdOverlay}
-          selectedNodeEic={selectedNodeEic}
+          selected={selectedEdgeId === edge.id}
+          onSelect={selectEdge}
         />
-        {edges.map((edge) => (
-          <EdgePath
-            key={edge.id}
-            edge={edge}
-            nodes={nodesById}
-            selected={selectedEdgeId === edge.id}
-            onSelect={selectEdge}
-          />
-        ))}
-        {nodes.map((node) => (
-          <NodeMarker
-            key={node.eic}
-            node={node}
-            selected={selectedNodeEic === node.eic}
-            onSelect={selectNode}
-          />
-        ))}
-      </MapContainer>
-      <button
-        type="button"
-        onClick={toggleHomeCdOverlay}
-        aria-pressed={showHomeCdOverlay}
-        className={toggleClass}
-        title="Afficher les liens endpoint → home CD"
-      >
-        {showHomeCdOverlay ? '✓ Hiérarchie CD' : 'Hiérarchie CD'}
-      </button>
-      <BaFilter graph={graph} />
-    </div>
+      ))}
+      {nodes.map((node) => (
+        <NodeMarker
+          key={node.eic}
+          node={node}
+          selected={selectedNodeEic === node.eic}
+          onSelect={selectNode}
+        />
+      ))}
+    </MapContainer>
   );
 }

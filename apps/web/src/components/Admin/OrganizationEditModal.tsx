@@ -2,7 +2,27 @@ import { useState } from 'react';
 import type { OrganizationEntryRow, OrganizationUpsertInput } from '@carto-ecp/shared';
 import { ORGANIZATION_TYPE_HINTS } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
-import styles from './OrganizationEditModal.module.scss';
+
+const CloseIcon = (): JSX.Element => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.5"
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M4 4l8 8M12 4l-8 8" />
+  </svg>
+);
+
+const COUNTRIES = [
+  'AL', 'AT', 'BE', 'BG', 'CH', 'CZ', 'DE', 'DK', 'EE', 'ES', 'FI', 'FR',
+  'GB', 'GR', 'HR', 'IE', 'IS', 'IT', 'LT', 'LU', 'LV', 'ME', 'MK', 'NL',
+  'NO', 'PL', 'PT', 'RO', 'RS', 'SE', 'SI', 'SK', 'TR',
+];
 
 type Props = {
   entry: OrganizationEntryRow | null;
@@ -122,174 +142,223 @@ export function OrganizationEditModal({
   };
 
   return (
-    <div className={styles.backdrop}>
-      <div className={styles.modal}>
-        <h3 className={styles.title}>
-          {isEdit ? "Modifier l'organisation" : 'Nouvelle organisation'}
-        </h3>
-        <p className={styles.intro}>
-          Le pays et l'adresse sont utilisés par la cascade d'enrichissement pour placer les
-          composants de cette organisation sur la carte.
-        </p>
+    <div className="modal-backdrop" role="dialog" aria-modal="true">
+      <div className="modal modal--lg">
+        <div className="modal__head">
+          <div>
+            <div className="modal__kicker">
+              {isEdit ? 'Édition' : 'Création'} · Organisation
+            </div>
+            <h3>{isEdit ? form.displayName || 'Sans nom' : 'Nouvelle organisation'}</h3>
+          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onClose}
+            aria-label="Fermer"
+          >
+            <CloseIcon />
+          </button>
+        </div>
 
-        {error ? (
-          <p className={styles.alertError} role="alert">
-            {error}
-          </p>
-        ) : null}
+        <div className="modal__body">
+          <div className="banner banner--info" style={{ marginBottom: 16 }}>
+            <div className="banner__ico">i</div>
+            <div style={{ fontSize: 12 }}>
+              Le pays et l'adresse sont utilisés par la cascade d'enrichissement pour
+              placer les composants de cette organisation sur la carte.
+            </div>
+          </div>
 
-        <div className={styles.fields}>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>
-              Nom affiché <span className={styles.required}>*</span>
-            </span>
-            <input
-              type="text"
-              value={form.displayName}
-              onChange={(e) => setForm({ ...form, displayName: e.target.value })}
-              placeholder="Ex. Swissgrid AG"
-              className={styles.input}
-              required
-            />
-          </label>
+          {error !== null && (
+            <div className="banner banner--err" role="alert" style={{ marginBottom: 12 }}>
+              <div className="banner__ico">!</div>
+              <div>{error}</div>
+            </div>
+          )}
 
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Pays (ISO-2)</span>
-            <input
-              type="text"
-              list="country-iso2"
-              value={form.country}
-              onChange={(e) => setForm({ ...form, country: e.target.value.toUpperCase() })}
-              placeholder="FR / CH / DE"
-              maxLength={2}
-              className={`${styles.input} ${styles.countryInput}`}
-            />
-            <datalist id="country-iso2">
-              {['AL','AT','BE','BG','CH','CZ','DE','DK','EE','ES','FI','FR','GB','GR','HR','IE','IS','IT','LT','LU','LV','ME','MK','NL','NO','PL','PT','RO','RS','SE','SI','SK','TR'].map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
-          </label>
-
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Type</span>
-            <input
-              type="text"
-              list="type-hints"
-              value={form.typeHint}
-              onChange={(e) => setForm({ ...form, typeHint: e.target.value })}
-              placeholder="TSO / RCC / NEMO / …"
-              className={styles.input}
-            />
-            <datalist id="type-hints">
-              {ORGANIZATION_TYPE_HINTS.map((t) => (
-                <option key={t} value={t} />
-              ))}
-            </datalist>
-          </label>
-
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Adresse</span>
-            <textarea
-              rows={2}
-              value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
-              placeholder="Adresse libre (optionnelle)"
-              className={styles.input}
-            />
-          </label>
-
-          <div className={styles.grid2}>
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Latitude</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="org-name">
+                Nom affiché <span style={{ color: 'var(--err)' }}>*</span>
+              </label>
               <input
+                id="org-name"
+                type="text"
+                className="input"
+                value={form.displayName}
+                onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+                placeholder="Ex. Swissgrid AG"
+                required
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="org-country">Pays (ISO-2)</label>
+              <input
+                id="org-country"
+                type="text"
+                list="country-iso2"
+                className="input mono"
+                value={form.country}
+                onChange={(e) =>
+                  setForm({ ...form, country: e.target.value.toUpperCase() })
+                }
+                placeholder="FR / CH / DE"
+                maxLength={2}
+              />
+              <datalist id="country-iso2">
+                {COUNTRIES.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="field">
+              <label htmlFor="org-type">Type</label>
+              <input
+                id="org-type"
+                type="text"
+                list="type-hints"
+                className="input"
+                value={form.typeHint}
+                onChange={(e) => setForm({ ...form, typeHint: e.target.value })}
+                placeholder="TSO / RCC / NEMO / …"
+              />
+              <datalist id="type-hints">
+                {ORGANIZATION_TYPE_HINTS.map((t) => (
+                  <option key={t} value={t} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="org-address">Adresse</label>
+              <textarea
+                id="org-address"
+                rows={2}
+                className="input"
+                style={{ height: 'auto', padding: 8, lineHeight: 1.5 }}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                placeholder="Adresse libre (optionnelle)"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="org-lat">Latitude</label>
+              <input
+                id="org-lat"
                 type="number"
                 step="any"
+                className="input mono"
                 value={form.lat}
                 onChange={(e) => setForm({ ...form, lat: e.target.value })}
                 placeholder="-90 … 90"
-                className={styles.input}
               />
-            </label>
-            <label className={styles.field}>
-              <span className={styles.fieldLabel}>Longitude</span>
+            </div>
+
+            <div className="field">
+              <label htmlFor="org-lng">Longitude</label>
               <input
+                id="org-lng"
                 type="number"
                 step="any"
+                className="input mono"
                 value={form.lng}
                 onChange={(e) => setForm({ ...form, lng: e.target.value })}
                 placeholder="-180 … 180"
-                className={styles.input}
               />
-            </label>
-          </div>
-          <p className={styles.coordHint}>
-            Coords facultatives — utilisées pour placer les composants de l'organisation sur
-            la carte. Laissées vides, la cascade fallback sur le centre du pays.
-          </p>
-
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Notes</span>
-            <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              className={styles.input}
-            />
-          </label>
-
-          {isEdit && entry ? (
-            <div className={styles.metaBox}>
-              <div>
-                ID : <span className={styles.mono}>{entry.id}</span>
-              </div>
-              <div>
-                Nom normalisé :{' '}
-                <span className={styles.mono}>{entry.organizationName}</span>
-              </div>
-              <div>
-                seedVersion : {entry.seedVersion} · userEdited :{' '}
-                {entry.userEdited ? 'oui' : 'non'}
-              </div>
             </div>
-          ) : null}
+
+            <p
+              style={{
+                gridColumn: '1/-1',
+                color: 'var(--ink-3)',
+                fontSize: 11,
+                margin: 0,
+              }}
+            >
+              Coords facultatives — utilisées pour placer les composants de l'organisation.
+              Vides → fallback sur le centre du pays.
+            </p>
+
+            <div className="field" style={{ gridColumn: '1/-1' }}>
+              <label htmlFor="org-notes">Notes</label>
+              <textarea
+                id="org-notes"
+                rows={2}
+                className="input"
+                style={{ height: 'auto', padding: 8, lineHeight: 1.5 }}
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              />
+            </div>
+
+            {isEdit && entry && (
+              <div
+                style={{
+                  gridColumn: '1/-1',
+                  padding: 10,
+                  background: 'var(--dark-1)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border)',
+                  fontSize: 11,
+                  color: 'var(--ink-3)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                }}
+              >
+                <div>
+                  ID : <span className="mono">{entry.id}</span>
+                </div>
+                <div>
+                  Nom normalisé : <span className="mono">{entry.organizationName}</span>
+                </div>
+                <div>
+                  seedVersion : {entry.seedVersion} · userEdited :{' '}
+                  {entry.userEdited ? 'oui' : 'non'}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className={styles.actions}>
-          <div>
-            {isEdit ? (
-              <button
-                type="button"
-                onClick={() => {
-                  void handleDelete();
-                }}
-                disabled={saving}
-                className={styles.deleteButton}
-              >
-                Supprimer
-              </button>
-            ) : null}
-          </div>
-          <div className={styles.actionsRight}>
+        <div className="modal__foot">
+          {isEdit ? (
             <button
               type="button"
-              onClick={onClose}
-              disabled={saving}
-              className={styles.cancelButton}
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
+              className="btn btn--danger-outline"
               onClick={() => {
-                void handleSave();
+                void handleDelete();
               }}
               disabled={saving}
-              className={styles.saveButton}
             >
-              {saving ? 'Enregistrement…' : 'Enregistrer'}
+              Supprimer
             </button>
-          </div>
+          ) : (
+            <span />
+          )}
+          <div style={{ flex: 1 }} />
+          <button
+            type="button"
+            className="btn btn--outline"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => {
+              void handleSave();
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
         </div>
       </div>
     </div>

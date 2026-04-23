@@ -46,7 +46,7 @@ function makeGraph(): GraphResponse {
   };
 }
 
-describe('BaFilter', () => {
+describe('BaFilter (ADR-040 — panneau intégré dans MapOverlaysTopRight)', () => {
   beforeEach(() => {
     useAppStore.setState({ selectedBaCodes: [] });
     cleanup();
@@ -64,39 +64,27 @@ describe('BaFilter', () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it('affiche le bouton replie avec "Filtre BA" quand aucune BA selectionnee', () => {
+  it('liste toutes les BAs présentes triées par criticité (P1, P2, P3)', () => {
     render(<BaFilter graph={makeGraph()} />);
-    expect(screen.getByText('Filtre BA')).toBeInTheDocument();
+    const checkboxes = screen.getAllByRole('checkbox');
+    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes[0]!.getAttribute('aria-label')).toBe('Filtrer OCAPPI');
+    expect(checkboxes[1]!.getAttribute('aria-label')).toBe('Filtrer PLANET');
+    expect(checkboxes[2]!.getAttribute('aria-label')).toBe('Filtrer KIWI');
   });
 
-  it('ouvre le panneau et liste les BAs presentes dans le graph triees', () => {
+  it('clique sur une BA met à jour le store et le compteur', () => {
     render(<BaFilter graph={makeGraph()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Filtre BA/ }));
-    // OCAPPI (P1) avant PLANET (P2) avant KIWI (P3)
-    const buttons = screen.getAllByRole('button', { pressed: false });
-    // Le premier bouton est celui du toggle panneau (pressed false); on filtre sur ceux qui contiennent un code
-    const baButtons = buttons.filter((b) =>
-      ['OCAPPI', 'PLANET', 'KIWI'].some((c) => b.textContent?.includes(c)),
-    );
-    expect(baButtons[0]!.textContent).toContain('OCAPPI');
-    expect(baButtons[1]!.textContent).toContain('PLANET');
-    expect(baButtons[2]!.textContent).toContain('KIWI');
-  });
-
-  it('clique sur une BA met a jour le store et le label', () => {
-    render(<BaFilter graph={makeGraph()} />);
-    fireEvent.click(screen.getByRole('button', { name: /Filtre BA/ }));
-    fireEvent.click(screen.getByRole('button', { name: /OCAPPI/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Filtrer OCAPPI' }));
     expect(useAppStore.getState().selectedBaCodes).toEqual(['OCAPPI']);
-    // Le label du bouton principal devient "✓ BA (1)"
-    expect(screen.getByText(/✓ BA \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Filtre BA \(1\)/)).toBeInTheDocument();
   });
 
-  it('bouton Reinitialiser efface le filtre', () => {
+  it('le bouton Réinitialiser efface le filtre actif', () => {
     useAppStore.setState({ selectedBaCodes: ['OCAPPI', 'PLANET'] });
     render(<BaFilter graph={makeGraph()} />);
-    fireEvent.click(screen.getByText(/✓ BA \(2\)/));
-    fireEvent.click(screen.getByText('Réinitialiser'));
+    expect(screen.getByText(/Filtre BA \(2\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
     expect(useAppStore.getState().selectedBaCodes).toEqual([]);
   });
 });

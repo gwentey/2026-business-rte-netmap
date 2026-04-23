@@ -34,7 +34,7 @@ describe('TimelineSlider', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders "maintenant" label when refDate is null', () => {
+  it('renders "présent" label when refDate is null (ADR-040)', () => {
     useAppStore.setState({
       imports: [
         fakeImport('a', '2026-04-17T10:00:00.000Z'),
@@ -43,8 +43,10 @@ describe('TimelineSlider', () => {
       refDate: null,
     });
     render(<TimelineSlider />);
-    expect(screen.getByText(/maintenant/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Retour au présent/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText(/présent/i).length).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole('button', { name: /Retour au présent/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('renders formatted date label when refDate is set', () => {
@@ -56,7 +58,7 @@ describe('TimelineSlider', () => {
       refDate: new Date('2026-04-17T10:00:00.000Z'),
     });
     render(<TimelineSlider />);
-    expect(screen.queryByText(/maintenant/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^présent$/i)).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Retour au présent/i })).toBeInTheDocument();
   });
 

@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { buildNodeDivIcon, healthStatusFromLastSync } from './node-icon.js';
 
 describe('buildNodeDivIcon', () => {
-  it('embeds the correct kind, icon, and bg color for RTE_ENDPOINT', () => {
+  it('embeds the correct kind, icon, and bg color for RTE_ENDPOINT (vert ADR-040)', () => {
     const icon = buildNodeDivIcon('RTE_ENDPOINT', false, false);
     const html = (icon.options.html ?? '') as string;
     expect(html).toContain('data-kind="RTE_ENDPOINT"');
-    expect(html).toContain('#e30613');           // RTE red
+    expect(html).toContain('#2fb573');           // vert (ok) ADR-040
     expect(html).toContain('<svg');              // Lucide SVG present
     expect(html).not.toContain('⚠');             // No warning badge
     expect(html).not.toContain('box-shadow');    // No halo
@@ -16,7 +16,7 @@ describe('buildNodeDivIcon', () => {
     const icon = buildNodeDivIcon('RTE_ENDPOINT', true, false);
     const html = icon.options.html as string;
     expect(html).toContain('⚠');
-    expect(html).toContain('#f97316');  // Badge orange
+    expect(html).toContain('#e6a23c');  // Badge orange (warn ADR-040)
     expect(html).toContain('data-default="true"');
   });
 
@@ -27,17 +27,17 @@ describe('buildNodeDivIcon', () => {
     expect(html).toContain('data-selected="true"');
   });
 
-  it('uses correct config per kind', () => {
+  it('uses correct config per kind (palette ADR-040)', () => {
     const kinds: Array<[
       'RTE_ENDPOINT' | 'RTE_CD' | 'BROKER' | 'EXTERNAL_CD' | 'EXTERNAL_ENDPOINT',
       string,
       string,
     ]> = [
-      ['RTE_ENDPOINT', '#e30613', 'Endpoint RTE'],
-      ['RTE_CD', '#b91c1c', 'CD RTE'],
-      ['BROKER', '#111827', 'Broker'],
-      ['EXTERNAL_CD', '#1f2937', 'CD externe'],
-      ['EXTERNAL_ENDPOINT', '#6b7280', 'Endpoint externe'],
+      ['RTE_ENDPOINT', '#2fb573', 'Endpoint RTE'],
+      ['RTE_CD', '#00bded', 'CD RTE'],
+      ['BROKER', '#0f4a5e', 'Broker'],
+      ['EXTERNAL_CD', '#c38cf5', 'CD externe'],
+      ['EXTERNAL_ENDPOINT', '#6f8591', 'Endpoint externe'],
     ];
     for (const [kind, color, label] of kinds) {
       const icon = buildNodeDivIcon(kind, false, false);
@@ -47,22 +47,20 @@ describe('buildNodeDivIcon', () => {
     }
   });
 
-  it('renders a health badge in the top-right when status is known (slice 2n)', () => {
+  it('renders a health badge in the top-right when status is known (palette ADR-040)', () => {
     const now = Date.parse('2026-04-23T10:00:00Z');
     const iconHealthy = buildNodeDivIcon('RTE_ENDPOINT', false, false, 'healthy');
     const iconWarning = buildNodeDivIcon('RTE_ENDPOINT', false, false, 'warning');
     const iconStale = buildNodeDivIcon('RTE_ENDPOINT', false, false, 'stale');
     const iconUnknown = buildNodeDivIcon('RTE_ENDPOINT', false, false, 'unknown');
 
-    expect((iconHealthy.options.html as string)).toContain('#10b981');
     expect((iconHealthy.options.html as string)).toContain('data-health="healthy"');
-    expect((iconWarning.options.html as string)).toContain('#f59e0b');
-    expect((iconStale.options.html as string)).toContain('#dc2626');
+    expect((iconHealthy.options.html as string)).toMatch(/#2fb573|#2FB573/);
+    expect((iconWarning.options.html as string)).toMatch(/#e6a23c|#E6A23C/);
+    expect((iconStale.options.html as string)).toMatch(/#e74c4c|#E74C4C/);
     // unknown : pas de badge coloré
-    expect((iconUnknown.options.html as string)).not.toContain('#10b981');
-    expect((iconUnknown.options.html as string)).not.toContain('#f59e0b');
-    expect((iconUnknown.options.html as string)).not.toContain('#dc2626');
-    // Dummy use of `now` to keep TS happy in case the timestamps become useful
+    expect((iconUnknown.options.html as string)).toContain('data-health="unknown"');
+    expect((iconUnknown.options.html as string)).not.toContain('aria-label="Sync');
     expect(now).toBeGreaterThan(0);
   });
 });
