@@ -22,20 +22,32 @@ export function UploadPage(): JSX.Element {
   const [dropError, setDropError] = useState<string | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: {
-      'application/zip': ['.zip'],
-      // Les fichiers `<EIC>-configuration.properties` exportés par l'admin ECP
-      // sont acceptés en plus du zip : ils alimentent les champs projectName,
-      // envName, NAT, etc. du composant source.
-      'text/plain': ['.properties'],
-    },
+    // Pas de filtre MIME ici : l'extension `.properties` n'a pas de MIME
+    // standardisé (Windows la remonte en `application/octet-stream`,
+    // certains Linux en `text/plain`, certains navigateurs laissent vide).
+    // On filtre par **extension** dans onDrop pour garantir l'acceptation
+    // des `.properties` + `.zip` quel que soit le MIME remonté.
     maxSize: MAX_UPLOAD,
     multiple: true,
     maxFiles: MAX_FILES_PER_BATCH * 2,
     onDrop: (accepted) => {
       setDropError(null);
-      if (accepted.length > 0) {
-        void addBatchFiles(accepted);
+      const valid: File[] = [];
+      const rejected: string[] = [];
+      for (const f of accepted) {
+        if (/\.(zip|properties)$/i.test(f.name)) {
+          valid.push(f);
+        } else {
+          rejected.push(f.name);
+        }
+      }
+      if (rejected.length > 0) {
+        setDropError(
+          `Extension non supportée — attendu .zip ou .properties : ${rejected.join(', ')}`,
+        );
+      }
+      if (valid.length > 0) {
+        void addBatchFiles(valid);
       }
     },
     onDropRejected: (rejections) => {
