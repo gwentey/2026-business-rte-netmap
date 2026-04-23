@@ -43,6 +43,8 @@ La page carte est la vue principale de l'application. Elle affiche le réseau EC
 
 8. **La timeline permet une navigation historique.** Le slider de date de référence est affiché si l'env a >= 2 dates d'import distinctes.
 
+9. **Filtre « par Business Application » (Slice 3c).** Un bouton repliable en haut à gauche de la carte liste les BAs présentes dans le graph courant (triées P1 > P2 > P3 puis alpha). Toggler une BA masque les noeuds qui ne la portent pas et leurs interlocuteurs non concernés : on garde (a) les nodes RTE qui portent au moins une BA sélectionnée, (b) les nodes externes connectés à une ancre via une edge BUSINESS. Les edges PEERING ne créent pas de lien de voisinage pour le filtre. Multi-sélection = union des ancres. L'état est persisté via Zustand. Un bouton « Réinitialiser » remet à zéro.
+
 ---
 
 ## Cas d'usage

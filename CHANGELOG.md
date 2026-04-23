@@ -7,6 +7,36 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.3 — Slice 3c : filtre « par BA » sur la carte (2026-04-23)
+
+Dernière slice de la version 3.0 sur les Business Applications. La carte expose désormais un **filtre par BA** qui répond au cas d'usage MCO « analyse d'impact » (§10 du document fonctionnel) : sélectionner une ou plusieurs BAs pour ne voir que les endpoints qui les portent et leurs interlocuteurs directs.
+
+**Highlights :**
+
+- **Bouton repliable en haut à gauche de la carte** (à côté du toggle Hiérarchie CD). Affiche la liste des BAs présentes dans le graph courant, triées P1 > P2 > P3 puis code alpha. Chaque BA est une pastille toggleable.
+- **Logique de filtrage dans `filter-by-ba.ts`** — fonction pure testable : on garde les ancres (nodes RTE qui portent une des BAs sélectionnées) + les contacts connectés via une edge BUSINESS. Les edges PEERING ne comptent pas pour le voisinage (sinon on polluerait avec tous les CDs partenaires). Multi-BA = union des ancres.
+- **Store Zustand** : `selectedBaCodes`, `toggleBaFilter(code)`, `clearBaFilter()`. Persisté dans localStorage.
+- **Intégration dans `useMapData`** : le filtre est appliqué **avant** le clustering Paris, pour éviter de cluster visuellement des nodes masqués.
+- **`NetworkMap`** : ajout du composant `BaFilter`.
+
+**UX :**
+- Label dynamique : `Filtre BA` (neutre) → `✓ BA (N)` (violet, actif) dès qu'≥1 BA est sélectionnée.
+- Panneau replié par défaut, ouverture au clic.
+- Bouton « Réinitialiser » visible seulement si ≥1 BA sélectionnée.
+- Les badges de criticité sur chaque ligne du panneau reprennent la palette P1 rouge / P2 ambre / P3 gris (cohérent avec NodeDetails).
+
+**Tests :**
+- 12 nouveaux tests : 6 sur `filter-by-ba` (logique pure : vide, ancre seule, contacts, exclusion PEERING, multi-BA, edge filtrée si un endpoint masqué), 6 sur `BaFilter` (rendu conditionnel, liste triée, clic, Réinitialiser).
+- Total : **289 API + 132 web = 421 tests verts**.
+
+**Breaking changes :** aucun. Store Zustand étendu de manière additive.
+
+**Boucle fermée :** avec 3a (interlocuteurs), 3b (mapping BA) et 3c (filtre BA), le scénario « incident OCAPPI » du document fonctionnel §10.A est opérationnel :
+1. Sélectionner OCAPPI dans le filtre.
+2. La carte montre les 5 endpoints RTE concernés + leurs partenaires externes.
+3. Cliquer sur un endpoint → liste des BAs + liste des interlocuteurs avec direction et messageTypes.
+4. Cliquer sur un interlocuteur → navigation fluide.
+
 ### v3.0-alpha.2 — Slice 3b : mapping Business Applications ↔ endpoints (2026-04-23)
 
 Les 14 Business Applications RTE (OCAPPI, PLANET, CIA, NOVA, TACITE, PROPHYL, SMARDATA, RDM, KIWI, SRA, ECO2MIX, TOTEM, BOB, TOP NIVEAU) sont désormais **reliées aux endpoints qui les portent** et affichées en tête du panneau de détail. Répond à la question du user : « on arrive pas à reconnaitre qui sont les BA ».

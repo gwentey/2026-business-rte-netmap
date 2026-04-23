@@ -5,6 +5,7 @@ import { useMapData } from './useMapData.js';
 import { NodeMarker } from './NodeMarker.js';
 import { EdgePath } from './EdgePath.js';
 import { HomeCdOverlay } from './HomeCdOverlay.js';
+import { BaFilter } from './BaFilter.js';
 
 export function NetworkMap(): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -14,9 +15,10 @@ export function NetworkMap(): JSX.Element {
   const selectEdgeStore = useAppStore((s) => s.selectEdge);
   const showHomeCdOverlay = useAppStore((s) => s.showHomeCdOverlay);
   const toggleHomeCdOverlay = useAppStore((s) => s.toggleHomeCdOverlay);
+  const selectedBaCodes = useAppStore((s) => s.selectedBaCodes);
   const selectNode = useCallback((eic: string | null) => selectNodeStore(eic), [selectNodeStore]);
   const selectEdge = useCallback((id: string | null) => selectEdgeStore(id), [selectEdgeStore]);
-  const { nodes, edges, bounds } = useMapData(graph);
+  const { nodes, edges, bounds } = useMapData(graph, selectedBaCodes);
   const nodesById = useMemo(() => new Map(nodes.map((n) => [n.eic, n])), [nodes]);
 
   const center: [number, number] = bounds
@@ -67,6 +69,7 @@ export function NetworkMap(): JSX.Element {
       >
         {showHomeCdOverlay ? '✓ Hiérarchie CD' : 'Hiérarchie CD'}
       </button>
+      <BaFilter graph={graph} />
     </div>
   );
 }
