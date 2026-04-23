@@ -18,6 +18,18 @@ export type GraphNode = {
   projectName: string | null;
   envName: string | null;
   organization: string;
+  /** Contact ECP (depuis le XML MADES) — nom de la personne responsable. */
+  personName: string | null;
+  /** Contact ECP (depuis le XML MADES) — email. */
+  email: string | null;
+  /** Contact ECP (depuis le XML MADES) — téléphone au format international. */
+  phone: string | null;
+  /** EIC du Component Directory auquel ce composant est rattaché. */
+  homeCdCode: string | null;
+  /** `ecp.internal.status` (ex. "ACTIVE") si lu depuis un dump de ce composant. */
+  status: string | null;
+  /** `ecp.appTheme` (DEFAULT | BLUE | WHITE) si lu depuis un dump de ce composant. */
+  appTheme: string | null;
   country: string | null;
   lat: number;
   lng: number;

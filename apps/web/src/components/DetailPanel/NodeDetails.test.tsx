@@ -11,6 +11,12 @@ function baseNode(overrides: Partial<GraphNode> = {}): GraphNode {
     projectName: null,
     envName: 'PFRFI',
     organization: 'RTE',
+    personName: null,
+    email: null,
+    phone: null,
+    homeCdCode: null,
+    status: null,
+    appTheme: null,
     country: 'FR',
     lat: 48.89,
     lng: 2.34,
@@ -88,5 +94,42 @@ describe('NodeDetails', () => {
     render(<NodeDetails node={baseNode({ envName: 'PFRFI' })} />);
     expect(screen.getByText('Environnement')).toBeInTheDocument();
     expect(screen.getByText('PFRFI')).toBeInTheDocument();
+  });
+
+  it('renders Contact section with mailto and tel links when populated', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          personName: 'Jane Doe',
+          email: 'jane@rte-france.com',
+          phone: '0033612345678',
+        })}
+      />,
+    );
+    expect(screen.getByText('Contact')).toBeInTheDocument();
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument();
+    const mail = screen.getByRole('link', { name: 'jane@rte-france.com' });
+    expect(mail).toHaveAttribute('href', 'mailto:jane@rte-france.com');
+    const tel = screen.getByRole('link', { name: '0033612345678' });
+    expect(tel).toHaveAttribute('href', 'tel:0033612345678');
+  });
+
+  it('hides Contact section when all contact fields are null', () => {
+    render(<NodeDetails node={baseNode()} />);
+    expect(screen.queryByText('Contact')).not.toBeInTheDocument();
+  });
+
+  it('renders Config section with status badge when status is known', () => {
+    render(<NodeDetails node={baseNode({ status: 'ACTIVE', appTheme: 'WHITE' })} />);
+    expect(screen.getByText('Config ECP')).toBeInTheDocument();
+    expect(screen.getByText('ACTIVE')).toBeInTheDocument();
+    expect(screen.getByText('WHITE')).toBeInTheDocument();
+  });
+
+  it('renders homeCdCode as plain text when the CD is not in current env', () => {
+    render(<NodeDetails node={baseNode({ homeCdCode: '17V000002014106G' })} />);
+    expect(screen.getByText('17V000002014106G')).toBeInTheDocument();
+    // Pas de bouton tant que le CD node n'est pas dans le graph store
+    expect(screen.queryByRole('button', { name: /Aller à/ })).not.toBeInTheDocument();
   });
 });

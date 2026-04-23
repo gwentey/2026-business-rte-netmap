@@ -51,6 +51,7 @@ export class GraphService {
         importedComponents: { include: { urls: true } },
         importedPaths: true,
         importedStats: true,
+        importedProps: true,
       },
     });
 
@@ -89,6 +90,27 @@ export class GraphService {
     // envName est commun à tous les imports de cette requête (filtré en amont).
     // On le renvoie sur chaque GraphNode pour que le popup puisse l'afficher.
     const envNameForGraph = envName;
+
+    // Slice 2k : pour chaque Import dont sourceComponentEic == X, on collecte
+    // les propriétés runtime (ecp.internal.status, ecp.appTheme) et on les
+    // associe à l'EIC source. Strat latest-wins : le dernier import d'un EIC
+    // donné gagne (tri par effectiveDate asc, overwrite au fil).
+    const runtimePropsBySourceEic = new Map<
+      string,
+      { status: string | null; appTheme: string | null }
+    >();
+    for (const imp of imports) {
+      if (!imp.sourceComponentEic) continue;
+      const eic = imp.sourceComponentEic;
+      const byKey = new Map(imp.importedProps.map((p) => [p.key, p.value] as const));
+      const status = byKey.get('ecp.internal.status') ?? null;
+      const appTheme = byKey.get('ecp.appTheme') ?? null;
+      const prev = runtimePropsBySourceEic.get(eic) ?? { status: null, appTheme: null };
+      runtimePropsBySourceEic.set(eic, {
+        status: status ?? prev.status,
+        appTheme: appTheme ?? prev.appTheme,
+      });
+    }
 
     // 2. Cascade 5 niveaux (T13)
     const overrideByEic = new Map(overrides.map((o) => [o.eic, o]));
@@ -141,9 +163,13 @@ export class GraphService {
     const edges = this.buildEdges(Array.from(mergedPaths.values()), imports, rteEicSet);
 
     // 5. Nodes + bounds
-    const nodes: GraphNode[] = Array.from(globalComponents.values()).map((g) =>
-      this.toNode(g, rteEicSet, envNameForGraph),
-    );
+    const nodes: GraphNode[] = Array.from(globalComponents.values()).map((g) => {
+      const runtime = runtimePropsBySourceEic.get(g.eic) ?? {
+        status: null,
+        appTheme: null,
+      };
+      return this.toNode(g, rteEicSet, envNameForGraph, runtime);
+    });
 
     return {
       bounds: this.computeBounds(nodes),
@@ -153,7 +179,12 @@ export class GraphService {
     };
   }
 
-  private toNode(g: GlobalComponent, rteEicSet: Set<string>, envName: string): GraphNode {
+  private toNode(
+    g: GlobalComponent,
+    rteEicSet: Set<string>,
+    envName: string,
+    runtime: { status: string | null; appTheme: string | null },
+  ): GraphNode {
     return {
       id: g.eic,
       eic: g.eic,
@@ -162,6 +193,12 @@ export class GraphService {
       projectName: g.projectName,
       envName,
       organization: g.organization ?? '',
+      personName: g.personName,
+      email: g.email,
+      phone: g.phone,
+      homeCdCode: g.homeCdCode,
+      status: runtime.status,
+      appTheme: runtime.appTheme,
       country: g.country,
       lat: g.lat,
       lng: g.lng,

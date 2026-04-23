@@ -7,6 +7,26 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.12 — Slice 2k Contacts, homeCdCode cliquable, Config ECP dans le popup (2026-04-23)
+
+Le popup nœud de la carte expose désormais toutes les métadonnées humaines déjà parsées depuis le XML MADES et les dumps ECP : **contact** (personne responsable, email avec `mailto:`, téléphone avec `tel:`), **home CD** cliquable qui recentre la sélection sur le Component Directory parent, **config ECP** (statut `ACTIVE`, thème UI) lue depuis les `application_property.csv` / `.properties` du composant source.
+
+**Highlights :**
+
+- **`GraphNode`** (shared) gagne 7 champs : `personName`, `email`, `phone`, `homeCdCode`, `status` (`ecp.internal.status`), `appTheme` (`ecp.appTheme`). Tous nullables pour rester tolérants aux dumps incomplets.
+- **`GraphService.toNode`** : peuple ces champs depuis le `GlobalComponent` (contacts + homeCdCode déjà en base depuis le XML) et depuis un nouveau `runtimePropsBySourceEic` construit à partir des `ImportedAppProperty`. Stratégie latest-wins : pour chaque EIC qui est `sourceComponentEic` d'au moins un Import, on récupère les dernières valeurs de `ecp.internal.status` et `ecp.appTheme`.
+- **`NodeDetails`** frontend :
+  - Ligne "Home CD" dans le tableau principal : EIC cliquable si le CD est un nœud du graph courant (clic → `selectNode(homeCdCode)`, recentre la carte sur le CD), texte plat + tooltip "CD pas présent dans l'env" sinon.
+  - Nouvelle section "Contact" visible si au moins un champ parmi `personName` / `email` / `phone` est renseigné. Liens `mailto:` et `tel:` automatiques.
+  - Nouvelle section "Config ECP" visible si `status` ou `appTheme` sont connus. Badge vert pour `ACTIVE`, grisé pour les autres statuts.
+- **Query Prisma** : `findMany` de `Import` inclut maintenant `importedProps` (nécessaire pour extraire status/appTheme à la volée).
+
+**Tests :**
+- API : **243/243** inchangés (le nouveau champ est nullable, les assertions existantes restent valides).
+- Web : 88 → **92/92** (+4 NodeDetails : section Contact rendue avec mailto/tel, section Contact masquée si vide, section Config avec badge ACTIVE, homeCdCode rendu comme texte plat quand CD absent).
+
+**Breaking changes :** aucun pour le contrat API — champs ajoutés non-obligatoires côté lecture (les clients qui typent `GraphNode` doivent intégrer les nouveaux champs, valeur `null` tolérée).
+
 ### v2.0-alpha.11 — Slice 2i Upload couplé zip + configuration.properties (2026-04-23)
 
 L'admin peut désormais uploader **zip + `<EIC>-configuration.properties` ensemble** sur `/upload`. Le `.properties` externe (exporté via `Admin ECP > Settings > Runtime Configuration > Export Configuration`) fournit les vraies valeurs courantes de configuration (`ecp.projectName`, `ecp.envName`, `ecp.natEnabled`, `ecp.appTheme`, URLs home CD, etc.) — elles écrasent les clés homonymes du CSV interne au zip. Un badge rouge ✗ / vert ✓ dans `/admin > Imports` signale les imports sans `.properties`.
