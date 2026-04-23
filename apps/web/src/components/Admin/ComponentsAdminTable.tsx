@@ -3,6 +3,7 @@ import type { AdminComponentRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { ComponentOverrideModal } from './ComponentOverrideModal.js';
 import { ComponentConfigModal } from './ComponentConfigModal.js';
+import { OrganizationEditModal } from './OrganizationEditModal.js';
 
 type Props = {
   autoOpenEic?: string | null;
@@ -17,6 +18,8 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   const [onlyOverridden, setOnlyOverridden] = useState(false);
   const [editing, setEditing] = useState<AdminComponentRow | null>(null);
   const [configEic, setConfigEic] = useState<string | null>(null);
+  /** Slice 3d : organisation à pré-remplir dans OrganizationEditModal. */
+  const [orgToCreate, setOrgToCreate] = useState<string | null>(null);
 
   const reload = async (): Promise<void> => {
     setLoading(true);
@@ -129,7 +132,24 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
               <td className="px-2 py-1 text-xs">{row.current.displayName}</td>
               <td className="px-2 py-1 text-xs">{row.current.type}</td>
               <td className="px-2 py-1 text-xs">{row.current.organization ?? '—'}</td>
-              <td className="px-2 py-1 text-xs">{row.current.country ?? '—'}</td>
+              <td className="px-2 py-1 text-xs">
+                {row.current.country ? (
+                  row.current.country
+                ) : row.current.organization ? (
+                  <button
+                    type="button"
+                    onClick={() => setOrgToCreate(row.current.organization)}
+                    className="inline-flex items-center gap-1 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 hover:bg-orange-200"
+                    title={`Pays manquant — cliquer pour ajouter « ${row.current.organization} » à la mémoire interne`}
+                  >
+                    ⚠ Manquant <span className="text-[9px]">[+]</span>
+                  </button>
+                ) : (
+                  <span className="text-orange-600" title="Pays et organisation inconnus">
+                    ⚠
+                  </span>
+                )}
+              </td>
               <td className="px-2 py-1 text-xs">
                 {row.current.isDefaultPosition ? (
                   <span className="text-orange-600">⚠ défaut</span>
@@ -183,6 +203,18 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
 
       {configEic !== null ? (
         <ComponentConfigModal eic={configEic} onClose={() => setConfigEic(null)} />
+      ) : null}
+
+      {orgToCreate !== null ? (
+        <OrganizationEditModal
+          entry={null}
+          prefillDisplayName={orgToCreate}
+          onClose={() => setOrgToCreate(null)}
+          onSaved={async () => {
+            setOrgToCreate(null);
+            await reload();
+          }}
+        />
       ) : null}
     </div>
   );

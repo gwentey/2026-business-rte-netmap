@@ -5,6 +5,7 @@ import { ComponentsAdminTable } from '../components/Admin/ComponentsAdminTable.j
 import { EntsoeAdminTab } from '../components/Admin/EntsoeAdminTab.js';
 import { DangerZoneTab } from '../components/Admin/DangerZoneTab.js';
 import { RegistryAdminTab } from '../components/Admin/RegistryAdminTab.js';
+import { OrganizationsAdminTab } from '../components/Admin/OrganizationsAdminTab.js';
 
 export function AdminPage(): JSX.Element {
   const [activeTab, setActiveTab] = useState<AdminTabId>('imports');
@@ -28,6 +29,7 @@ export function AdminPage(): JSX.Element {
               onAutoOpenHandled={() => setPendingComponentEic(null)}
             />
           ) : null}
+          {activeTab === 'organizations' ? <OrganizationsAdminTab /> : null}
           {activeTab === 'entsoe' ? <EntsoeAdminTab /> : null}
           {activeTab === 'registry' ? (
             <RegistryAdminTab onEditComponent={handleEditComponentFromRegistry} />

@@ -4,10 +4,11 @@ import { describe, expect, it, vi } from 'vitest';
 import { AdminTabs } from './AdminTabs.js';
 
 describe('AdminTabs', () => {
-  it('renders 5 tabs with Imports, Composants, ENTSO-E, Registry et Zone danger tous enabled', () => {
+  it('renders 6 tabs (Imports, Composants, Organisations, ENTSO-E, Registry, Zone danger) tous enabled', () => {
     render(<AdminTabs active="imports" onChange={() => {}} />);
     expect(screen.getByRole('button', { name: /Imports/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Composants/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /Organisations/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Annuaire ENTSO-E/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Registry RTE/i })).toBeEnabled();
     expect(screen.getByRole('button', { name: /Zone danger/i })).toBeEnabled();

@@ -1,10 +1,22 @@
-export type AdminTabId = 'imports' | 'components' | 'entsoe' | 'registry' | 'danger';
+export type AdminTabId =
+  | 'imports'
+  | 'components'
+  | 'organizations'
+  | 'entsoe'
+  | 'registry'
+  | 'danger';
 
 type TabDef = { id: AdminTabId; label: string; enabled: boolean; tooltip: string };
 
 const TABS: TabDef[] = [
   { id: 'imports', label: 'Imports', enabled: true, tooltip: '' },
   { id: 'components', label: 'Composants', enabled: true, tooltip: '' },
+  {
+    id: 'organizations',
+    label: 'Organisations',
+    enabled: true,
+    tooltip: 'Mémoire interne : mapping organisation → pays/adresse/type',
+  },
   { id: 'entsoe', label: 'Annuaire ENTSO-E', enabled: true, tooltip: '' },
   { id: 'registry', label: 'Registry RTE', enabled: true, tooltip: '' },
   { id: 'danger', label: '⚠ Zone danger', enabled: true, tooltip: '' },
