@@ -7,6 +7,46 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.7 — Slice 4b : couche components/ui/ + migration EnvSelector (2026-04-23)
+
+Crée la couche projet `apps/web/src/components/ui/` qui expose les composants UI utilisés dans carto-ecp : 37 ré-exports depuis `@design-system-rte/react` + 4 composants maison (Table, RangeSlider, ColorField, DateTimeField) pour les besoins non couverts par le DS. Migre EnvSelector comme premier consommateur de la couche. Aucune page métier touchée (Admin, Upload, Map restent pour 4c/4d/4e).
+
+**Highlights :**
+
+- **`components/ui/index.ts`** — barrel ré-exportant 37 composants DS : Accordion, Avatar, Badge, Banner, Breadcrumbs, Button, Card, Checkbox, CheckboxGroup, Chip, Divider, Drawer, FileUpload, Grid, Icon, IconButton, IconButtonToggle, `DsLink` (alias pour éviter collision avec `react-router-dom`), Loader, Modal, Popover, RadioButton, RadioButtonGroup, Searchbar, SegmentedControl, Select, SideNav, SplitButton, Stepper, Switch, Tab, Tag, Textarea, TextInput, Toast, ToastQueueProvider, Tooltip, Treeview.
+- **4 composants maison** — `Table/Table.tsx` (`<table>` stylé en CSS Module), `RangeSlider/RangeSlider.tsx` (`<input type="range">` avec label+valeur), `ColorField/ColorField.tsx` (`<input type="color">` avec hex visible), `DateTimeField/DateTimeField.tsx` (`<input type="datetime-local">` avec focus ring rouge RTE).
+- **EnvSelector migré** — passe de `<select>` Tailwind au `Select` DS RTE via `@/components/ui`. API `id` + `label` + `onChange(value)` + `options[{value, label}]`. `showLabel={false}` masque visuellement le label (a11y préservée).
+- **3 tests `.todo`** dans `EnvSelector.test.tsx` — les interactions `role=combobox` + `userEvent.selectOptions` ne fonctionnent plus car le DS Select rend un DOM custom (bouton + listbox). Le test fallback `Aucun env` reste actif. À réécrire en Slice 4b.2 ou en première slice admin.
+- **Convention d'import** — `import { X } from '@/components/ui'` partout dans `apps/web/src/components/` et `apps/web/src/pages/`. Imports directs depuis `@design-system-rte/react` interdits dans les fichiers consommateurs (ADR-038).
+- **ADR-038** écrit : couche `components/ui/` avec ré-exports barrel + 4 composants maison. Justifie le choix vs wrappers épais (overkill actuellement) ou imports directs sans abstraction (refactor coûteux plus tard).
+- **Specs Zelian** — `docs/specs/web/ds-rte-components-base/{spec-fonctionnel,spec-technique}.md` au format T6.
+
+**Tests :**
+- Web typecheck : OK
+- Web vitest : 143 verts + 3 `.todo` (3 tests d'interaction EnvSelector désactivés)
+- Web build : OK, `dist/assets/index-*.js` passe de 556 KB (Slice 4a) à **1486 KB** (Slice 4b) à cause du barrel — tree-shaking réduit. Acceptable en dev-local. À optimiser via imports sélectifs / code-splitting en slice dédiée si passage en prod.
+- API sanity : inchangé.
+
+**Breaking changes :** aucun fonctionnel. `EnvSelector` rend maintenant un DOM custom (DS Select) au lieu d'un `<select>` natif — les tests E2E Playwright `header select` resteront impactés (déjà pré-existants cassés depuis la Slice 4a).
+
+**Fichiers clés :**
+- `apps/web/src/components/ui/index.ts` (barrel 37 DS + 4 maison)
+- `apps/web/src/components/ui/Table/Table.{tsx,module.scss}`
+- `apps/web/src/components/ui/RangeSlider/RangeSlider.{tsx,module.scss}`
+- `apps/web/src/components/ui/ColorField/ColorField.{tsx,module.scss}`
+- `apps/web/src/components/ui/DateTimeField/DateTimeField.{tsx,module.scss}`
+- `apps/web/src/components/EnvSelector/EnvSelector.{tsx,module.scss}` (migré)
+- `apps/web/src/components/EnvSelector/EnvSelector.test.tsx` (3 `.todo`)
+- `docs/adr/ADR-038-components-ui-layer-wrappers-ds.md`
+- `docs/specs/web/ds-rte-components-base/{spec-fonctionnel,spec-technique}.md`
+
+**Décisions :**
+- Barrel `index.ts` (Option A d'ADR-038) plutôt que wrappers épais (Option C, overkill) ou imports directs sans abstraction (Option B, refactor coûteux plus tard). Trade-off assumé : bundle +1 MB en échange d'un point unique d'import.
+- `Link` du DS exporté sous alias `DsLink` pour éviter la collision avec `Link` de `react-router-dom` (utilisé pour la navigation).
+- Couleurs des 4 composants maison hardcodées en hex (`#e30613`, `#e5e7eb`, ...). Les tokens SCSS couleur du DS seront adoptés en slice future quand leur API publique sera clarifiée (cf. divergence `$font-family-nunito` notée en Slice 4a).
+
+---
+
 ### v3.0-alpha.6 — Slice 4a : adoption du Design System RTE (foundation) (2026-04-23)
 
 Installation des packages officiels `@design-system-rte/react@^1.8.0` + `@design-system-rte/core@^1.7.0` + `sass` (résolu à `^1.99.0`). Retrait de Tailwind CSS, PostCSS, autoprefixer, et des 7 dépendances UI mortes (`@radix-ui/react-{dialog,slot,tabs,tooltip}`, `class-variance-authority`, `clsx`, `tailwind-merge`). Mise en place du pipeline SCSS + CSS Modules + tokens DS. Police officielle Nunito chargée (4 poids : 300/400/600/700) via `apps/web/public/fonts/`.
