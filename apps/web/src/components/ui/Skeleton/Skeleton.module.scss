@@ -1,0 +1,70 @@
+@use "@/styles/brand" as *;
+
+// Shimmer animation — mouvement horizontal d'un gradient clair
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.base {
+  display: block;
+  background-color: var(--c-surface-sunken);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .base {
+    animation: none;
+    background-image: none;
+  }
+}
+
+// Variants
+
+.text {
+  height: 14px;
+  width: 100%;
+}
+
+.title {
+  height: 24px;
+  width: 60%;
+  border-radius: var(--r-sm);
+}
+
+.card {
+  height: 120px;
+  width: 100%;
+  border-radius: var(--r-md);
+}
+
+.circle {
+  height: 40px;
+  width: 40px;
+  border-radius: var(--r-pill);
+}
+
+.rect {
+  height: 100%;
+  width: 100%;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

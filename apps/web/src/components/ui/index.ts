@@ -1,8 +1,8 @@
 // Couche projet — expose les composants UI utilisés dans carto-ecp.
 // Ré-exporte les composants du Design System RTE officiel
 // (@design-system-rte/react@^1.8.0) pour importer via @/components/ui
-// et ajoute 4 composants maison pour les besoins non couverts par le DS
-// (Table, RangeSlider, ColorField, DateTimeField).
+// et ajoute 6 composants maison pour les besoins non couverts par le DS
+// (Table, RangeSlider, ColorField, DateTimeField, Skeleton, EmptyState).
 
 export {
   Accordion,
@@ -50,3 +50,5 @@ export { Table } from './Table/Table.js';
 export { RangeSlider } from './RangeSlider/RangeSlider.js';
 export { ColorField } from './ColorField/ColorField.js';
 export { DateTimeField } from './DateTimeField/DateTimeField.js';
+export { Skeleton, type SkeletonVariant } from './Skeleton/Skeleton.js';
+export { EmptyState } from './EmptyState/EmptyState.js';
