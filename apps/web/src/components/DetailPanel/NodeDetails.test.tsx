@@ -22,6 +22,7 @@ function baseNode(overrides: Partial<GraphNode> = {}): GraphNode {
     receivedMessages: null,
     uploadTargets: [],
     interlocutors: [],
+    businessApplications: [],
     country: 'FR',
     lat: 48.89,
     lng: 2.34,

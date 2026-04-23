@@ -23,7 +23,18 @@ export type RteOverlay = {
   version: string;
   rteEndpoints: RteEndpointOverlay[];
   rteComponentDirectory: { eic: string; displayName: string; lat: number; lng: number };
-  rteBusinessApplications: { code: string; criticality: string }[];
+  rteBusinessApplications: {
+    code: string;
+    criticality: string;
+    /**
+     * EICs des endpoints RTE qui portent cette BA. Mapping statique
+     * maintenu par MCO via PR git sur ce fichier. Slice 3b : utilisé par
+     * RegistryService.resolveBusinessApplications pour renseigner
+     * GraphNode.businessApplications. Source de vérité métier :
+     * carto-ecp-document-fonctionnel-v1.2.md §5bis.
+     */
+    endpoints: string[];
+  }[];
   organizationGeocode: Record<string, { lat: number; lng: number; country: string }>;
   countryGeocode: Record<string, { lat: number; lng: number; label?: string }>;
   messageTypeClassification: {
