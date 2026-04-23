@@ -19,7 +19,7 @@
   padding: 0 var(--layout-page-px);
   background: var(--c-surface-dark);
   color: var(--c-text-inverse);
-  border-bottom: 1px solid rgba(0, 189, 237, 0.12);
+  border-bottom: 1px solid var(--c-primary-divider);
   gap: 16px;
 
   @media (max-width: 640px) {

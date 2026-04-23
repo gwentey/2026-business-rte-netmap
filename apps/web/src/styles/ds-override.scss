@@ -1,6 +1,6 @@
 // =============================================================================
 // ds-override.scss — Surcharge des CSS custom properties du DS RTE
-// Remappe les tokens du DS corporate (rouge #C8102E) vers la charte app
+// Remappe les tokens du DS corporate (rouge officiel) vers la charte app
 // web/marketing (cyan). Appliqué après @import '@design-system-rte/react/style.css'.
 // Voir ADR-039. Liste des vars consommées par le DS extraite depuis
 // node_modules/@design-system-rte/react/dist/style.css (grep 'var(--[a-z-]+').
@@ -38,10 +38,10 @@
 
   // ---------- Statuts sémantiques (seulement error utilise la charte rouge)-
   --background-danger-default: var(--c-error);
-  --background-danger-hover: #9a211a;
-  --background-danger-pressed: #821c16;
+  --background-danger-hover: var(--c-error-hover);
+  --background-danger-pressed: var(--c-error-pressed);
   --background-info-default: var(--c-primary-soft);
-  --background-success-default: rgba(12, 57, 73, 0.08);
+  --background-success-default: var(--c-surface-deep-soft);
   --background-warning-default: rgba(16, 24, 29, 0.06);
 
   // ---------- Borders brand -------------------------------------------------

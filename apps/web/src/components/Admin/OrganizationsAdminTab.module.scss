@@ -47,7 +47,7 @@
   padding: 12px 14px;
   background: var(--c-primary-soft);
   color: var(--c-primary-pressed);
-  border: 1px solid rgba(0, 189, 237, 0.2);
+  border: 1px solid var(--c-primary-border-soft);
   border-radius: var(--r-md);
   @include t-small;
 

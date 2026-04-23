@@ -189,7 +189,7 @@
 .healthFresh {
   background: var(--c-primary-soft);
   color: var(--c-primary-pressed);
-  border: 1px solid rgba(0, 189, 237, 0.2);
+  border: 1px solid var(--c-primary-border-soft);
 }
 
 .healthWarning {
@@ -256,7 +256,7 @@
 }
 
 .baP2 {
-  background: rgba(12, 57, 73, 0.08);
+  background: var(--c-surface-deep-soft);
   border-color: var(--c-surface-deep);
   color: var(--c-surface-deep);
 }
@@ -283,7 +283,7 @@
 .syncTwoWay {
   background: var(--c-primary-soft);
   color: var(--c-primary-pressed);
-  border: 1px solid rgba(0, 189, 237, 0.2);
+  border: 1px solid var(--c-primary-border-soft);
 }
 
 .syncOneWay {

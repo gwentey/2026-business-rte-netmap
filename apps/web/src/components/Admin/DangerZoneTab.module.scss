@@ -43,7 +43,7 @@
 .actionLabel {
   margin: 0 0 6px;
   @include t-body-strong;
-  color: #821c16;
+  color: var(--c-error-pressed);
 }
 
 .actionDescription {

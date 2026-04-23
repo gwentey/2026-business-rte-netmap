@@ -1,0 +1,72 @@
+@use "@/styles/brand" as *;
+
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--c-surface-sunken);
+  border-radius: var(--r-md);
+  color: var(--c-text);
+}
+
+.sizeSm {
+  padding: 24px 16px;
+  gap: 12px;
+}
+
+.sizeMd {
+  padding: 48px 24px;
+}
+
+.sizeLg {
+  padding: 72px 32px;
+  gap: 20px;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--c-primary);
+  opacity: 0.9;
+}
+
+.sizeSm .icon {
+  width: 32px;
+  height: 32px;
+}
+
+.sizeLg .icon {
+  width: 64px;
+  height: 64px;
+}
+
+.title {
+  margin: 0;
+  @include t-h2;
+  color: var(--c-text);
+  max-width: 520px;
+}
+
+.sizeSm .title {
+  @include t-h3;
+}
+
+.description {
+  margin: 0;
+  @include t-body;
+  color: var(--c-text-muted);
+  max-width: 420px;
+}
+
+.action {
+  margin-top: 4px;
+  display: flex;
+  gap: 12px;
+}
