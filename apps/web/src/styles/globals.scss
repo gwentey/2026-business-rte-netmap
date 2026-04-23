@@ -1,14 +1,25 @@
+// =============================================================================
+// globals.scss — Orchestration des styles globaux
+// Ordre critique — chaque import surcharge le précédent :
+//   1. brand.scss       → tokens app (CSS vars --c-*, mixins typo)
+//   2. ds-override.scss → surcharge des CSS vars du DS RTE
+//   3. reset.scss       → reset moderne + focus-visible
+// =============================================================================
+
+@use 'brand';
+@use 'ds-override';
+@use 'reset';
+
+// App-level layout
 html,
 body,
 #root {
   height: 100%;
-  margin: 0;
-  font-family: "Nunito", sans-serif;
 }
 
-// Markers Carto ECP (conservé depuis globals.css) — neutralise le fond/bordure
-// par défaut de .leaflet-div-icon pour laisser visible le cercle coloré de
-// buildNodeDivIcon (apps/web/src/components/Map/node-icon.tsx).
+// Markers Carto ECP — neutralise le fond/bordure par défaut de .leaflet-div-icon
+// pour laisser visible le cercle coloré de buildNodeDivIcon
+// (apps/web/src/components/Map/node-icon.tsx).
 .leaflet-div-icon.carto-node-marker {
   background: transparent;
   border: none;
