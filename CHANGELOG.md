@@ -7,6 +7,56 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.6 — Slice 4a : adoption du Design System RTE (foundation) (2026-04-23)
+
+Installation des packages officiels `@design-system-rte/react@^1.8.0` + `@design-system-rte/core@^1.7.0` + `sass` (résolu à `^1.99.0`). Retrait de Tailwind CSS, PostCSS, autoprefixer, et des 7 dépendances UI mortes (`@radix-ui/react-{dialog,slot,tabs,tooltip}`, `class-variance-authority`, `clsx`, `tailwind-merge`). Mise en place du pipeline SCSS + CSS Modules + tokens DS. Police officielle Nunito chargée (4 poids : 300/400/600/700) via `apps/web/public/fonts/`.
+
+**Highlights :**
+
+- **Packages DS RTE installés** — `@design-system-rte/react` fournit 41 composants React (Button, TextInput, Modal, Tab, Badge, Drawer, FileUpload, ...). `@design-system-rte/core` fournit les tokens SCSS (spacing 0→80px, radius none→pill, typography Nunito/Arial, elevation 1→6, opacity, layout) et les icônes SVG Material-like. Apache-2.0.
+- **Tailwind retiré totalement** — `tailwind.config.ts` et `postcss.config.cjs` supprimés. `tailwindcss`, `postcss`, `autoprefixer` retirés des devDependencies. Les classes `className="bg-rte p-4..."` dans les ~40 composants métier deviennent inertes — elles seront remplacées slice par slice en 4c/4d/4e.
+- **Deps UI mortes purgées** — les 4 packages Radix UI, CVA, clsx et tailwind-merge ne sont jamais importés dans `apps/web/src/` (confirmé par grep). Retrait sans risque. 80 packages transitifs nettoyés au total (10 directes + transitives).
+- **Pipeline SCSS** — `apps/web/src/styles/tokens.scss` (`@forward '@design-system-rte/core/design-tokens/main'`) + `apps/web/src/styles/fonts.scss` (4 `@font-face` Nunito) + `apps/web/src/styles/globals.scss` (remplace `globals.css`). Auto-import des tokens dans chaque `*.module.scss` via `vite.config.ts` `css.preprocessorOptions.scss.additionalData` (fonction excluant `tokens.scss` et `fonts.scss` pour éviter auto-référence Sass).
+- **Police Nunito** — 4 fichiers WOFF2 (`nunito-{light-300,regular-400,semi-bold-600,bold-700}.woff2`) copiés dans `apps/web/public/fonts/` depuis `node_modules/@design-system-rte/core/assets/fonts/`. Servis statiquement par Vite en dev et prod. `font-display: swap` partout.
+- **main.tsx** — ordre des imports CSS : DS RTE → Leaflet → fonts → globals.
+- **globals.scss** — le token `$font-family-nunito` attendu dans le plan initial n'existe pas dans l'API publique du DS (seuls les tokens composés type `$heading-m-semibold-font-family` sont exposés). Utilisation du string literal `font-family: "Nunito", sans-serif` à la place. À reprendre en Slice 4b via les tokens composés appropriés.
+- **Régression visuelle temporaire assumée** — le site reste fonctionnel (routing, upload, map, admin tous accessibles) mais visuellement dégradé. L'esthétique remonte progressivement à partir de Slice 4b quand la couche `components/ui/` prendra le relais.
+- **Aucun composant métier touché** — scope strict foundation. Les Slices 4b à 4e migreront les composants et pages.
+
+**Tests :**
+- Web typecheck : OK.
+- Web vitest : 146 tests verts (26 fichiers).
+- Web build : OK, 4 WOFF2 dans `dist/fonts/`.
+- API sanity : 313 tests verts (37 fichiers).
+- Web Playwright e2e : **1/7 specs vertes** (`empty-state.spec.ts`). Les 6 autres échecs sont **pré-existants** et non introduits par cette slice :
+  * `multi-upload.spec.ts` : SyntaxError template literal (Playwright `^1.48.0` résolu en 1.59.1, incompatibilité avec `import.meta.url` en mode CommonJS du `tsconfig.playwright.json`).
+  * 5 autres specs (`env-switch`, `select-node`, `snapshot-switch`, `upload-then-map`, `upload-to-map`) : sélecteurs obsolètes (`getByPlaceholder(/hebdo/)`, `ex: Semaine 15 RTE`) — l'UploadPage a évolué après les dernières updates de specs.
+  * Notre slice a **amélioré** le comportement : avant, 0 spec ne démarrait (WebServer crash, lockfile désync `tailwindcss not found`) ; après, 1 spec passe.
+  * Correction hors scope 4a — à traiter en slice dédiée `fix/playwright-regression` (upgrade tsconfig + refresh sélecteurs).
+
+**Breaking changes :** aucun côté fonctionnel. Changement d'infrastructure de build uniquement.
+
+**Fichiers clés :**
+- `apps/web/package.json` (deps diff)
+- `apps/web/vite.config.ts` (css.preprocessorOptions.scss)
+- `apps/web/src/main.tsx` (4 imports CSS/SCSS)
+- `apps/web/src/styles/tokens.scss` / `fonts.scss` / `globals.scss` (créés)
+- `apps/web/public/fonts/nunito-{light-300,regular-400,semi-bold-600,bold-700}.woff2` (ajoutés)
+- `docs/adr/ADR-037-adoption-design-system-rte.md` *(à rédiger en MT-H)*
+- `docs/specs/web/ds-rte-foundation/{spec-fonctionnel,spec-technique}.md` *(à rédiger en MT-I)*
+- `apps/web/tailwind.config.ts` (supprimé)
+- `apps/web/postcss.config.cjs` (supprimé)
+- `apps/web/src/styles/globals.css` (supprimé, remplacé par `.scss`)
+
+**Décisions :**
+- Tailwind retiré en une fois (pas de coexistence Tailwind+DS). ADR-037 tranche.
+- SCSS + CSS Modules au lieu de Tailwind étendu avec tokens DS : aligné avec la structure du DS core (SCSS natif).
+- Nunito servi depuis `apps/web/public/fonts/` (chemin custom `/fonts/`) plutôt que `/assets/fonts/` attendu par le DS : on prend le contrôle du serving, les `@font-face` de notre `fonts.scss` gagnent.
+- Incohérence `#e30613` vs `#C8102E` non corrigée dans cette slice (aucune règle CSS métier touchée). Sera tranchée par la valeur du token `$color-brand-primary` du DS en Slice 4e.
+- Les régressions Playwright pré-existantes (Playwright 1.48→1.59 incompatibility + sélecteurs UI obsolètes) sont constatées mais non corrigées dans cette slice : hors scope foundation. Slice séparée à ouvrir.
+
+---
+
 ### v3.0-alpha.5 — Slice 3d+ : coordonnées GPS dans la mémoire interne (2026-04-23)
 
 Extension de la Slice 3d : la mémoire interne stocke désormais aussi `lat` et `lng` optionnels, éditables via le modal admin et exportables/importables dans le JSON. Les coords sont injectées dans la cascade **entre `overlay.organizationGeocode` (MCO-statique) et `overlay.countryGeocode` (fallback par pays)**, permettant à l'utilisateur de placer avec précision une organisation inconnue du MCO sans toucher au code.
