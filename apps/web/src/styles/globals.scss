@@ -1,0 +1,15 @@
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  font-family: "Nunito", sans-serif;
+}
+
+// Markers Carto ECP (conservé depuis globals.css) — neutralise le fond/bordure
+// par défaut de .leaflet-div-icon pour laisser visible le cercle coloré de
+// buildNodeDivIcon (apps/web/src/components/Map/node-icon.tsx).
+.leaflet-div-icon.carto-node-marker {
+  background: transparent;
+  border: none;
+}

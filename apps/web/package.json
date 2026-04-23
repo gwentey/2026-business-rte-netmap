@@ -14,6 +14,8 @@
   },
   "dependencies": {
     "@carto-ecp/shared": "workspace:*",
+    "@design-system-rte/core": "^1.7.0",
+    "@design-system-rte/react": "^1.8.0",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.0",
     "@radix-ui/react-tabs": "^1.1.1",
@@ -51,6 +53,7 @@
     "globals": "^15.15.0",
     "happy-dom": "^15.11.7",
     "postcss": "^8.4.47",
+    "sass": "^1.99.0",
     "tailwindcss": "^3.4.13",
     "typescript": "^5.5.4",
     "typescript-eslint": "^8.58.2",
