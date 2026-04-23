@@ -1,4 +1,6 @@
+import { Select } from '@/components/ui';
 import { useAppStore } from '../../store/app-store.js';
+import styles from './EnvSelector.module.scss';
 
 export function EnvSelector(): JSX.Element {
   const envs = useAppStore((s) => s.envs);
@@ -6,18 +8,19 @@ export function EnvSelector(): JSX.Element {
   const setActiveEnv = useAppStore((s) => s.setActiveEnv);
 
   if (envs.length === 0) {
-    return <span className="text-sm text-gray-500">Aucun env</span>;
+    return <span className={styles.empty}>Aucun env</span>;
   }
 
   return (
-    <select
+    <Select
+      id="env-selector"
+      label="Environnement"
+      showLabel={false}
       value={activeEnv ?? ''}
-      onChange={(e) => { void setActiveEnv(e.target.value); }}
-      className="rounded border border-gray-300 px-2 py-1 text-sm"
-    >
-      {envs.map((e) => (
-        <option key={e} value={e}>{e}</option>
-      ))}
-    </select>
+      onChange={(value) => {
+        void setActiveEnv(value);
+      }}
+      options={envs.map((env) => ({ value: env, label: env }))}
+    />
   );
 }
