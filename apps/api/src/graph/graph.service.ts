@@ -21,6 +21,7 @@ import {
   type ImportedPathWithImport,
   type MergedPath,
 } from './merge-paths.js';
+import { buildInterlocutorsByEic } from './build-interlocutors.js';
 
 const DEFAULT_ISRECENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
@@ -300,6 +301,10 @@ export class GraphService {
       }
     }
 
+    // Slice 3a : interlocuteurs par noeud derives des edges BUSINESS agregees.
+    // Cohera avec la carte : un interlocuteur affiche <=> une edge visible.
+    const interlocutorsByEic = buildInterlocutorsByEic(edges);
+
     // 5. Nodes + bounds
     const nodes: GraphNode[] = Array.from(globalComponents.values()).map((g) => {
       const runtime = runtimePropsBySourceEic.get(g.eic) ?? {
@@ -308,7 +313,8 @@ export class GraphService {
       };
       const compStat = compStatsByEic.get(g.eic) ?? null;
       const uploadTargets = uploadTargetsBySourceEic.get(g.eic)?.targets ?? [];
-      return this.toNode(g, rteEicSet, envNameForGraph, runtime, compStat, uploadTargets);
+      const interlocutors = interlocutorsByEic.get(g.eic) ?? [];
+      return this.toNode(g, rteEicSet, envNameForGraph, runtime, compStat, uploadTargets, interlocutors);
     });
 
     return {
@@ -326,6 +332,7 @@ export class GraphService {
     runtime: { status: string | null; appTheme: string | null },
     compStat: { lastSync: Date | null; sentMessages: number; receivedMessages: number } | null,
     uploadTargets: string[],
+    interlocutors: GraphNode['interlocutors'],
   ): GraphNode {
     return {
       id: g.eic,
@@ -345,7 +352,7 @@ export class GraphService {
       sentMessages: compStat?.sentMessages ?? null,
       receivedMessages: compStat?.receivedMessages ?? null,
       uploadTargets,
-      interlocutors: [],
+      interlocutors,
       country: g.country,
       lat: g.lat,
       lng: g.lng,
