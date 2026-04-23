@@ -227,6 +227,8 @@ export class GraphService {
         connectionStatus: string | null;
         lastMessageUp: Date | null;
         lastMessageDown: Date | null;
+        sumMessagesUp: number;
+        sumMessagesDown: number;
       }>;
       effectiveDate: Date;
     }>,
@@ -272,7 +274,8 @@ export class GraphService {
       }
     }
 
-    // Stats : latest-wins par (source, remote)
+    // Stats : latest-wins par (source, remote) pour connectionStatus et timestamps.
+    // Les volumes sont additionnés bi-directionnellement (cf. agrégation plus bas).
     const statsByKey = new Map<
       string,
       {
@@ -280,6 +283,8 @@ export class GraphService {
           connectionStatus: string | null;
           lastMessageUp: Date | null;
           lastMessageDown: Date | null;
+          sumMessagesUp: number;
+          sumMessagesDown: number;
         };
         effective: Date;
       }
@@ -307,14 +312,25 @@ export class GraphService {
         .update(`${g.fromEic}|${g.toEic}|${process}`)
         .digest('hex')
         .slice(0, 16);
-      const stat =
-        statsByKey.get(`${g.fromEic}::${g.toEic}`) ??
-        statsByKey.get(`${g.toEic}::${g.fromEic}`) ??
-        null;
+      // Stats bi-directionnelles : A→B (stat du dump A) + B→A (stat du dump B).
+      // Le connectionStatus et les lastMessage* prennent la stat la plus récente
+      // parmi les deux. Les sumMessages* sont additionnés.
+      const statAB = statsByKey.get(`${g.fromEic}::${g.toEic}`) ?? null;
+      const statBA = statsByKey.get(`${g.toEic}::${g.fromEic}`) ?? null;
+      const statLatest =
+        statAB == null
+          ? statBA
+          : statBA == null
+            ? statAB
+            : statAB.effective >= statBA.effective
+              ? statAB
+              : statBA;
+      const sumMessagesUp = (statAB?.stat.sumMessagesUp ?? 0) + (statBA?.stat.sumMessagesUp ?? 0);
+      const sumMessagesDown = (statAB?.stat.sumMessagesDown ?? 0) + (statBA?.stat.sumMessagesDown ?? 0);
       const isRecent =
-        stat?.stat.lastMessageUp != null &&
-        refTime - stat.stat.lastMessageUp.getTime() < this.isRecentThreshold &&
-        refTime - stat.stat.lastMessageUp.getTime() >= 0;
+        statLatest?.stat.lastMessageUp != null &&
+        refTime - statLatest.stat.lastMessageUp.getTime() < this.isRecentThreshold &&
+        refTime - statLatest.stat.lastMessageUp.getTime() >= 0;
 
       return {
         id: hash,
@@ -326,10 +342,13 @@ export class GraphService {
         transportPatterns: Array.from(g.transports),
         intermediateBrokerEic: g.intermediateBroker,
         activity: {
-          connectionStatus: stat?.stat.connectionStatus ?? null,
-          lastMessageUp: stat?.stat.lastMessageUp?.toISOString() ?? null,
-          lastMessageDown: stat?.stat.lastMessageDown?.toISOString() ?? null,
+          connectionStatus: statLatest?.stat.connectionStatus ?? null,
+          lastMessageUp: statLatest?.stat.lastMessageUp?.toISOString() ?? null,
+          lastMessageDown: statLatest?.stat.lastMessageDown?.toISOString() ?? null,
           isRecent: Boolean(isRecent),
+          sumMessagesUp,
+          sumMessagesDown,
+          totalVolume: sumMessagesUp + sumMessagesDown,
         },
         validFrom: (g.validFrom ?? new Date(0)).toISOString(),
         validTo: g.validTo?.toISOString() ?? null,

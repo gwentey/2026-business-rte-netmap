@@ -18,6 +18,9 @@ function baseEdge(overrides: Partial<GraphEdge> = {}): GraphEdge {
       lastMessageUp: '2026-04-18T10:00:00Z',
       lastMessageDown: '2026-04-18T09:00:00Z',
       isRecent: true,
+      sumMessagesUp: 0,
+      sumMessagesDown: 0,
+      totalVolume: 0,
     },
     validFrom: '2025-01-01T00:00:00Z',
     validTo: '2099-12-31T00:00:00Z',
@@ -69,5 +72,31 @@ describe('EdgeDetails', () => {
     expect(screen.getByText(/Message types \(2\)/i)).toBeInTheDocument();
     expect(screen.getByText('msg-type-a')).toBeInTheDocument();
     expect(screen.getByText('msg-type-b')).toBeInTheDocument();
+  });
+
+  it('displays message volumes when activity has sumMessages*', () => {
+    render(
+      <EdgeDetails
+        edge={baseEdge({
+          activity: {
+            ...baseEdge().activity,
+            sumMessagesUp: 1234,
+            sumMessagesDown: 5678,
+            totalVolume: 6912,
+          },
+        })}
+      />,
+    );
+    expect(screen.getByText('Envoyés (UP)')).toBeInTheDocument();
+    expect(screen.getByText(/1\D234/)).toBeInTheDocument();
+    expect(screen.getByText('Reçus (DOWN)')).toBeInTheDocument();
+    expect(screen.getByText(/5\D678/)).toBeInTheDocument();
+    expect(screen.getByText('Volume total')).toBeInTheDocument();
+    expect(screen.getByText(/6\D912/)).toBeInTheDocument();
+  });
+
+  it('shows "Aucun" when totalVolume is 0', () => {
+    render(<EdgeDetails edge={baseEdge()} />);
+    expect(screen.getByText('Aucun')).toBeInTheDocument();
   });
 });

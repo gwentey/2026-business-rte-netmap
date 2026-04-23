@@ -55,6 +55,12 @@ export type GraphEdge = {
     lastMessageUp: string | null;
     lastMessageDown: string | null;
     isRecent: boolean;
+    /** Somme bi-directionnelle des messages envoyés sur la paire (A→B + B→A). */
+    sumMessagesUp: number;
+    /** Somme bi-directionnelle des messages reçus sur la paire. */
+    sumMessagesDown: number;
+    /** sumMessagesUp + sumMessagesDown, utilisé pour l'épaisseur d'edge. */
+    totalVolume: number;
   };
   validFrom: string;
   validTo: string | null;

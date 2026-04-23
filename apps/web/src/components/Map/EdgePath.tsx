@@ -6,6 +6,22 @@ import { useAppStore } from '../../store/app-store.js';
 
 const SAMPLES = 20;
 
+/**
+ * Épaisseur d'edge dérivée du volume de messages (somme bi-directionnelle).
+ * Échelle logarithmique :
+ *   - 0 msg     → 1 px
+ *   - 10        → ~2
+ *   - 100       → ~3
+ *   - 1 000     → ~4
+ *   - 10 000    → ~5
+ *   - 100 000+  → 6 (borne supérieure)
+ */
+export function weightFromVolume(totalVolume: number): number {
+  if (totalVolume <= 0) return 1;
+  const w = 1 + Math.log10(totalVolume + 1);
+  return Math.min(6, Math.max(1, w));
+}
+
 type Props = {
   edge: GraphEdge;
   nodes: Map<string, GraphNode>;
@@ -47,12 +63,14 @@ export function EdgePath({ edge, nodes, selected, onSelect }: Props): JSX.Elemen
     SAMPLES,
   );
 
+  const volumeWeight = weightFromVolume(edge.activity.totalVolume);
+
   return (
     <Polyline
       positions={positions}
       pathOptions={{
         color: colorFor(edge.process, processColors),
-        weight: selected ? 4 : 2,
+        weight: selected ? volumeWeight + 2 : volumeWeight,
         opacity: 0.85,
         dashArray: edge.activity.isRecent ? undefined : '6 6',
       }}

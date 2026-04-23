@@ -7,6 +7,27 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.13 — Slice 2l Volumes sur les edges (épaisseur + stats popup) (2026-04-23)
+
+L'épaisseur d'une arête est désormais **proportionnelle au volume de messages** échangés sur la paire (somme bi-directionnelle `A→B + B→A`). Le popup flux détaille le volume total, les compteurs UP/DOWN, et la dernière activité DOWN en plus de l'UP.
+
+**Highlights :**
+
+- **`GraphEdge.activity`** (shared) gagne 3 champs : `sumMessagesUp`, `sumMessagesDown`, `totalVolume`.
+- **`GraphService.buildEdges`** : les `ImportedMessagingStat` sont désormais sommées **dans les deux sens** pour une paire `(A, B)` donnée. Le dump A porte `A→B`, le dump B porte `B→A` — on les additionne (et on garde le `connectionStatus` / `lastMessage*` de la stat la plus récente des deux).
+- **`EdgePath.tsx`** : nouvelle fonction `weightFromVolume(totalVolume)` — échelle log₁₀ clampée `[1, 6]` (0 msg → 1 px, 10 → 2, 100 → 3, 1 000 → 4, 10 000 → 5, 100 000+ → 6). Sélection : `+2` au weight calculé pour rester visible quand une petite edge est cliquée.
+- **`EdgeDetails.tsx`** : 3 nouvelles lignes :
+  - "Volume total" avec badge slate + séparateur français.
+  - "Envoyés (UP)" / "Reçus (DOWN)" avec valeurs formatées `toLocaleString('fr-FR')`.
+  - "Dernière msg DOWN" (complément de "Dernière msg UP" qui existait déjà).
+  - Badge de statut coloré : vert pour `CONNECTED`, rouge pour `NOT_CONNECTED`, gris sinon.
+
+**Tests :**
+- API : **243/243** inchangés (les nouveaux champs sont nourris à chaque calcul de graph, les assertions existantes restent vraies puisque les stats des fixtures sont bien présentes).
+- Web : 92 → **94/94** (+2 EdgeDetails : volumes rendus avec formats français, label "Aucun" quand totalVolume=0).
+
+**Breaking changes :** aucun — les champs ajoutés à `GraphEdge.activity` sont nourris par le backend ; les clients qui typent strict devront intégrer les 3 nouveaux champs (valeurs par défaut `0` tolérées).
+
 ### v2.0-alpha.12 — Slice 2k Contacts, homeCdCode cliquable, Config ECP dans le popup (2026-04-23)
 
 Le popup nœud de la carte expose désormais toutes les métadonnées humaines déjà parsées depuis le XML MADES et les dumps ECP : **contact** (personne responsable, email avec `mailto:`, téléphone avec `tel:`), **home CD** cliquable qui recentre la sélection sur le Component Directory parent, **config ECP** (statut `ACTIVE`, thème UI) lue depuis les `application_property.csv` / `.properties` du composant source.
