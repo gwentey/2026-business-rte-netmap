@@ -7,6 +7,57 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.18 — Slice 5d : Admin + DetailPanel + ui composants maison (2026-04-23)
+
+Quatrième slice de la refonte visuelle, **la plus volumineuse** : 19
+fichiers `.module.scss` refondus, `brand.scss` étendu avec 10 mixins
+composites (input-base, button-primary/ghost/danger/danger-outline,
+alert-error/success, modal-backdrop/box, table-base) pour éviter 800+
+lignes de duplication.
+
+- `styles/brand.scss` : section mixins composants ajoutée (Task 1).
+- **Admin structure** : `AdminPage`, `AdminTabs`, `ui/Table` en mixins
+  + underline cyan 3px pour tab actif.
+- **Admin tables** (4) : `ComponentsAdminTable`, `RteEndpointsTable`,
+  `OrganizationsAdminTab`, `ImportsAdminTable` — tables `table-base`,
+  badges charte (overrideBadge = primary-soft, editedBadge = primary-soft,
+  warningBadge = error, TypeBadge endpoint=primary-pressed / cd=surface-deep
+  / broker=surface-dark, PropertiesBadge ok=primary-soft / missing=error).
+- **Admin modales** (3) : `ComponentConfigModal`, `ComponentOverrideModal`,
+  `OrganizationEditModal` — `modal-backdrop + modal-box` mixins, `input-base`,
+  `button-danger-outline` pour delete + `button-primary` pour save.
+- **Admin tabs contents** : `DangerZoneTab` = **unique zone rouge** de
+  l'app (titre error, actionCards error-bg, confirmButton danger, modal
+  input focus ring error, conformément à ADR-039), `EntsoeAdminTab`
+  statusBox accent-left cyan, `ProcessColorsEditor` badgeOverride
+  primary-soft (fin de l'ambre hors charte), `RegistryAdminTab` simple
+  conteneur.
+- **DetailPanel** : `border-left: 2px solid var(--c-primary)` signature
+  visuelle + `shadow-2`, `details.module.scss` avec **toutes les
+  variantes de badges refondues dans la palette pure** :
+  - Status active=primary solid / neutral=sunken / notConnected=error
+  - Health fresh=primary-soft / warning=sunken / stale=error / unknown=muted
+  - Direction IN=primary-pressed / OUT=surface-deep / BIDI=surface-dark
+    (trois teintes dark distinctes, fini le bleu+vert+violet Tailwind)
+  - BA P1=error / P2=teal / P3=muted (cohérent avec `BaFilter` Slice 5c)
+  - Sync twoWay=primary-soft / oneWay=sunken
+  - Volume positive=surface-dark + texte inverse mono
+- **UploadBatchTable** : table mixin, inputs charte, removeButton hover
+  error-bg.
+- **ui composants maison (3)** : `RangeSlider`, `ColorField`,
+  `DateTimeField` — customisations WebKit/Firefox avec thumb cyan,
+  focus ring, border-charte.
+
+**Exception tokenisation identifiée** : deux `rgba` non tokenisés
+(`rgba(0,189,237,0.2)` et `rgba(12,57,73,0.08)`) utilisés sur les
+bordures/fonds de badges soft. À factoriser en Slice 5e (tokens
+`--c-primary-border-soft` et `--c-surface-deep-soft` possibles).
+
+**Tests :** 157/160 vitest passent, typecheck OK, build Vite OK
+(CSS bundle **233 KB**, +30 KB vs alpha.17 ; bulk CSS dû aux 19
+fichiers refondus avec mixins expansés — acceptable car le gzip
+reste à 31.9 KB, +0.6 KB seulement).
+
 ### v3.0-alpha.17 — Slice 5c : Upload & Map chrome (2026-04-23)
 
 Troisième slice de la refonte visuelle : l'écran d'ingestion `UploadPage`
