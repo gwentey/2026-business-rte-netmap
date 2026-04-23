@@ -37,7 +37,11 @@ export function NetworkMap(): JSX.Element {
           attribution='&copy; OpenStreetMap'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <HomeCdOverlay nodes={nodesById} visible={showHomeCdOverlay} />
+        <HomeCdOverlay
+          nodes={nodesById}
+          visible={showHomeCdOverlay}
+          selectedNodeEic={selectedNodeEic}
+        />
         {edges.map((edge) => (
           <EdgePath
             key={edge.id}

@@ -92,4 +92,53 @@ describe('HomeCdOverlay', () => {
     const container = renderInMap(<HomeCdOverlay nodes={nodes} visible={true} />);
     expect(container.querySelectorAll('.leaflet-overlay-pane path').length).toBe(0);
   });
+
+  it('mode focus : trace la ligne endpoint -> CD meme si visible=false', () => {
+    const nodes = new Map<string, GraphNode>([
+      ['EP1', nodeOf({ eic: 'EP1', homeCdCode: 'CD1' })],
+      ['EP2', nodeOf({ eic: 'EP2', homeCdCode: 'CD1' })],
+      ['CD1', nodeOf({ eic: 'CD1', kind: 'RTE_CD' })],
+    ]);
+    const container = renderInMap(
+      <HomeCdOverlay nodes={nodes} visible={false} selectedNodeEic="EP1" />,
+    );
+    // 1 seule ligne focus (EP1 -> CD1), EP2 ignore car non selectionne
+    expect(container.querySelectorAll('.leaflet-overlay-pane path').length).toBe(1);
+  });
+
+  it('mode focus : CD selectionne -> lignes vers tous ses endpoints', () => {
+    const nodes = new Map<string, GraphNode>([
+      ['EP1', nodeOf({ eic: 'EP1', homeCdCode: 'CD1' })],
+      ['EP2', nodeOf({ eic: 'EP2', homeCdCode: 'CD1' })],
+      ['EP3', nodeOf({ eic: 'EP3', homeCdCode: 'OTHER_CD' })],
+      ['CD1', nodeOf({ eic: 'CD1', kind: 'RTE_CD' })],
+    ]);
+    const container = renderInMap(
+      <HomeCdOverlay nodes={nodes} visible={false} selectedNodeEic="CD1" />,
+    );
+    // 2 lignes focus : CD1 <- EP1, CD1 <- EP2. EP3 exclu car homeCd different.
+    expect(container.querySelectorAll('.leaflet-overlay-pane path').length).toBe(2);
+  });
+
+  it('mode focus ne double pas la ligne globale existante quand toggle et selection coexistent', () => {
+    const nodes = new Map<string, GraphNode>([
+      ['EP1', nodeOf({ eic: 'EP1', homeCdCode: 'CD1' })],
+      ['CD1', nodeOf({ eic: 'CD1', kind: 'RTE_CD' })],
+    ]);
+    const container = renderInMap(
+      <HomeCdOverlay nodes={nodes} visible={true} selectedNodeEic="EP1" />,
+    );
+    // 1 seule ligne affichee (en mode focus, remplace la globale pour EP1 -> CD1)
+    expect(container.querySelectorAll('.leaflet-overlay-pane path').length).toBe(1);
+  });
+
+  it('mode focus : aucune ligne si le noeud selectionne n a pas de homeCdCode et n est pas un CD', () => {
+    const nodes = new Map<string, GraphNode>([
+      ['EP1', nodeOf({ eic: 'EP1', homeCdCode: null })],
+    ]);
+    const container = renderInMap(
+      <HomeCdOverlay nodes={nodes} visible={false} selectedNodeEic="EP1" />,
+    );
+    expect(container.querySelectorAll('.leaflet-overlay-pane path').length).toBe(0);
+  });
 });
