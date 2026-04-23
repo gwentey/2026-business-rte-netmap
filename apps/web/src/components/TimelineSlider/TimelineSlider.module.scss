@@ -1,0 +1,58 @@
+.container {
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  padding: 0.5rem 1rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.labelWrapper {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.labelText {
+  white-space: nowrap;
+  color: #374151;
+}
+
+.slider {
+  flex: 1 1 auto;
+  accent-color: #e30613;
+  cursor: pointer;
+}
+
+.currentLabel {
+  width: 9rem;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.75rem;
+  color: #111827;
+}
+
+.resetButton {
+  padding: 0.25rem 0.5rem;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+}
+
+.hint {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}

@@ -1,6 +1,7 @@
 import { Marker, Tooltip } from 'react-leaflet';
 import type { GraphNode } from '@carto-ecp/shared';
 import { buildNodeDivIcon, healthStatusFromLastSync } from './node-icon.js';
+import styles from './NodeMarker.module.scss';
 
 type Props = {
   node: GraphNode;
@@ -18,7 +19,7 @@ export function NodeMarker({ node, selected, onSelect }: Props): JSX.Element {
       eventHandlers={{ click: () => onSelect(node.eic) }}
     >
       <Tooltip direction="top" offset={[0, -16]} opacity={0.95}>
-        <div className="text-xs">
+        <div className={styles.tooltip}>
           <strong>{node.displayName}</strong>
           <br />
           {node.eic} {node.country ? `— ${node.country}` : ''}

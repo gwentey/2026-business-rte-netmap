@@ -2,6 +2,7 @@ import type { GraphNode } from '@carto-ecp/shared';
 import { formatDateTime } from '../../lib/format.js';
 import { useAppStore } from '../../store/app-store.js';
 import { healthStatusFromLastSync } from '../Map/node-icon.js';
+import styles from './details.module.scss';
 
 export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -15,7 +16,8 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
       ? graph?.nodes.find((n) => n.eic === node.homeCdCode) ?? null
       : null;
 
-  const hasContact = node.personName != null || node.email != null || node.phone != null;
+  const hasContact =
+    node.personName != null || node.email != null || node.phone != null;
   const hasConfig = node.status != null || node.appTheme != null;
   const hasHealth =
     node.lastSync != null ||
@@ -24,124 +26,93 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
   const health = healthStatusFromLastSync(node.lastSync);
 
   return (
-    <div className="space-y-3">
+    <div className={styles.root}>
       <div>
-        <h2 className="text-lg font-semibold">{node.displayName}</h2>
+        <h2 className={styles.title}>{node.displayName}</h2>
         {showProjectChip ? (
-          <p className="mt-0.5 text-xs text-gray-500">
+          <p className={styles.projectChip}>
             Projet ECP :{' '}
-            <span className="inline-block rounded bg-violet-50 px-1.5 py-0.5 font-mono text-violet-700">
-              {node.projectName}
-            </span>
+            <span className={styles.projectBadge}>{node.projectName}</span>
           </p>
         ) : null}
       </div>
 
       {node.businessApplications.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">
+          <h3 className={styles.sectionTitle}>
             Applications métier ({node.businessApplications.length})
           </h3>
-          <div className="flex flex-wrap gap-1">
+          <div className={styles.badges}>
             {node.businessApplications.map((ba) => (
               <BaBadge key={ba.code} code={ba.code} criticality={ba.criticality} />
             ))}
           </div>
         </div>
       ) : null}
-      <dl className="text-sm">
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">EIC</dt>
-          <dd className="col-span-2 font-mono">{node.eic}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Type</dt>
-          <dd className="col-span-2">{node.kind}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Environnement</dt>
-          <dd className="col-span-2">{node.envName ?? '—'}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Organisation</dt>
-          <dd className="col-span-2">{node.organization || '—'}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Pays</dt>
-          <dd className="col-span-2">{node.country ?? '—'}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Networks</dt>
-          <dd className="col-span-2">{node.networks.join(', ') || '—'}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Processus</dt>
-          <dd className="col-span-2">{node.process ?? '—'}</dd>
-        </div>
+      <dl className={styles.dl}>
+        <DlRow term="EIC" value={<span className={styles.mono}>{node.eic}</span>} />
+        <DlRow term="Type" value={node.kind} />
+        <DlRow term="Environnement" value={node.envName ?? '—'} />
+        <DlRow term="Organisation" value={node.organization || '—'} />
+        <DlRow term="Pays" value={node.country ?? '—'} />
+        <DlRow term="Networks" value={node.networks.join(', ') || '—'} />
+        <DlRow term="Processus" value={node.process ?? '—'} />
         {node.homeCdCode != null ? (
-          <div className="grid grid-cols-3 gap-2 py-1">
-            <dt className="text-gray-500">Home CD</dt>
-            <dd className="col-span-2 font-mono text-xs">
-              {homeCdNode != null ? (
-                <button
-                  type="button"
-                  onClick={() => selectNode(node.homeCdCode)}
-                  className="text-rte underline underline-offset-2 hover:text-red-800"
-                  title={`Aller à ${homeCdNode.displayName}`}
-                >
-                  {node.homeCdCode}
-                </button>
-              ) : (
-                <span title="Ce CD n'est pas présent dans l'env courant">{node.homeCdCode}</span>
-              )}
-            </dd>
-          </div>
+          <DlRow
+            term="Home CD"
+            value={
+              <span className={`${styles.mono} ${styles.small}`}>
+                {homeCdNode != null ? (
+                  <button
+                    type="button"
+                    onClick={() => selectNode(node.homeCdCode)}
+                    className={styles.link}
+                    title={`Aller à ${homeCdNode.displayName}`}
+                  >
+                    {node.homeCdCode}
+                  </button>
+                ) : (
+                  <span title="Ce CD n'est pas présent dans l'env courant">
+                    {node.homeCdCode}
+                  </span>
+                )}
+              </span>
+            }
+          />
         ) : null}
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Créé</dt>
-          <dd className="col-span-2">{formatDateTime(node.creationTs)}</dd>
-        </div>
-        <div className="grid grid-cols-3 gap-2 py-1">
-          <dt className="text-gray-500">Modifié</dt>
-          <dd className="col-span-2">{formatDateTime(node.modificationTs)}</dd>
-        </div>
+        <DlRow term="Créé" value={formatDateTime(node.creationTs)} />
+        <DlRow term="Modifié" value={formatDateTime(node.modificationTs)} />
       </dl>
 
       {hasContact ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">Contact</h3>
-          <dl className="text-sm">
+          <h3 className={styles.sectionTitle}>Contact</h3>
+          <dl className={styles.dl}>
             {node.personName ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Personne</dt>
-                <dd className="col-span-2">{node.personName}</dd>
-              </div>
+              <DlRow term="Personne" value={node.personName} />
             ) : null}
             {node.email ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Email</dt>
-                <dd className="col-span-2">
-                  <a
-                    href={`mailto:${node.email}`}
-                    className="text-rte underline underline-offset-2 hover:text-red-800"
-                  >
+              <DlRow
+                term="Email"
+                value={
+                  <a href={`mailto:${node.email}`} className={styles.link}>
                     {node.email}
                   </a>
-                </dd>
-              </div>
+                }
+              />
             ) : null}
             {node.phone ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Téléphone</dt>
-                <dd className="col-span-2">
+              <DlRow
+                term="Téléphone"
+                value={
                   <a
                     href={`tel:${node.phone.replace(/\s+/g, '')}`}
-                    className="text-rte underline underline-offset-2 hover:text-red-800"
+                    className={styles.link}
                   >
                     {node.phone}
                   </a>
-                </dd>
-              </div>
+                }
+              />
             ) : null}
           </dl>
         </div>
@@ -149,21 +120,13 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
       {hasConfig ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">Config ECP</h3>
-          <dl className="text-sm">
+          <h3 className={styles.sectionTitle}>Config ECP</h3>
+          <dl className={styles.dl}>
             {node.status ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Statut</dt>
-                <dd className="col-span-2">
-                  <StatusBadge status={node.status} />
-                </dd>
-              </div>
+              <DlRow term="Statut" value={<StatusBadge status={node.status} />} />
             ) : null}
             {node.appTheme ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Thème UI</dt>
-                <dd className="col-span-2 text-xs">{node.appTheme}</dd>
-              </div>
+              <DlRow term="Thème UI" value={<span className={styles.small}>{node.appTheme}</span>} />
             ) : null}
           </dl>
         </div>
@@ -171,25 +134,21 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
       {hasHealth ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">Santé (vue CD)</h3>
-          <dl className="text-sm">
-            <div className="grid grid-cols-3 gap-2 py-1">
-              <dt className="text-gray-500">Dernière sync</dt>
-              <dd className="col-span-2">
-                <HealthBadge status={health} /> {formatDateTime(node.lastSync)}
-              </dd>
-            </div>
+          <h3 className={styles.sectionTitle}>Santé (vue CD)</h3>
+          <dl className={styles.dl}>
+            <DlRow
+              term="Dernière sync"
+              value={
+                <>
+                  <HealthBadge status={health} /> {formatDateTime(node.lastSync)}
+                </>
+              }
+            />
             {node.sentMessages != null ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Msg envoyés (cumul)</dt>
-                <dd className="col-span-2">{formatCount(node.sentMessages)}</dd>
-              </div>
+              <DlRow term="Msg envoyés (cumul)" value={formatCount(node.sentMessages)} />
             ) : null}
             {node.receivedMessages != null ? (
-              <div className="grid grid-cols-3 gap-2 py-1">
-                <dt className="text-gray-500">Msg reçus (cumul)</dt>
-                <dd className="col-span-2">{formatCount(node.receivedMessages)}</dd>
-              </div>
+              <DlRow term="Msg reçus (cumul)" value={formatCount(node.receivedMessages)} />
             ) : null}
           </dl>
         </div>
@@ -197,8 +156,10 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
       {node.uploadTargets.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">Cibles d'upload ({node.uploadTargets.length})</h3>
-          <ul className="space-y-1 text-xs font-mono">
+          <h3 className={styles.sectionTitle}>
+            Cibles d'upload ({node.uploadTargets.length})
+          </h3>
+          <ul className={styles.urlList}>
             {node.uploadTargets.map((eic) => {
               const target = graph?.nodes.find((n) => n.eic === eic) ?? null;
               return (
@@ -207,13 +168,15 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
                     <button
                       type="button"
                       onClick={() => selectNode(eic)}
-                      className="text-rte underline underline-offset-2 hover:text-red-800"
+                      className={styles.link}
                       title={`Aller à ${target.displayName}`}
                     >
                       {eic}
                     </button>
                   ) : (
-                    <span title="Cette cible n'est pas présente dans l'env courant">{eic}</span>
+                    <span title="Cette cible n'est pas présente dans l'env courant">
+                      {eic}
+                    </span>
                   )}
                 </li>
               );
@@ -224,22 +187,24 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
       {node.interlocutors.length > 0 ? (
         <div>
-          <h3 className="mb-1 text-sm font-medium">Interlocuteurs ({node.interlocutors.length})</h3>
-          <ul className="space-y-1 text-xs">
+          <h3 className={styles.sectionTitle}>
+            Interlocuteurs ({node.interlocutors.length})
+          </h3>
+          <ul className={styles.list}>
             {node.interlocutors.map((i) => {
               const target = graph?.nodes.find((n) => n.eic === i.eic) ?? null;
               const visibleTypes = i.messageTypes.slice(0, 3);
               const overflow = i.messageTypes.length - 3;
               return (
-                <li key={i.eic} className="flex items-start gap-2">
+                <li key={i.eic} className={styles.listItem}>
                   <DirectionBadge direction={i.direction} />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-mono">
+                  <div className={styles.interlocutorBody}>
+                    <div className={styles.mono}>
                       {target != null ? (
                         <button
                           type="button"
                           onClick={() => selectNode(i.eic)}
-                          className="text-rte underline underline-offset-2 hover:text-red-800"
+                          className={styles.link}
                           title={`Aller à ${target.displayName}`}
                         >
                           {target.displayName || i.eic}
@@ -250,7 +215,7 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
                         </span>
                       )}
                     </div>
-                    <div className="text-gray-500">
+                    <div className={styles.interlocutorTypes}>
                       {visibleTypes.join(', ')}
                       {overflow > 0 && ` et ${overflow} autre${overflow > 1 ? 's' : ''}`}
                     </div>
@@ -264,18 +229,18 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
       {node.urls.length > 0 && (
         <div>
-          <h3 className="mb-1 text-sm font-medium">URLs</h3>
-          <ul className="space-y-1 text-xs font-mono">
+          <h3 className={styles.sectionTitle}>URLs</h3>
+          <ul className={styles.urlList}>
             {node.urls.map((u, idx) => (
               <li key={idx}>
-                <span className="text-gray-500">{u.network}</span> — {u.url}
+                <span className={styles.urlNetwork}>{u.network}</span> — {u.url}
               </li>
             ))}
           </ul>
         </div>
       )}
       {node.isDefaultPosition ? (
-        <p className="rounded bg-yellow-50 p-2 text-xs text-yellow-800">
+        <p className={styles.defaultPositionNotice}>
           Position par défaut (EIC non géolocalisé dans le registry)
         </p>
       ) : null}
@@ -283,30 +248,39 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
   );
 }
 
-function StatusBadge({ status }: { status: string }): JSX.Element {
-  const isActive = status.toUpperCase() === 'ACTIVE';
-  const className = isActive
-    ? 'bg-emerald-100 text-emerald-800'
-    : 'bg-gray-100 text-gray-700';
+function DlRow({ term, value }: { term: string; value: React.ReactNode }): JSX.Element {
   return (
-    <span className={`inline-block rounded px-2 py-0.5 text-xs ${className}`}>
-      {status}
-    </span>
+    <div className={styles.dlRow}>
+      <dt className={styles.dlTerm}>{term}</dt>
+      <dd className={styles.dlValue}>{value}</dd>
+    </div>
   );
 }
 
-function HealthBadge({ status }: { status: 'healthy' | 'warning' | 'stale' | 'unknown' }): JSX.Element {
-  const cfg = {
-    healthy: { bg: 'bg-emerald-100 text-emerald-800', label: 'Frais' },
-    warning: { bg: 'bg-amber-100 text-amber-800', label: '< 24h' },
-    stale: { bg: 'bg-red-100 text-red-800', label: 'Obsolète' },
-    unknown: { bg: 'bg-gray-100 text-gray-600', label: 'Inconnu' },
-  }[status];
-  return (
-    <span className={`inline-block rounded px-2 py-0.5 text-xs ${cfg.bg}`}>
-      {cfg.label}
-    </span>
-  );
+function StatusBadge({ status }: { status: string }): JSX.Element {
+  const isActive = status.toUpperCase() === 'ACTIVE';
+  const className = `${styles.badge} ${isActive ? styles.statusActive : styles.statusNeutral}`;
+  return <span className={className}>{status}</span>;
+}
+
+function HealthBadge({
+  status,
+}: {
+  status: 'healthy' | 'warning' | 'stale' | 'unknown';
+}): JSX.Element {
+  let classes = styles.healthUnknown;
+  let label = 'Inconnu';
+  if (status === 'healthy') {
+    classes = styles.healthFresh;
+    label = 'Frais';
+  } else if (status === 'warning') {
+    classes = styles.healthWarning;
+    label = '< 24h';
+  } else if (status === 'stale') {
+    classes = styles.healthStale;
+    label = 'Obsolète';
+  }
+  return <span className={`${styles.badge} ${classes}`}>{label}</span>;
 }
 
 function formatCount(n: number): string {
@@ -318,18 +292,16 @@ function DirectionBadge({
 }: {
   direction: 'IN' | 'OUT' | 'BIDI';
 }): JSX.Element {
-  const cfg = {
-    IN: { bg: 'bg-sky-100 text-sky-800', label: 'IN' },
-    OUT: { bg: 'bg-emerald-100 text-emerald-800', label: 'OUT' },
-    BIDI: { bg: 'bg-violet-100 text-violet-800', label: '⇄' },
-  }[direction];
-  return (
-    <span
-      className={`inline-flex h-5 min-w-[2rem] items-center justify-center rounded px-1 text-[10px] font-semibold ${cfg.bg}`}
-    >
-      {cfg.label}
-    </span>
-  );
+  let classes = styles.directionIn;
+  let label = 'IN';
+  if (direction === 'OUT') {
+    classes = styles.directionOut;
+    label = 'OUT';
+  } else if (direction === 'BIDI') {
+    classes = styles.directionBidi;
+    label = '⇄';
+  }
+  return <span className={`${styles.directionBadge} ${classes}`}>{label}</span>;
 }
 
 function BaBadge({
@@ -339,18 +311,16 @@ function BaBadge({
   code: string;
   criticality: 'P1' | 'P2' | 'P3';
 }): JSX.Element {
-  const cfg = {
-    P1: { bg: 'bg-red-100 text-red-800 border-red-200', label: 'P1' },
-    P2: { bg: 'bg-amber-100 text-amber-800 border-amber-200', label: 'P2' },
-    P3: { bg: 'bg-gray-100 text-gray-700 border-gray-200', label: 'P3' },
-  }[criticality];
+  let classes = styles.baP3;
+  if (criticality === 'P1') classes = styles.baP1;
+  else if (criticality === 'P2') classes = styles.baP2;
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs font-medium ${cfg.bg}`}
-      title={`Criticité ${cfg.label}`}
+      className={`${styles.baBadge} ${classes}`}
+      title={`Criticité ${criticality}`}
     >
-      <span className="font-mono">{code}</span>
-      <span className="rounded bg-white/60 px-1 text-[9px] font-bold">{cfg.label}</span>
+      <span className={styles.baCode}>{code}</span>
+      <span className={styles.baCrit}>{criticality}</span>
     </span>
   );
 }

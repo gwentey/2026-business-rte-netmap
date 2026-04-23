@@ -1,0 +1,35 @@
+.container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+.toggle {
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  z-index: 1000;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #374151;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.toggleActive {
+  border-color: #475569;
+  background: #1e293b;
+  color: #ffffff;
+
+  &:hover {
+    background: #0f172a;
+  }
+}

@@ -6,6 +6,7 @@ import { NodeMarker } from './NodeMarker.js';
 import { EdgePath } from './EdgePath.js';
 import { HomeCdOverlay } from './HomeCdOverlay.js';
 import { BaFilter } from './BaFilter.js';
+import styles from './NetworkMap.module.scss';
 
 export function NetworkMap(): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -16,8 +17,14 @@ export function NetworkMap(): JSX.Element {
   const showHomeCdOverlay = useAppStore((s) => s.showHomeCdOverlay);
   const toggleHomeCdOverlay = useAppStore((s) => s.toggleHomeCdOverlay);
   const selectedBaCodes = useAppStore((s) => s.selectedBaCodes);
-  const selectNode = useCallback((eic: string | null) => selectNodeStore(eic), [selectNodeStore]);
-  const selectEdge = useCallback((id: string | null) => selectEdgeStore(id), [selectEdgeStore]);
+  const selectNode = useCallback(
+    (eic: string | null) => selectNodeStore(eic),
+    [selectNodeStore],
+  );
+  const selectEdge = useCallback(
+    (id: string | null) => selectEdgeStore(id),
+    [selectEdgeStore],
+  );
   const { nodes, edges, bounds } = useMapData(graph, selectedBaCodes);
   const nodesById = useMemo(() => new Map(nodes.map((n) => [n.eic, n])), [nodes]);
 
@@ -25,16 +32,27 @@ export function NetworkMap(): JSX.Element {
     ? [(bounds.north + bounds.south) / 2, (bounds.east + bounds.west) / 2]
     : [50, 5];
 
+  const toggleClass = showHomeCdOverlay
+    ? `${styles.toggle} ${styles.toggleActive}`
+    : styles.toggle;
+
   return (
-    <div className="relative h-full w-full">
+    <div className={styles.container}>
       <MapContainer
         center={center}
         zoom={4}
-        bounds={bounds ? [[bounds.south, bounds.west], [bounds.north, bounds.east]] : undefined}
+        bounds={
+          bounds
+            ? [
+                [bounds.south, bounds.west],
+                [bounds.north, bounds.east],
+              ]
+            : undefined
+        }
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
-          attribution='&copy; OpenStreetMap'
+          attribution="&copy; OpenStreetMap"
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <HomeCdOverlay
@@ -64,11 +82,7 @@ export function NetworkMap(): JSX.Element {
         type="button"
         onClick={toggleHomeCdOverlay}
         aria-pressed={showHomeCdOverlay}
-        className={`absolute right-3 top-3 z-[1000] rounded border px-3 py-1.5 text-xs font-medium shadow-sm ${
-          showHomeCdOverlay
-            ? 'border-slate-500 bg-slate-800 text-white'
-            : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
-        }`}
+        className={toggleClass}
         title="Afficher les liens endpoint → home CD"
       >
         {showHomeCdOverlay ? '✓ Hiérarchie CD' : 'Hiérarchie CD'}
