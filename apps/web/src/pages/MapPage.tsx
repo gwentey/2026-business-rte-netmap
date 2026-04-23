@@ -5,6 +5,7 @@ import { NetworkMap } from '../components/Map/NetworkMap.js';
 import { DetailPanel } from '../components/DetailPanel/DetailPanel.js';
 import { TimelineSlider } from '../components/TimelineSlider/TimelineSlider.js';
 import { PROCESS_COLORS } from '../lib/process-colors.js';
+import styles from './MapPage.module.scss';
 
 export function MapPage(): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -18,12 +19,12 @@ export function MapPage(): JSX.Element {
   }, [loadEnvs]);
 
   if (loading && !graph) {
-    return <div className="p-8 text-gray-500">Chargement…</div>;
+    return <div className={styles.loading}>Chargement…</div>;
   }
 
   if (error) {
     return (
-      <div className="p-8 text-red-700" role="alert">
+      <div className={styles.error} role="alert">
         Erreur : {error}
       </div>
     );
@@ -31,8 +32,8 @@ export function MapPage(): JSX.Element {
 
   if (!activeEnv || !graph || graph.nodes.length === 0) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center gap-4 bg-gray-50 p-8">
-        <p className="text-center text-gray-700">
+      <div className={styles.empty}>
+        <p className={styles.emptyText}>
           {activeEnv ? (
             <>
               Aucun composant connu pour l'environnement <strong>{activeEnv}</strong>.
@@ -43,7 +44,7 @@ export function MapPage(): JSX.Element {
         </p>
         <Link
           to={activeEnv ? `/upload?env=${encodeURIComponent(activeEnv)}` : '/upload'}
-          className="rounded bg-rte px-4 py-2 text-white hover:bg-red-700"
+          className={styles.emptyButton}
         >
           Importer un dump
         </Link>
@@ -52,39 +53,37 @@ export function MapPage(): JSX.Element {
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b bg-white px-4 py-3">
-        <div className="flex items-center gap-4">
-          <span className="font-bold text-rte">Carto ECP</span>
-          <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium">
-            env {activeEnv}
-          </span>
+    <div className={styles.root}>
+      <header className={styles.header}>
+        <div className={styles.headerLeft}>
+          <span className={styles.brand}>Carto ECP</span>
+          <span className={styles.envBadge}>env {activeEnv}</span>
         </div>
-        <Link to="/upload" className="text-sm text-gray-600 hover:text-gray-900">
+        <Link to="/upload" className={styles.snapshotLink}>
           + Charger un snapshot
         </Link>
       </header>
 
       <TimelineSlider />
 
-      <div className="flex flex-1 overflow-hidden">
-        <div className="flex-1">
+      <div className={styles.body}>
+        <div className={styles.mapContainer}>
           <NetworkMap />
         </div>
         <DetailPanel />
       </div>
 
-      <footer className="flex items-center gap-4 border-t bg-white px-4 py-2 text-xs text-gray-600">
+      <footer className={styles.footer}>
         {Object.entries(graph.mapConfig.processColors ?? PROCESS_COLORS).map(([process, color]) => (
-          <span key={process} className="flex items-center gap-1">
+          <span key={process} className={styles.legendItem}>
             <span
-              className="inline-block h-3 w-3 rounded"
+              className={styles.legendSwatch}
               style={{ backgroundColor: color }}
             />
             {process}
           </span>
         ))}
-        <span className="ml-auto">
+        <span className={styles.counter}>
           {graph.nodes.length} nœuds / {graph.edges.length} liens
         </span>
       </footer>

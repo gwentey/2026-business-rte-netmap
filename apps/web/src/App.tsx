@@ -3,18 +3,19 @@ import { MapPage } from './pages/MapPage.js';
 import { UploadPage } from './pages/UploadPage.js';
 import { AdminPage } from './pages/AdminPage.js';
 import { EnvSelector } from './components/EnvSelector/EnvSelector.js';
+import styles from './App.module.scss';
 
 export function App(): JSX.Element {
   return (
-    <div className="flex h-screen flex-col">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
-        <Link to="/" className="text-lg font-semibold">Carto ECP — RTE</Link>
-        <div className="flex items-center gap-3">
+    <div className={styles.root}>
+      <header className={styles.header}>
+        <Link to="/" className={styles.brand}>Carto ECP — RTE</Link>
+        <div className={styles.rightNav}>
           <EnvSelector />
-          <Link to="/admin" className="text-sm text-rte underline">Admin</Link>
+          <Link to="/admin" className={styles.adminLink}>Admin</Link>
         </div>
       </header>
-      <main className="flex-1 overflow-hidden">
+      <main className={styles.main}>
         <Routes>
           <Route path="/" element={<MapPage />} />
           <Route path="/map" element={<Navigate to="/" replace />} />
