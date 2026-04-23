@@ -1,287 +1,254 @@
+@use "@/styles/brand" as *;
+
 .container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 12px;
 }
 
 .filterLabel {
-  font-size: 0.875rem;
+  @include t-body;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
+  color: var(--c-text);
 }
 
 .searchWrapper {
   flex: 1 1 auto;
   max-width: 28rem;
-  font-size: 0.875rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .select,
 .input {
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-
-  &:focus {
-    outline: none;
-    border-color: #e30613;
-    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
-  }
+  @include input-base;
+  padding: 6px 10px;
 }
 
 .searchInput {
+  @include input-base;
   width: 100%;
+  padding: 6px 10px;
 }
 
 .primaryLink {
-  padding: 0.375rem 0.75rem;
-  background: #e30613;
-  color: #ffffff;
-  border-radius: 0.25rem;
+  @include button-primary;
+  padding: 8px 14px;
   text-decoration: none;
-  font-size: 0.875rem;
 
   &:hover {
-    background: #b91c1c;
+    text-decoration: none;
   }
 }
 
 .alertError {
-  padding: 0.5rem 0.75rem;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+  @include alert-error;
 }
 
 .loading {
-  font-size: 0.875rem;
-  color: #6b7280;
+  @include t-body;
+  color: var(--c-text-muted);
 }
 
 .table {
-  width: 100%;
-  border-collapse: collapse;
-  border: 1px solid #e5e7eb;
-  font-size: 0.875rem;
+  @include table-base;
 
-  thead {
-    background: #f9fafb;
-
-    th {
-      padding: 0.25rem 0.5rem;
-      text-align: left;
-      font-weight: 600;
-      color: #374151;
-    }
-  }
-
-  tbody tr {
-    border-top: 1px solid #e5e7eb;
-
-    td {
-      padding: 0.25rem 0.5rem;
-      color: #111827;
-      vertical-align: middle;
-    }
+  thead th,
+  tbody td {
+    padding: 6px 10px;
   }
 }
 
 .fileName {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem;
+  @include t-mono;
 }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.75rem;
+  @include t-mono;
 }
 
 .small {
-  font-size: 0.75rem;
+  @include t-small;
 }
 
 .muted {
-  color: #9ca3af;
+  color: var(--c-text-disabled);
 }
 
 .labelInput {
   width: 10rem;
-  padding: 0.125rem 0.25rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 4px 8px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  @include t-small;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 
   &:focus {
     outline: none;
-    border-color: #e30613;
-    box-shadow: 0 0 0 1px rgba(227, 6, 19, 0.15);
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-focus);
   }
 }
 
 .savingIndicator {
-  margin-left: 0.25rem;
-  font-size: 0.75rem;
-  color: #9ca3af;
+  margin-left: 4px;
+  @include t-small;
+  color: var(--c-text-disabled);
 }
 
 .dateInput {
   width: 11rem;
-  padding: 0.125rem 0.25rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 4px 8px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  @include t-small;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
 
   &:focus {
     outline: none;
-    border-color: #e30613;
-    box-shadow: 0 0 0 1px rgba(227, 6, 19, 0.15);
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-focus);
   }
 }
 
 .warningBadge {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
-  background: #ffedd5;
-  color: #9a3412;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
+  border-radius: var(--r-xs);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
 }
 
 .deleteButton {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.875rem;
+  @include t-body;
   cursor: pointer;
-  color: #dc2626;
+  color: var(--c-error);
+  transition: color var(--motion-fast);
 
   &:hover {
-    color: #991b1b;
+    color: #821c16;
   }
 }
 
 .emptyRow {
-  padding: 1rem;
+  padding: 24px;
   text-align: center;
-  font-size: 0.875rem;
-  color: #6b7280;
+  @include t-body;
+  color: var(--c-text-muted);
 }
 
-// TypeBadge
+// ---------- TypeBadge (3 types, palette charte) ---------------------------
+
 .typeBadge {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  color: #ffffff;
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  @include t-small;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-text-inverse);
 }
 
 .typeEndpoint {
-  background: #dc2626;
+  background: var(--c-primary-pressed);
 }
 
 .typeCd {
-  background: #7f1d1d;
+  background: var(--c-surface-deep);
 }
 
 .typeBroker {
-  background: #111827;
+  background: var(--c-surface-dark);
 }
 
-// PropertiesBadge
+// ---------- PropertiesBadge -----------------------------------------------
+
 .propsBadge {
   display: inline-block;
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--r-xs);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
 }
 
 .propsBadgeOk {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border: 1px solid rgba(0, 189, 237, 0.2);
 }
 
 .propsBadgeMissing {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
 }
 
-// Modal delete confirm
+// ---------- Modal delete confirm (destructif → rouge charte) --------------
+
 .modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.4);
-  padding: 1rem;
+  @include modal-backdrop;
 }
 
 .modalBox {
-  max-width: 28rem;
+  @include modal-box;
   width: 100%;
-  background: #ffffff;
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15),
-    0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  max-width: 28rem;
 }
 
 .modalTitle {
-  margin: 0 0 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
+  margin: 0 0 8px;
+  @include t-h2;
+  color: var(--c-text);
 }
 
 .modalDescription {
-  margin: 0 0 1rem;
-  font-size: 0.875rem;
-  color: #4b5563;
+  margin: 0 0 16px;
+  @include t-body;
+  color: var(--c-text-muted);
 }
 
 .modalActions {
   display: flex;
   justify-content: flex-end;
-  gap: 0.5rem;
+  gap: 8px;
 }
 
 .cancelButton {
-  padding: 0.375rem 1rem;
+  padding: 8px 16px;
   background: none;
-  color: #374151;
+  color: var(--c-text-muted);
   border: none;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+  border-radius: var(--r-sm);
+  @include t-body;
   cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
 
   &:hover {
-    background: #f3f4f6;
+    background: var(--c-surface-sunken);
+    color: var(--c-text);
   }
 }
 
 .confirmDeleteButton {
-  padding: 0.375rem 1rem;
-  background: #dc2626;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
-  cursor: pointer;
-
-  &:hover {
-    background: #b91c1c;
-  }
+  @include button-danger;
 }
