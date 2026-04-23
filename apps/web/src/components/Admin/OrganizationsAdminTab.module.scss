@@ -1,0 +1,232 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.toolbarLeft,
+.toolbarRight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.searchInput {
+  width: 18rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    border-color: #e30613;
+    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
+  }
+}
+
+.primaryButton {
+  padding: 0.375rem 0.75rem;
+  background: #e30613;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover {
+    background: #b91c1c;
+  }
+}
+
+.secondaryButton {
+  padding: 0.375rem 0.75rem;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #f9fafb;
+  }
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.alertError {
+  padding: 0.5rem 0.75rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.importResult {
+  padding: 0.75rem;
+  background: #ecfdf5;
+  color: #065f46;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+
+  strong {
+    color: #064e3b;
+  }
+}
+
+.importResultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.importErrorCount {
+  margin-left: 0.5rem;
+  color: #dc2626;
+}
+
+.importResultClose {
+  background: none;
+  border: none;
+  color: #059669;
+  cursor: pointer;
+
+  &:hover {
+    color: #064e3b;
+  }
+}
+
+.importResultErrors {
+  list-style: none;
+  margin: 0.25rem 0 0;
+  padding: 0;
+
+  li {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #b91c1c;
+  }
+}
+
+.counter {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.loading {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.tableWrapper {
+  overflow-x: auto;
+}
+
+.table {
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+
+  thead {
+    background: #f9fafb;
+
+    th {
+      padding: 0.375rem 0.5rem;
+      border-bottom: 1px solid #d1d5db;
+      font-weight: 600;
+      text-align: left;
+      color: #374151;
+
+      &:nth-child(6) {
+        text-align: center;
+      }
+    }
+  }
+
+  tbody tr {
+    &:hover {
+      background: #f9fafb;
+    }
+
+    td {
+      padding: 0.375rem 0.5rem;
+      border-bottom: 1px solid #e5e7eb;
+      color: #111827;
+      vertical-align: top;
+
+      &:nth-child(6) {
+        text-align: center;
+      }
+
+      &:last-child {
+        text-align: right;
+      }
+    }
+  }
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.normalizedName {
+  font-size: 0.625rem;
+  color: #9ca3af;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.muted {
+  color: #9ca3af;
+}
+
+.address {
+  color: #4b5563;
+}
+
+.coord {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.625rem;
+  color: #4b5563;
+}
+
+.editedBadge {
+  display: inline-block;
+  padding: 0.125rem 0.375rem;
+  background: #ede9fe;
+  color: #5b21b6;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.editButton {
+  padding: 0.125rem 0.5rem;
+  background: none;
+  border: none;
+  border-radius: 0.25rem;
+  color: #e30613;
+  font-size: 0.75rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
+.emptyMessage {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}

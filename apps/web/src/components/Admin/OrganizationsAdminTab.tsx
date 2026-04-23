@@ -5,6 +5,7 @@ import type {
 } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { OrganizationEditModal } from './OrganizationEditModal.js';
+import styles from './OrganizationsAdminTab.module.scss';
 
 export function OrganizationsAdminTab(): JSX.Element {
   const [rows, setRows] = useState<OrganizationEntryRow[]>([]);
@@ -70,7 +71,7 @@ export function OrganizationsAdminTab(): JSX.Element {
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>): Promise<void> => {
     const file = e.target.files?.[0];
-    e.target.value = ''; // reset pour pouvoir re-importer le même fichier
+    e.target.value = '';
     if (!file) return;
     setLoading(true);
     setError(null);
@@ -86,37 +87,33 @@ export function OrganizationsAdminTab(): JSX.Element {
   };
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className={styles.container}>
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher (nom, pays, type, adresse)…"
-            className="w-72 rounded border border-gray-300 px-2 py-1 text-sm"
+            className={styles.searchInput}
           />
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="rounded bg-rte px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700"
+            className={styles.primaryButton}
           >
             + Nouvelle organisation
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className={styles.toolbarRight}>
           <input
             ref={fileInputRef}
             type="file"
             accept="application/json,.json"
             onChange={handleImportFile}
-            className="hidden"
+            className={styles.hiddenInput}
           />
-          <button
-            type="button"
-            onClick={handleImportClick}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
-          >
+          <button type="button" onClick={handleImportClick} className={styles.secondaryButton}>
             ⬆ Importer JSON
           </button>
           <button
@@ -124,7 +121,7 @@ export function OrganizationsAdminTab(): JSX.Element {
             onClick={() => {
               void handleExport();
             }}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+            className={styles.secondaryButton}
           >
             ⬇ Exporter JSON
           </button>
@@ -132,20 +129,20 @@ export function OrganizationsAdminTab(): JSX.Element {
       </div>
 
       {error ? (
-        <p className="mb-3 rounded bg-red-100 p-2 text-sm text-red-700" role="alert">
+        <p className={styles.alertError} role="alert">
           {error}
         </p>
       ) : null}
 
       {importResult ? (
-        <div className="mb-3 rounded bg-emerald-50 p-3 text-xs text-emerald-800">
-          <div className="flex items-center justify-between">
+        <div className={styles.importResult}>
+          <div className={styles.importResultHeader}>
             <div>
               Import terminé : <strong>{importResult.inserted}</strong> inséré(s) ·{' '}
               <strong>{importResult.updated}</strong> mis à jour ·{' '}
               <strong>{importResult.skipped}</strong> ignoré(s)
               {importResult.errors.length > 0 ? (
-                <span className="ml-2 text-red-600">
+                <span className={styles.importErrorCount}>
                   {importResult.errors.length} erreur(s)
                 </span>
               ) : null}
@@ -153,16 +150,16 @@ export function OrganizationsAdminTab(): JSX.Element {
             <button
               type="button"
               onClick={() => setImportResult(null)}
-              className="text-emerald-600 hover:text-emerald-900"
+              className={styles.importResultClose}
               aria-label="Masquer"
             >
               ✕
             </button>
           </div>
           {importResult.errors.length > 0 ? (
-            <ul className="mt-1 space-y-0.5">
+            <ul className={styles.importResultErrors}>
               {importResult.errors.slice(0, 10).map((err, i) => (
-                <li key={i} className="font-mono text-red-700">
+                <li key={i}>
                   {err.organizationName} : {err.reason}
                 </li>
               ))}
@@ -171,67 +168,65 @@ export function OrganizationsAdminTab(): JSX.Element {
         </div>
       ) : null}
 
-      <div className="mb-2 text-xs text-gray-500">
+      <div className={styles.counter}>
         {filtered.length} / {rows.length} organisations affichées · {editedCount} éditée(s)
         par l'utilisateur
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-500">Chargement…</p>
+        <p className={styles.loading}>Chargement…</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-xs">
-            <thead className="bg-gray-50 text-left">
+        <div className={styles.tableWrapper}>
+          <table className={styles.table}>
+            <thead>
               <tr>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Nom</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Pays</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Type</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Adresse</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Position</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold text-center">Édité</th>
-                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold"></th>
+                <th>Nom</th>
+                <th>Pays</th>
+                <th>Type</th>
+                <th>Adresse</th>
+                <th>Position</th>
+                <th>Édité</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50">
-                  <td className="border-b border-gray-200 px-2 py-1.5">
+                <tr key={row.id}>
+                  <td>
                     <div>{row.displayName}</div>
-                    <div className="text-[10px] text-gray-400 font-mono">{row.organizationName}</div>
+                    <div className={styles.normalizedName}>{row.organizationName}</div>
                   </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5 font-mono">
-                    {row.country ?? <span className="text-gray-400">—</span>}
+                  <td className={styles.mono}>
+                    {row.country ?? <span className={styles.muted}>—</span>}
                   </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5">
-                    {row.typeHint ?? <span className="text-gray-400">—</span>}
+                  <td>{row.typeHint ?? <span className={styles.muted}>—</span>}</td>
+                  <td className={styles.address}>
+                    {row.address ?? <span className={styles.muted}>—</span>}
                   </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5 text-gray-600">
-                    {row.address ?? <span className="text-gray-400">—</span>}
-                  </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5 font-mono text-[10px] text-gray-600">
+                  <td className={styles.coord}>
                     {row.lat != null && row.lng != null ? (
                       `${row.lat.toFixed(3)}, ${row.lng.toFixed(3)}`
                     ) : (
-                      <span className="text-gray-400">—</span>
+                      <span className={styles.muted}>—</span>
                     )}
                   </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5 text-center">
+                  <td>
                     {row.userEdited ? (
                       <span
-                        className="inline-block rounded bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-800"
+                        className={styles.editedBadge}
                         title={`Édité · seedVersion ${row.seedVersion}`}
                       >
                         ✓
                       </span>
                     ) : (
-                      <span className="text-gray-300">—</span>
+                      <span className={styles.muted}>—</span>
                     )}
                   </td>
-                  <td className="border-b border-gray-200 px-2 py-1.5 text-right">
+                  <td>
                     <button
                       type="button"
                       onClick={() => setEditing(row)}
-                      className="rounded px-2 py-0.5 text-xs text-rte hover:bg-red-50"
+                      className={styles.editButton}
                     >
                       🖊 Éditer
                     </button>
@@ -241,8 +236,10 @@ export function OrganizationsAdminTab(): JSX.Element {
             </tbody>
           </table>
           {filtered.length === 0 ? (
-            <p className="mt-3 text-sm text-gray-500">
-              {rows.length === 0 ? 'Aucune organisation en mémoire.' : 'Aucun résultat pour la recherche.'}
+            <p className={styles.emptyMessage}>
+              {rows.length === 0
+                ? 'Aucune organisation en mémoire.'
+                : 'Aucun résultat pour la recherche.'}
             </p>
           ) : null}
         </div>
