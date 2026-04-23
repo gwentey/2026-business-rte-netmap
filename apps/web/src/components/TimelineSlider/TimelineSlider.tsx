@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useAppStore } from '../../store/app-store.js';
+import styles from './TimelineSlider.module.scss';
 
 export function TimelineSlider(): JSX.Element | null {
   const imports = useAppStore((s) => s.imports);
@@ -14,9 +15,8 @@ export function TimelineSlider(): JSX.Element | null {
   if (distinctDates.length < 2) return null;
 
   const nMax = distinctDates.length;
-  const currentIndex = refDate === null
-    ? nMax
-    : distinctDates.findIndex((iso) => iso === refDate.toISOString());
+  const currentIndex =
+    refDate === null ? nMax : distinctDates.findIndex((iso) => iso === refDate.toISOString());
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const idx = Number(e.target.value);
@@ -30,45 +30,53 @@ export function TimelineSlider(): JSX.Element | null {
     }
   };
 
-  const currentLabel = refDate === null
-    ? 'maintenant'
-    : new Date(refDate).toLocaleString('fr-FR', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      });
+  const currentLabel =
+    refDate === null
+      ? 'maintenant'
+      : new Date(refDate).toLocaleString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
 
-  const includedCount = refDate === null
-    ? nMax
-    : distinctDates.filter((d) => d <= refDate.toISOString()).length;
+  const includedCount =
+    refDate === null
+      ? nMax
+      : distinctDates.filter((d) => d <= refDate.toISOString()).length;
 
   return (
-    <div className="border-b border-gray-200 bg-gray-50 px-4 py-2">
-      <div className="flex items-center gap-3">
-        <label className="flex flex-1 items-center gap-3 text-sm">
-          <span className="whitespace-nowrap text-gray-700">Date de référence :</span>
+    <div className={styles.container}>
+      <div className={styles.row}>
+        <label className={styles.labelWrapper}>
+          <span className={styles.labelText}>Date de référence :</span>
           <input
             type="range"
             min={0}
             max={nMax}
             value={currentIndex >= 0 ? currentIndex : nMax}
             onChange={handleChange}
-            className="flex-1"
+            className={styles.slider}
             aria-label="Date de référence timeline"
           />
-          <span className="w-36 text-right font-mono text-xs text-gray-900">{currentLabel}</span>
+          <span className={styles.currentLabel}>{currentLabel}</span>
         </label>
         {refDate !== null ? (
           <button
             type="button"
-            onClick={() => { void setRefDate(null); }}
-            className="rounded border border-gray-300 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100"
+            onClick={() => {
+              void setRefDate(null);
+            }}
+            className={styles.resetButton}
           >
             ⟲ Retour au présent
           </button>
         ) : null}
       </div>
-      <div className="mt-1 text-xs text-gray-500">
-        {nMax} dates distinctes · {includedCount} inclus {refDate === null ? '(état actuel)' : `jusqu'à ${currentLabel}`}
+      <div className={styles.hint}>
+        {nMax} dates distinctes · {includedCount} inclus{' '}
+        {refDate === null ? '(état actuel)' : `jusqu'à ${currentLabel}`}
       </div>
     </div>
   );

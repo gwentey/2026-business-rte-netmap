@@ -7,6 +7,30 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.14 — Slice 4e : migration Map + DetailPanel contents + TimelineSlider (2026-04-23)
+
+**Dernière slice technique de la migration DS RTE (migration 4a→4e terminée).** Migre les derniers composants Tailwind vers CSS Modules : les overlays carte (NetworkMap, BaFilter, NodeMarker), le contenu du DetailPanel (NodeDetails, EdgeDetails), et TimelineSlider.
+
+- `Map/NetworkMap.{tsx,module.scss}` : shell carte relative + toggle "Hiérarchie CD" positionné (right/top absolute, couleur slate quand actif).
+- `Map/BaFilter.{tsx,module.scss}` : dropdown filtre Business Applications (popup 16rem, toggle violet quand actif, items avec badges criticité P1/P2/P3).
+- `Map/NodeMarker.{tsx,module.scss}` : style du tooltip Leaflet (font-size 0.75rem).
+- `TimelineSlider/TimelineSlider.{tsx,module.scss}` : slider range plein largeur (accent-color RTE), label current date monospace, bouton reset "Retour au présent".
+- `DetailPanel/details.module.scss` : module SCSS partagé entre NodeDetails et EdgeDetails — contient dl/dt/dd grid, section titles, 8 variantes de badges (status ACTIVE/NEUTRAL/NOT_CONNECTED, health FRESH/WARNING/STALE/UNKNOWN, direction IN/OUT/BIDI, BA P1/P2/P3, sync TWO_WAY/ONE_WAY, volume ZERO/POSITIVE).
+- `DetailPanel/NodeDetails.tsx` : 356 → ~290 lignes, refactor avec helper `DlRow` pour éviter la duplication `grid-cols-3 gap-2`. Badges (StatusBadge, HealthBadge, DirectionBadge, BaBadge) refactorisés pour utiliser les classes `details.module.scss`.
+- `DetailPanel/EdgeDetails.tsx` : 170 → ~130 lignes, même refactor + helper `DlRow`. StatusBadge et VolumeBadge migrés.
+- **HomeCdOverlay et EdgePath non touchés** : 0 className Tailwind (ils pilotent uniquement le rendu Leaflet via props color/weight/dashArray).
+
+**Tests :** typecheck OK, 143 vitest verts + 3 `.todo`, build OK.
+
+**Fin de la migration Tailwind → CSS Modules.** Prochaines slices possibles (non planifiées) :
+- Migration des composants maison `ui/` (Table, RangeSlider, ColorField, DateTimeField) pour consommer directement les tokens DS RTE au lieu des hex hardcodés
+- Retrait de `lucide-react` (remplacement par icônes DS)
+- Optimisation du bundle (imports sélectifs barrel)
+- Activation du dark mode (tokens DS)
+- Retrait `@tailwind` du `tsconfig` si encore présent
+
+---
+
 ### v3.0-alpha.13 — Slice 4d : migration UploadPage + UploadBatchTable (2026-04-23)
 
 Slice 4d complète. Migre l'ensemble du domaine Upload (UploadPage + UploadBatchTable avec sous-composant LabelInput) de Tailwind vers CSS Modules.
