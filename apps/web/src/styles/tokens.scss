@@ -1,0 +1,4 @@
+// Forward tout ce que le DS RTE expose :
+// - tokens publics : spacing, typography, border/radius, elevation, opacity, layout
+// - abstractions : mixins neutral-shadow-*, brand-shadow-*, themes
+@forward '@design-system-rte/core/design-tokens/main';

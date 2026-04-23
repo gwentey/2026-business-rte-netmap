@@ -103,4 +103,45 @@ describe('ComponentsAdminTable', () => {
     await userEvent.click(editBtn);
     expect(screen.getByRole('heading', { name: /Surcharge pour 17V-EDIT/i })).toBeInTheDocument();
   });
+
+  it('[Export JSON] "Tout exporter" declenche un download de TOUS les rows meme avec un filtre actif', async () => {
+    vi.mocked(api.listAdminComponents).mockResolvedValue([
+      fakeRow({ eic: '17V-ALPHA', current: { ...fakeRow().current, displayName: 'Alpha', organization: 'APG' } }),
+      fakeRow({ eic: '17V-BETA', current: { ...fakeRow().current, displayName: 'Beta', organization: 'Tennet' } }),
+    ]);
+    const createObjectURL = vi.fn().mockReturnValue('blob:x');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+
+    render(<ComponentsAdminTable />);
+    await waitFor(() => expect(screen.getByText('17V-ALPHA')).toBeInTheDocument());
+
+    // Applique un filtre (1 seul match)
+    const searchInput = screen.getByPlaceholderText(/EIC, nom/i);
+    await userEvent.type(searchInput, 'APG');
+    await waitFor(() => expect(screen.queryByText('17V-BETA')).not.toBeInTheDocument());
+
+    // Le bouton affiche TOUJOURS 2 (total des rows, pas filtered)
+    const btn = screen.getByRole('button', { name: /Tout exporter \(2\)/ });
+    await userEvent.click(btn);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    // Le blob contient les 2 lignes
+    const blobArg = createObjectURL.mock.calls[0]![0] as Blob;
+    expect(blobArg).toBeInstanceOf(Blob);
+    const text = await blobArg.text();
+    const parsed = JSON.parse(text);
+    expect(parsed.totals.total).toBe(2);
+    expect(parsed.components).toHaveLength(2);
+    expect(parsed.components.map((c: { eic: string }) => c.eic).sort()).toEqual(['17V-ALPHA', '17V-BETA']);
+  });
+
+  it('[Export JSON] le bouton est disable quand aucun composant en DB', async () => {
+    vi.mocked(api.listAdminComponents).mockResolvedValue([]);
+    render(<ComponentsAdminTable />);
+    await waitFor(() => {
+      const btn = screen.getByRole('button', { name: /Tout exporter \(0\)/ });
+      expect(btn).toBeDisabled();
+    });
+  });
 });
