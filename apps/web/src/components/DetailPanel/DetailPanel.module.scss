@@ -1,0 +1,23 @@
+.panel {
+  height: 100%;
+  width: 400px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-left: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+.closeButton {
+  margin-bottom: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: #6b7280;
+  padding: 0;
+
+  &:hover {
+    color: #111827;
+  }
+}

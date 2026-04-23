@@ -1,0 +1,122 @@
+.loading {
+  padding: 2rem;
+  color: #6b7280;
+}
+
+.error {
+  padding: 2rem;
+  color: #b91c1c;
+}
+
+.empty {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f9fafb;
+  padding: 2rem;
+}
+
+.emptyText {
+  text-align: center;
+  color: #374151;
+}
+
+.emptyButton {
+  display: inline-block;
+  border-radius: 0.25rem;
+  background: #e30613;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+
+  &:hover {
+    background: #b91c1c;
+  }
+}
+
+.root {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.brand {
+  font-weight: 700;
+  color: #e30613;
+}
+
+.envBadge {
+  border-radius: 0.25rem;
+  background: #f3f4f6;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.snapshotLink {
+  font-size: 0.875rem;
+  color: #4b5563;
+  text-decoration: none;
+
+  &:hover {
+    color: #111827;
+  }
+}
+
+.body {
+  display: flex;
+  flex: 1 1 0%;
+  overflow: hidden;
+}
+
+.mapContainer {
+  flex: 1 1 0%;
+  min-width: 0;
+  height: 100%;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.legendSwatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+.counter {
+  margin-left: auto;
+}

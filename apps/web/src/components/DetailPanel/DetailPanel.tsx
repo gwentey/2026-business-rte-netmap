@@ -1,6 +1,7 @@
 import { useAppStore } from '../../store/app-store.js';
 import { NodeDetails } from './NodeDetails.js';
 import { EdgeDetails } from './EdgeDetails.js';
+import styles from './DetailPanel.module.scss';
 
 export function DetailPanel(): JSX.Element | null {
   const graph = useAppStore((s) => s.graph);
@@ -16,11 +17,11 @@ export function DetailPanel(): JSX.Element | null {
   const edge = selectedEdgeId ? graph.edges.find((e) => e.id === selectedEdgeId) : undefined;
 
   return (
-    <aside className="h-full w-[400px] overflow-y-auto border-l bg-white p-4">
+    <aside className={styles.panel}>
       <button
         type="button"
         onClick={() => (node ? clearNode(null) : clearEdge(null))}
-        className="mb-3 text-sm text-gray-500 hover:text-gray-900"
+        className={styles.closeButton}
       >
         × Fermer
       </button>
