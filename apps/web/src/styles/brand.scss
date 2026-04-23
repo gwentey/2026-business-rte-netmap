@@ -10,6 +10,9 @@
   --c-primary-hover: #00a7d1;
   --c-primary-pressed: #0090b4;
   --c-primary-soft: rgba(0, 189, 237, 0.08);
+  --c-primary-border-soft: rgba(0, 189, 237, 0.2);
+  --c-primary-divider: rgba(0, 189, 237, 0.12);
+  --c-surface-deep-soft: rgba(12, 57, 73, 0.08);
 
   --c-surface-dark: #10181d;
   --c-surface-deep: #0c3949;
@@ -315,7 +318,7 @@
   padding: 12px 14px;
   background: var(--c-primary-soft);
   color: var(--c-primary-pressed);
-  border: 1px solid rgba(0, 189, 237, 0.2);
+  border: 1px solid var(--c-primary-border-soft);
   border-radius: var(--r-md);
   @include t-small;
 }
