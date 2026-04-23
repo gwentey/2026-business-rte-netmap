@@ -111,8 +111,9 @@ export function UploadPage(): JSX.Element {
   };
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
-      <h1 className="mb-2 text-2xl font-semibold">Importer des dumps ECP</h1>
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-4xl p-8">
+        <h1 className="mb-2 text-2xl font-semibold">Importer des dumps ECP</h1>
       <p className="mb-6 text-sm text-gray-600">
         Glissez N fichiers ZIP (Endpoint, CD ou Broker). Le type est détecté
         automatiquement à partir des fichiers présents dans le ZIP.
@@ -291,6 +292,7 @@ export function UploadPage(): JSX.Element {
           </Link>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }

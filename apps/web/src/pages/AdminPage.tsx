@@ -16,22 +16,24 @@ export function AdminPage(): JSX.Element {
   };
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
-      <h1 className="mb-4 text-2xl font-semibold">Administration</h1>
-      <AdminTabs active={activeTab} onChange={setActiveTab} />
-      <div className="mt-4">
-        {activeTab === 'imports' ? <ImportsAdminTable /> : null}
-        {activeTab === 'components' ? (
-          <ComponentsAdminTable
-            autoOpenEic={pendingComponentEic}
-            onAutoOpenHandled={() => setPendingComponentEic(null)}
-          />
-        ) : null}
-        {activeTab === 'entsoe' ? <EntsoeAdminTab /> : null}
-        {activeTab === 'registry' ? (
-          <RegistryAdminTab onEditComponent={handleEditComponentFromRegistry} />
-        ) : null}
-        {activeTab === 'danger' ? <DangerZoneTab /> : null}
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-6xl p-6">
+        <h1 className="mb-4 text-2xl font-semibold">Administration</h1>
+        <AdminTabs active={activeTab} onChange={setActiveTab} />
+        <div className="mt-4">
+          {activeTab === 'imports' ? <ImportsAdminTable /> : null}
+          {activeTab === 'components' ? (
+            <ComponentsAdminTable
+              autoOpenEic={pendingComponentEic}
+              onAutoOpenHandled={() => setPendingComponentEic(null)}
+            />
+          ) : null}
+          {activeTab === 'entsoe' ? <EntsoeAdminTab /> : null}
+          {activeTab === 'registry' ? (
+            <RegistryAdminTab onEditComponent={handleEditComponentFromRegistry} />
+          ) : null}
+          {activeTab === 'danger' ? <DangerZoneTab /> : null}
+        </div>
       </div>
     </div>
   );
