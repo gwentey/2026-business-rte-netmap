@@ -33,22 +33,30 @@ export function UploadPage(): JSX.Element {
     onDrop: (accepted) => {
       setDropError(null);
       const valid: File[] = [];
-      const rejected: string[] = [];
+      const extRejected: string[] = [];
       for (const f of accepted) {
         if (/\.(zip|properties)$/i.test(f.name)) {
           valid.push(f);
         } else {
-          rejected.push(f.name);
+          extRejected.push(f.name);
         }
       }
-      if (rejected.length > 0) {
-        setDropError(
-          `Extension non supportée — attendu .zip ou .properties : ${rejected.join(', ')}`,
+      const errors: string[] = [];
+      if (extRejected.length > 0) {
+        errors.push(
+          `Extension non supportée (.zip ou .properties attendu) : ${extRejected.join(', ')}`,
         );
       }
       if (valid.length > 0) {
-        void addBatchFiles(valid);
+        void addBatchFiles(valid).then(({ propertiesRejected }) => {
+          if (propertiesRejected.length > 0) {
+            setDropError(
+              `Nom de .properties invalide (attendu <EIC>-configuration.properties) : ${propertiesRejected.join(', ')}`,
+            );
+          }
+        });
       }
+      if (errors.length > 0) setDropError(errors.join(' · '));
     },
     onDropRejected: (rejections) => {
       setDropError(rejections[0]?.errors[0]?.message ?? 'Fichier rejeté');

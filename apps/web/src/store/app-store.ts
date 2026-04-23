@@ -52,7 +52,7 @@ type AppState = {
   loadGraph: (env: string, refDate?: Date) => Promise<void>;
   selectNode: (eic: string | null) => void;
   selectEdge: (id: string | null) => void;
-  addBatchFiles: (files: File[]) => Promise<void>;
+  addBatchFiles: (files: File[]) => Promise<{ propertiesRejected: string[] }>;
   removeBatchItem: (id: string) => void;
   updateBatchItem: (id: string, patch: Partial<UploadBatchItem>) => void;
   submitBatch: (envName: string) => Promise<void>;
@@ -64,9 +64,12 @@ type AppState = {
 /**
  * Extrait l'EIC depuis un nom de fichier `<EIC>-configuration.properties`.
  * Retourne null si le pattern n'est pas reconnu.
+ *
+ * Tolérant : accepte les EIC de 14 à 20 caractères (certains codes ECP font
+ * moins de 16), et tolère toute séquence de caractères non-espace pour l'EIC.
  */
-function extractEicFromPropertiesName(fileName: string): string | null {
-  const m = /^([0-9A-Z-]{16})-configuration\.properties$/i.exec(fileName);
+export function extractEicFromPropertiesName(fileName: string): string | null {
+  const m = /^(\S+?)-configuration\.properties$/i.exec(fileName);
   return m ? m[1]!.toUpperCase() : null;
 }
 
@@ -144,10 +147,15 @@ export const useAppStore = create<AppState>()(
         // Sépare les .properties (métadonnées externes) des .zip (dumps).
         const zipFiles: File[] = [];
         const newProperties: Record<string, File> = {};
+        const propertiesRejected: string[] = [];
         for (const f of files) {
           if (/\.properties$/i.test(f.name)) {
             const eic = extractEicFromPropertiesName(f.name);
-            if (eic) newProperties[eic] = f;
+            if (eic) {
+              newProperties[eic] = f;
+            } else {
+              propertiesRejected.push(f.name);
+            }
           } else {
             zipFiles.push(f);
           }
@@ -157,7 +165,7 @@ export const useAppStore = create<AppState>()(
             propertiesFiles: { ...s.propertiesFiles, ...newProperties },
           }));
         }
-        if (zipFiles.length === 0) return;
+        if (zipFiles.length === 0) return { propertiesRejected };
 
         const existing = get().uploadBatch;
         const pending: UploadBatchItem[] = zipFiles.map((file) => ({
@@ -204,6 +212,7 @@ export const useAppStore = create<AppState>()(
             ),
           }));
         }
+        return { propertiesRejected };
       },
 
       removeBatchItem: (id) => {
