@@ -1,72 +1,92 @@
+@use "@/styles/brand" as *;
+
+// =============================================================================
+// BaFilter — dropdown filtre Business Applications
+// Overlay carte : trigger blanc, popup dark, items blancs, criticité pure palette
+// =============================================================================
+
 .container {
   position: absolute;
-  left: 0.75rem;
-  top: 0.75rem;
+  left: var(--layout-map-toolbar-gap);
+  top: var(--layout-map-toolbar-gap);
   z-index: 1000;
 }
 
 .toggle {
-  padding: 0.375rem 0.75rem;
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #374151;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-surface);
+  color: var(--c-text);
+  border-radius: var(--r-md);
+  @include t-small;
+  font-weight: var(--t-body-strong-weight);
+  box-shadow: var(--shadow-2);
   cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast),
+    border-color var(--motion-fast);
 
   &:hover {
-    background: #f9fafb;
+    background: var(--c-primary-soft);
+    border-color: var(--c-primary);
   }
 }
 
 .toggleActive {
-  border-color: #8b5cf6;
-  background: #7c3aed;
-  color: #ffffff;
+  background: var(--c-primary);
+  border-color: var(--c-primary);
+  color: var(--c-text);
 
   &:hover {
-    background: #6d28d9;
+    background: var(--c-primary-hover);
+    border-color: var(--c-primary-hover);
   }
 }
 
+// --------- Popup dropdown ------------------------------------------------
+
 .dropdown {
-  margin-top: 0.25rem;
-  width: 16rem;
-  padding: 0.5rem;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-top: 6px;
+  width: 18rem;
+  padding: 10px;
+  background: var(--c-surface-dark);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-3);
+  color: var(--c-text-inverse);
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 8px;
+  padding: 4px 6px;
 }
 
 .headerTitle {
   margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #374151;
+  @include t-caps;
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .resetLink {
   background: none;
   border: none;
   padding: 0;
-  font-size: 0.625rem;
-  color: #6b7280;
+  @include t-small;
+  color: var(--c-primary);
   text-decoration: underline;
-  text-underline-offset: 0.125rem;
+  text-underline-offset: 3px;
   cursor: pointer;
+  transition: color var(--motion-fast);
 
   &:hover {
-    color: #1f2937;
+    color: var(--c-text-inverse);
   }
 }
 
@@ -76,7 +96,7 @@
   padding: 0;
 
   li + li {
-    margin-top: 0.25rem;
+    margin-top: 2px;
   }
 }
 
@@ -84,53 +104,71 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   width: 100%;
-  padding: 0.25rem 0.5rem;
+  padding: 6px 8px;
   background: none;
   border: none;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  color: #374151;
+  border-radius: var(--r-sm);
+  @include t-small;
+  color: var(--c-text-inverse);
   cursor: pointer;
   text-align: left;
+  transition: background var(--motion-fast);
 
   &:hover {
-    background: #f9fafb;
+    background: rgba(255, 255, 255, 0.08);
   }
 }
 
 .itemActive {
-  background: #ede9fe;
-  color: #4c1d95;
+  background: var(--c-primary-soft);
+  color: var(--c-primary);
 
   &:hover {
-    background: #ddd6fe;
+    background: rgba(0, 189, 237, 0.16);
   }
 }
 
 .code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  @include t-mono;
+  font-size: 11px;
+  opacity: 0.85;
 }
 
+// --------- Criticité (palette pure : error / teal / muted) ---------------
+
 .criticality {
-  margin-left: 0.25rem;
-  padding: 0 0.25rem;
-  border-radius: 0.25rem;
-  font-size: 0.5625rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: var(--r-xs);
+  font-size: 10px;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .critP1 {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--c-error);
+  color: var(--c-text-inverse);
+
+  &::before {
+    content: "▲ ";
+    font-size: 8px;
+    margin-right: 2px;
+  }
 }
 
 .critP2 {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--c-surface-deep);
+  color: var(--c-text-inverse);
 }
 
 .critP3 {
-  background: #e5e7eb;
-  color: #374151;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: var(--t-body-strong-weight);
 }
