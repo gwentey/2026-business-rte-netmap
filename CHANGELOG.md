@@ -7,6 +7,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.10 — Slice 4c.3 : migration OrganizationsAdminTab + OrganizationEditModal (2026-04-23)
+
+Troisième mini-slice 4c. Migre l'onglet Organisations et son modal d'édition de Tailwind vers CSS Modules.
+
+- `OrganizationsAdminTab.{tsx,module.scss}` : toolbar (search+boutons), bandeau import result avec erreurs collapsibles, table 7 colonnes avec badge `Édité` violet, bouton 🖊 Éditer.
+- `OrganizationEditModal.{tsx,module.scss}` : modal 28rem, formulaire 7 fields (displayName obligatoire, country ISO-2 avec datalist 33 pays, typeHint avec datalist 11 valeurs, address/notes textarea, lat/lng grid 2 colonnes), méta-box si édition, 3 boutons (Supprimer / Annuler / Enregistrer).
+
+Tests : 143 verts + 3 `.todo`, typecheck + build OK.
+
+---
+
 ### v3.0-alpha.9 — Slice 4c.2 : migration onglet Registry + ProcessColorsEditor + RteEndpointsTable (2026-04-23)
 
 Deuxième mini-slice de la série 4c. Migre l'onglet Registry RTE et ses 2 sous-composants de Tailwind inliné vers CSS Modules.
