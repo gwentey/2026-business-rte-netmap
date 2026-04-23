@@ -29,6 +29,8 @@ model Import {
   importedStats         ImportedMessagingStat[]
   importedProps         ImportedAppProperty[]
   importedDirSyncs      ImportedDirectorySync[]
+  importedCompStats     ImportedComponentStat[]
+  importedUpRoutes      ImportedUploadRoute[]
 
   @@index([envName, effectiveDate])
   @@index([fileHash])
@@ -116,6 +118,39 @@ model ImportedAppProperty {
   value      String
 
   @@index([importId])
+}
+
+// Slice 2n — stats par composant vues par un CD (component_statistics.csv).
+// Permet de peupler lastSync et cumul sentMessages/receivedMessages au niveau
+// global du composant (indicateur de santé).
+model ImportedComponentStat {
+  id                         String   @id @default(uuid())
+  importId                   String
+  import                     Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+  componentCode              String
+  lastSyncSucceed            Boolean?
+  lastSynchronizedTime       DateTime?
+  modifiedDate               DateTime?
+  receivedMessages           Int      @default(0)
+  sentMessages               Int      @default(0)
+  waitingToDeliverMessages   Int      @default(0)
+  waitingToReceiveMessages   Int      @default(0)
+
+  @@index([importId])
+  @@index([componentCode])
+}
+
+// Slice 2n — cibles d'upload prioritaires d'un Endpoint (message_upload_route.csv).
+// Chaque endpoint déclare 1..N cibles vers lesquelles il envoie ses messages.
+model ImportedUploadRoute {
+  id                   String   @id @default(uuid())
+  importId             String
+  import               Import   @relation(fields: [importId], references: [id], onDelete: Cascade)
+  targetComponentCode  String
+  createdDate          DateTime?
+
+  @@index([importId])
+  @@index([targetComponentCode])
 }
 
 model ImportedDirectorySync {

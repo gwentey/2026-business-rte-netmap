@@ -53,6 +53,8 @@ export class GraphService {
         importedStats: true,
         importedProps: true,
         importedDirSyncs: true,
+        importedCompStats: true,
+        importedUpRoutes: true,
       },
     });
 
@@ -111,6 +113,49 @@ export class GraphService {
         status: status ?? prev.status,
         appTheme: appTheme ?? prev.appTheme,
       });
+    }
+
+    // Slice 2n : component_statistics vus par un CD pour un composant donné.
+    // Latest-wins par (componentCode, effectiveDate de l'Import). On conserve
+    // lastSync, sentMessages et receivedMessages les plus récents.
+    const compStatsByEic = new Map<
+      string,
+      {
+        lastSync: Date | null;
+        sentMessages: number;
+        receivedMessages: number;
+        effective: Date;
+      }
+    >();
+    for (const imp of imports) {
+      for (const s of imp.importedCompStats) {
+        const prev = compStatsByEic.get(s.componentCode);
+        if (!prev || prev.effective < imp.effectiveDate) {
+          compStatsByEic.set(s.componentCode, {
+            lastSync: s.lastSynchronizedTime,
+            sentMessages: s.sentMessages,
+            receivedMessages: s.receivedMessages,
+            effective: imp.effectiveDate,
+          });
+        }
+      }
+    }
+
+    // Slice 2n : cibles d'upload déclarées par chaque endpoint source d'un Import.
+    // Latest-wins par sourceEic.
+    const uploadTargetsBySourceEic = new Map<
+      string,
+      { targets: string[]; effective: Date }
+    >();
+    for (const imp of imports) {
+      if (!imp.sourceComponentEic || imp.importedUpRoutes.length === 0) continue;
+      const prev = uploadTargetsBySourceEic.get(imp.sourceComponentEic);
+      if (!prev || prev.effective < imp.effectiveDate) {
+        uploadTargetsBySourceEic.set(imp.sourceComponentEic, {
+          targets: imp.importedUpRoutes.map((r) => r.targetComponentCode),
+          effective: imp.effectiveDate,
+        });
+      }
     }
 
     // 2. Cascade 5 niveaux (T13)
@@ -261,7 +306,9 @@ export class GraphService {
         status: null,
         appTheme: null,
       };
-      return this.toNode(g, rteEicSet, envNameForGraph, runtime);
+      const compStat = compStatsByEic.get(g.eic) ?? null;
+      const uploadTargets = uploadTargetsBySourceEic.get(g.eic)?.targets ?? [];
+      return this.toNode(g, rteEicSet, envNameForGraph, runtime, compStat, uploadTargets);
     });
 
     return {
@@ -277,6 +324,8 @@ export class GraphService {
     rteEicSet: Set<string>,
     envName: string,
     runtime: { status: string | null; appTheme: string | null },
+    compStat: { lastSync: Date | null; sentMessages: number; receivedMessages: number } | null,
+    uploadTargets: string[],
   ): GraphNode {
     return {
       id: g.eic,
@@ -292,6 +341,10 @@ export class GraphService {
       homeCdCode: g.homeCdCode,
       status: runtime.status,
       appTheme: runtime.appTheme,
+      lastSync: compStat?.lastSync?.toISOString() ?? null,
+      sentMessages: compStat?.sentMessages ?? null,
+      receivedMessages: compStat?.receivedMessages ?? null,
+      uploadTargets,
       country: g.country,
       lat: g.lat,
       lng: g.lng,

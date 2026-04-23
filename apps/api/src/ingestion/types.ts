@@ -12,10 +12,11 @@ export const USABLE_CSV_FILES = [
   'message_path.csv',
   'messaging_statistics.csv',
   'synchronized_directories.csv',
+  'component_statistics.csv',
+  'message_upload_route.csv',
 ] as const;
 
 export const IGNORED_CSV_FILES = [
-  'component_statistics.csv',
   'pending_edit_directories.csv',
   'pending_removal_directories.csv',
 ] as const;
@@ -229,6 +230,38 @@ export type SynchronizedDirectoryRow = {
   synchronizationTimeStamp: Date | null;
 };
 
+export type ComponentStatisticRow = {
+  componentCode: string;
+  lastSynchronizationSucceed: boolean | null;
+  lastSynchronizedTime: Date | null;
+  modifiedDate: Date | null;
+  receivedMessages: number | null;
+  sentMessages: number | null;
+  waitingToDeliverMessages: number | null;
+  waitingToReceiveMessages: number | null;
+};
+
+export type UploadRouteRow = {
+  createdDate: Date | null;
+  targetComponentCode: string;
+};
+
+export type BuiltImportedComponentStat = {
+  componentCode: string;
+  lastSyncSucceed: boolean | null;
+  lastSynchronizedTime: Date | null;
+  modifiedDate: Date | null;
+  receivedMessages: number;
+  sentMessages: number;
+  waitingToDeliverMessages: number;
+  waitingToReceiveMessages: number;
+};
+
+export type BuiltImportedUploadRoute = {
+  targetComponentCode: string;
+  createdDate: Date | null;
+};
+
 export type BuiltImportedDirectorySync = {
   directoryCode: string;
   directorySyncMode: string;
@@ -253,5 +286,7 @@ export type BuiltImport = {
   messagingStats: BuiltImportedMessagingStat[];
   appProperties: { key: string; value: string }[];
   directorySyncs: BuiltImportedDirectorySync[];
+  componentStats: BuiltImportedComponentStat[];
+  uploadRoutes: BuiltImportedUploadRoute[];
   warnings: Warning[];
 };

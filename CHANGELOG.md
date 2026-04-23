@@ -7,6 +7,39 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.15 — Slice 2n Santé composant + routes d'upload (2026-04-23)
+
+Deux nouveaux CSV ECP sont désormais parsés : `component_statistics.csv` (vu par un CD pour chaque composant — santé + cumul messages) et `message_upload_route.csv` (cibles d'upload prioritaires déclarées par un endpoint). Chaque nœud affiche un **badge de santé coloré** (vert < 1h, orange < 24h, rouge > 24h) sur son marker, et le popup contient une section "Santé (vue CD)" + la liste des "Cibles d'upload" cliquables.
+
+**Highlights :**
+
+- **Prisma** : 2 nouvelles tables (migration `add_component_stats_and_upload_routes`) :
+  - `ImportedComponentStat` — `componentCode`, `lastSyncSucceed`, `lastSynchronizedTime`, `sentMessages`, `receivedMessages`, `waitingToDeliver/Receive`.
+  - `ImportedUploadRoute` — `targetComponentCode`, `createdDate`.
+- **`types.ts`** : `component_statistics.csv` et `message_upload_route.csv` retirés de `IGNORED_CSV_FILES` et ajoutés à `USABLE_CSV_FILES`.
+- **`CsvReaderService.readComponentStatistics()` + `readUploadRoutes()`** : nouveaux parsers.
+- **`ImportBuilderService.buildComponentStats()` + `buildUploadRoutes()`** : nouveaux constructeurs (skip des lignes sans code cible, normalisation des compteurs `null → 0`).
+- **`ImportsService`** :
+  - Branche ENDPOINT : lit `message_upload_route.csv` si présent.
+  - Branche CD : lit `component_statistics.csv` si présent.
+- **`GraphService.getGraph`** construit 2 nouvelles maps latest-wins :
+  - `compStatsByEic` : pour chaque composant observé par un CD dans l'env, on garde le dernier `lastSync` + cumul sentMessages/receivedMessages.
+  - `uploadTargetsBySourceEic` : pour chaque endpoint source de dump, on garde la liste des EICs cibles déclarées.
+- **`GraphNode`** (shared) gagne 4 champs : `lastSync: string | null`, `sentMessages: number | null`, `receivedMessages: number | null`, `uploadTargets: string[]`.
+- **Frontend `node-icon.tsx`** :
+  - Nouvelle fonction `healthStatusFromLastSync(lastSync, now)` → `'healthy' | 'warning' | 'stale' | 'unknown'`.
+  - `buildNodeDivIcon(kind, isDefaultPosition, selected, health)` — nouveau paramètre `health` qui peint un **petit badge coloré 8×8 en haut à droite** du marker (emerald / amber / red ; aucun badge pour `unknown`).
+- **Frontend `NodeMarker.tsx`** dérive `health` depuis `node.lastSync` avant de construire l'icône.
+- **Frontend `NodeDetails.tsx`** :
+  - Nouvelle section "Santé (vue CD)" avec badge fraîcheur + lastSync formaté + compteurs UP/DOWN en français.
+  - Nouvelle section "Cibles d'upload (N)" qui liste les `targetComponentCode` cliquables vers les nodes cibles (fallback texte si le node cible n'est pas dans l'env courant).
+
+**Tests :**
+- API : 254 → **256/256** (+2 intégration : composant_stats persiste 2 EPs avec receivedMessages=755945/225023 pour CD1, message_upload_route persiste les cibles d'EP2).
+- Web : 94 → **103/103** (+6 `healthStatusFromLastSync` : null/unparsable/<1h/1h-24h/>24h, +3 `NodeDetails` : Santé rendue / cachée sans stats / uploadTargets fallback texte, +1 icône avec badge santé coloré par statut).
+
+**Breaking changes :** aucun — `GraphNode` gagne 4 champs nourris par le backend, `buildNodeDivIcon` a un 4ᵉ paramètre optionnel (default `'unknown'`).
+
 ### v2.0-alpha.14 — Slice 2m CDs partenaires en peering (synchronized_directories) (2026-04-23)
 
 La carte affiche désormais les **CDs partenaires** de chaque Component Directory RTE (TERNA, APG, NG-UK, …) — lus depuis `synchronized_directories.csv`. Ils apparaissent comme nodes `EXTERNAL_CD` reliés au CD source par des edges **PEERING** en pointillé gris, distincts des edges BUSINESS (flux de messages métier). Le popup de la edge peering affiche mode de sync (`ONE_WAY` / `TWO_WAY`), statut et URL du CD partenaire (IPs privées RTE masquées).

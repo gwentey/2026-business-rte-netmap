@@ -6,9 +6,11 @@ import type { Warning } from '@carto-ecp/shared';
 import type {
   AppPropertyRow,
   ComponentDirectoryRow,
+  ComponentStatisticRow,
   MessagePathRow,
   MessagingStatisticRow,
   SynchronizedDirectoryRow,
+  UploadRouteRow,
 } from './types.js';
 
 export type CdMessagePathRow = {
@@ -172,6 +174,32 @@ export class CsvReaderService {
       synchronizationStatus: this.str(row, 'synchronizationStatus'),
       synchronizationTimeStamp: this.date(row, 'synchronizationTimeStamp'),
     }));
+  }
+
+  readComponentStatistics(buffer: Buffer, warnings: Warning[]): ComponentStatisticRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'component_statistics.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'component_statistics.csv', parseError);
+    return rows.map((row) => ({
+      componentCode: this.str(row, 'componentCode') ?? '',
+      lastSynchronizationSucceed: this.bool(row, 'lastSynchronizationSucceed'),
+      lastSynchronizedTime: this.date(row, 'lastSynchronizedTime'),
+      modifiedDate: this.date(row, 'modifiedDate'),
+      receivedMessages: this.num(row, 'receivedMessages'),
+      sentMessages: this.num(row, 'sentMessages'),
+      waitingToDeliverMessages: this.num(row, 'waitingToDeliverMessages'),
+      waitingToReceiveMessages: this.num(row, 'waitingToReceiveMessages'),
+    }));
+  }
+
+  readUploadRoutes(buffer: Buffer, warnings: Warning[]): UploadRouteRow[] {
+    const { rows, parseError } = this.readRaw(buffer, 'message_upload_route.csv');
+    if (parseError !== null) this.pushCsvWarning(warnings, 'message_upload_route.csv', parseError);
+    return rows
+      .map((row) => ({
+        targetComponentCode: this.str(row, 'targetComponentCode') ?? '',
+        createdDate: this.date(row, 'createdDate'),
+      }))
+      .filter((r) => r.targetComponentCode.length > 0);
   }
 
   readMessagingStatistics(buffer: Buffer, warnings: Warning[]): MessagingStatisticRow[] {

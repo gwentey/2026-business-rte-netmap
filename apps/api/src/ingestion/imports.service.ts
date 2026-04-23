@@ -15,9 +15,11 @@ import type { DumpType } from './dump-type-detector.js';
 import type {
   BuiltImport,
   BuiltImportedComponent,
+  BuiltImportedComponentStat,
   BuiltImportedDirectorySync,
   BuiltImportedPath,
   BuiltImportedMessagingStat,
+  BuiltImportedUploadRoute,
 } from './types.js';
 
 export type CreateImportInput = {
@@ -89,6 +91,8 @@ export class ImportsService {
     let messagingStats: BuiltImportedMessagingStat[] = [];
     let appProperties: Array<{ key: string; value: string }> = [];
     let directorySyncs: BuiltImportedDirectorySync[] = [];
+    let componentStats: BuiltImportedComponentStat[] = [];
+    let uploadRoutes: BuiltImportedUploadRoute[] = [];
 
     // --- 2.bis. Parsing du .properties externe (optionnel) ---
     // Clés issues du `<EIC>-configuration.properties` exporté par l'admin ECP.
@@ -220,6 +224,13 @@ export class ImportsService {
         const src = componentsByEic.get(localEic);
         if (src) src.projectName = projectName;
       }
+
+      // Slice 2n : message_upload_route.csv — cibles d'upload déclarées par l'endpoint.
+      const uploadBuf = extracted.files.get('message_upload_route.csv');
+      if (uploadBuf) {
+        const rows = this.csvReader.readUploadRoutes(uploadBuf, warnings);
+        uploadRoutes = this.builder.buildUploadRoutes(rows);
+      }
     } else if (dumpType === 'COMPONENT_DIRECTORY') {
       // Pipeline 2b : CSVs only, pas de XML blob
       const extracted = this.zipExtractor.extract(file.buffer);
@@ -286,6 +297,13 @@ export class ImportsService {
         const syncRows = this.csvReader.readSynchronizedDirectories(syncBuf, warnings);
         directorySyncs = this.builder.buildDirectorySyncs(syncRows);
       }
+
+      // Slice 2n : component_statistics.csv — santé + cumul messages par composant.
+      const statBuf = extracted.files.get('component_statistics.csv');
+      if (statBuf) {
+        const statRows = this.csvReader.readComponentStatistics(statBuf, warnings);
+        componentStats = this.builder.buildComponentStats(statRows);
+      }
       // Pas de messaging_statistics côté CD (tableau vide par défaut)
     } else {
       // BROKER : metadata-only — pas d'extraction CSV (zip ne contient pas les CSVs requis)
@@ -314,6 +332,8 @@ export class ImportsService {
       messagingStats,
       appProperties,
       directorySyncs,
+      componentStats,
+      uploadRoutes,
       warnings,
     };
 

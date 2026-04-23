@@ -66,6 +66,41 @@ describe('Full ingestion CD v2 (integration)', () => {
     }
   }, 30_000);
 
+  it('slice 2n : persiste component_statistics.csv (santé + cumul messages)', async () => {
+    const zip = buildZipFromFixture(CD_FIXTURE);
+    const detail = await imports.createImport({
+      file: { originalname: `${CD_FIXTURE}.zip`, buffer: zip },
+      envName: 'INTEG_CD_V2_CSTATS',
+      label: 'cd-compstats',
+    });
+    try {
+      const stats = await prisma.importedComponentStat.findMany({
+        where: { importId: detail.id },
+      });
+      // Le dump PRFRI-CD1 observe 2 endpoints (EP1 et EP2) locaux.
+      expect(stats.length).toBe(2);
+      const ep1 = stats.find((s) => s.componentCode === '17V0000009927458');
+      const ep2 = stats.find((s) => s.componentCode === '17V000000498771C');
+      expect(ep1).toBeDefined();
+      expect(ep2).toBeDefined();
+      // receivedMessages réel = 755945 pour EP1, 225023 pour EP2.
+      expect(ep1!.receivedMessages).toBe(755945);
+      expect(ep2!.receivedMessages).toBe(225023);
+      // lastSynchronizedTime renseigné et lastSyncSucceed=true.
+      expect(ep1!.lastSyncSucceed).toBe(true);
+      expect(ep1!.lastSynchronizedTime).not.toBeNull();
+    } finally {
+      const { existsSync, unlinkSync } = await import('node:fs');
+      const rows = await prisma.import.findMany({ where: { envName: 'INTEG_CD_V2_CSTATS' } });
+      for (const r of rows) {
+        if (existsSync(r.zipPath)) {
+          try { unlinkSync(r.zipPath); } catch { /* best effort */ }
+        }
+      }
+      await prisma.import.deleteMany({ where: { envName: 'INTEG_CD_V2_CSTATS' } });
+    }
+  }, 30_000);
+
   it('slice 2m : persiste les 8 CDs partenaires depuis synchronized_directories.csv', async () => {
     const zip = buildZipFromFixture(CD_FIXTURE);
     const detail = await imports.createImport({

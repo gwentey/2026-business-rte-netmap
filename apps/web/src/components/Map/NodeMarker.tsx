@@ -1,6 +1,6 @@
 import { Marker, Tooltip } from 'react-leaflet';
 import type { GraphNode } from '@carto-ecp/shared';
-import { buildNodeDivIcon } from './node-icon.js';
+import { buildNodeDivIcon, healthStatusFromLastSync } from './node-icon.js';
 
 type Props = {
   node: GraphNode;
@@ -9,7 +9,8 @@ type Props = {
 };
 
 export function NodeMarker({ node, selected, onSelect }: Props): JSX.Element {
-  const icon = buildNodeDivIcon(node.kind, node.isDefaultPosition, selected);
+  const health = healthStatusFromLastSync(node.lastSync);
+  const icon = buildNodeDivIcon(node.kind, node.isDefaultPosition, selected, health);
   return (
     <Marker
       position={[node.lat, node.lng]}

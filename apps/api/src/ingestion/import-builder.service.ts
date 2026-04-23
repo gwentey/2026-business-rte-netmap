@@ -2,12 +2,16 @@ import { Injectable } from '@nestjs/common';
 import type { Warning } from '@carto-ecp/shared';
 import type {
   BuiltImportedComponent,
+  BuiltImportedComponentStat,
   BuiltImportedDirectorySync,
   BuiltImportedMessagingStat,
   BuiltImportedPath,
+  BuiltImportedUploadRoute,
+  ComponentStatisticRow,
   MadesComponent,
   MadesTree,
   SynchronizedDirectoryRow,
+  UploadRouteRow,
 } from './types.js';
 import { CsvPathReaderService } from './csv-path-reader.service.js';
 import type { CdMessagePathRow } from './csv-reader.service.js';
@@ -180,6 +184,28 @@ export class ImportBuilderService {
         synchronizationStatus: r.synchronizationStatus,
         synchronizationTimestamp: r.synchronizationTimeStamp,
       }));
+  }
+
+  buildComponentStats(rows: ReadonlyArray<ComponentStatisticRow>): BuiltImportedComponentStat[] {
+    return rows
+      .filter((r) => r.componentCode.length > 0)
+      .map((r) => ({
+        componentCode: r.componentCode,
+        lastSyncSucceed: r.lastSynchronizationSucceed,
+        lastSynchronizedTime: r.lastSynchronizedTime,
+        modifiedDate: r.modifiedDate,
+        receivedMessages: r.receivedMessages ?? 0,
+        sentMessages: r.sentMessages ?? 0,
+        waitingToDeliverMessages: r.waitingToDeliverMessages ?? 0,
+        waitingToReceiveMessages: r.waitingToReceiveMessages ?? 0,
+      }));
+  }
+
+  buildUploadRoutes(rows: ReadonlyArray<UploadRouteRow>): BuiltImportedUploadRoute[] {
+    return rows.map((r) => ({
+      targetComponentCode: r.targetComponentCode,
+      createdDate: r.createdDate,
+    }));
   }
 
   private fromXmlComponent(c: MadesComponent): BuiltImportedComponent {

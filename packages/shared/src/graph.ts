@@ -30,6 +30,25 @@ export type GraphNode = {
   status: string | null;
   /** `ecp.appTheme` (DEFAULT | BLUE | WHITE) si lu depuis un dump de ce composant. */
   appTheme: string | null;
+  /**
+   * Dernière synchronisation vue par un CD (component_statistics.csv) —
+   * max sur l'ensemble des Imports CD de l'env. Null si jamais observé.
+   */
+  lastSync: string | null;
+  /**
+   * Cumul sentMessages observé par un CD pour ce composant (component_statistics.csv).
+   * Null si le composant n'a jamais été observé par un CD dans cet env.
+   */
+  sentMessages: number | null;
+  /**
+   * Cumul receivedMessages observé par un CD pour ce composant.
+   */
+  receivedMessages: number | null;
+  /**
+   * EICs des cibles d'upload prioritaires déclarées par ce composant
+   * (message_upload_route.csv). Endpoint seulement ; vide pour les autres.
+   */
+  uploadTargets: string[];
   country: string | null;
   lat: number;
   lng: number;

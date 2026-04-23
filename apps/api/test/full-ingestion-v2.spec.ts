@@ -145,6 +145,35 @@ describe('Full ingestion v2 (integration)', () => {
     }
   }, 30_000);
 
+  it('slice 2n : persiste message_upload_route.csv côté endpoint', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const env = 'INTEG_UPLOAD_ROUTES';
+    try {
+      const detail = await imports.createImport({
+        file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+        envName: env,
+        label: 'ep-upload-routes',
+      });
+      const routes = await prisma.importedUploadRoute.findMany({
+        where: { importId: detail.id },
+      });
+      // Le dump PRFRI-EP2 (17V000000498771C) déclare plusieurs cibles d'upload.
+      expect(routes.length).toBeGreaterThan(0);
+      // Toutes les targetComponentCode sont des EIC non vides.
+      for (const r of routes) {
+        expect(r.targetComponentCode.length).toBeGreaterThan(0);
+      }
+    } finally {
+      const rows = await prisma.import.findMany({ where: { envName: env } });
+      for (const r of rows) {
+        if (existsSync(r.zipPath)) {
+          try { unlinkSync(r.zipPath); } catch { /* best effort */ }
+        }
+      }
+      await prisma.import.deleteMany({ where: { envName: env } });
+    }
+  }, 30_000);
+
   it('slice 2i : sans .properties, ajoute le warning CONFIGURATION_PROPERTIES_MISSING', async () => {
     const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
     const envLegacy = 'INTEG_PROPS_LEGACY';

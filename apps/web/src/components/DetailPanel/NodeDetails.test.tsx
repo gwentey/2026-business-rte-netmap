@@ -17,6 +17,10 @@ function baseNode(overrides: Partial<GraphNode> = {}): GraphNode {
     homeCdCode: null,
     status: null,
     appTheme: null,
+    lastSync: null,
+    sentMessages: null,
+    receivedMessages: null,
+    uploadTargets: [],
     country: 'FR',
     lat: 48.89,
     lng: 2.34,
@@ -131,5 +135,38 @@ describe('NodeDetails', () => {
     expect(screen.getByText('17V000002014106G')).toBeInTheDocument();
     // Pas de bouton tant que le CD node n'est pas dans le graph store
     expect(screen.queryByRole('button', { name: /Aller à/ })).not.toBeInTheDocument();
+  });
+
+  it('renders Santé section with lastSync and cumulated counters (slice 2n)', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          lastSync: '2026-04-22T08:16:00.000Z',
+          sentMessages: 686008,
+          receivedMessages: 755945,
+        })}
+      />,
+    );
+    expect(screen.getByText(/Santé/)).toBeInTheDocument();
+    expect(screen.getByText('Dernière sync')).toBeInTheDocument();
+    expect(screen.getByText('Msg envoyés (cumul)')).toBeInTheDocument();
+    expect(screen.getByText(/686\D008/)).toBeInTheDocument();
+    expect(screen.getByText(/755\D945/)).toBeInTheDocument();
+  });
+
+  it('hides Santé section when no stats available', () => {
+    render(<NodeDetails node={baseNode()} />);
+    expect(screen.queryByText(/Santé/)).not.toBeInTheDocument();
+  });
+
+  it('renders uploadTargets as plain text when targets are not in graph', () => {
+    render(
+      <NodeDetails
+        node={baseNode({ uploadTargets: ['12V-0000000083-C', '10V1001C--000438'] })}
+      />,
+    );
+    expect(screen.getByText(/Cibles d'upload \(2\)/)).toBeInTheDocument();
+    expect(screen.getByText('12V-0000000083-C')).toBeInTheDocument();
+    expect(screen.getByText('10V1001C--000438')).toBeInTheDocument();
   });
 });

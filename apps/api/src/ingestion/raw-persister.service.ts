@@ -111,6 +111,32 @@ export class RawPersisterService {
             })),
           });
         }
+
+        if (built.componentStats.length > 0) {
+          await tx.importedComponentStat.createMany({
+            data: built.componentStats.map((s) => ({
+              importId: id,
+              componentCode: s.componentCode,
+              lastSyncSucceed: s.lastSyncSucceed,
+              lastSynchronizedTime: s.lastSynchronizedTime,
+              modifiedDate: s.modifiedDate,
+              receivedMessages: s.receivedMessages,
+              sentMessages: s.sentMessages,
+              waitingToDeliverMessages: s.waitingToDeliverMessages,
+              waitingToReceiveMessages: s.waitingToReceiveMessages,
+            })),
+          });
+        }
+
+        if (built.uploadRoutes.length > 0) {
+          await tx.importedUploadRoute.createMany({
+            data: built.uploadRoutes.map((r) => ({
+              importId: id,
+              targetComponentCode: r.targetComponentCode,
+              createdDate: r.createdDate,
+            })),
+          });
+        }
       });
     } catch (err) {
       try {

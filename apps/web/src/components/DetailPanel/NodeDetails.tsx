@@ -1,6 +1,7 @@
 import type { GraphNode } from '@carto-ecp/shared';
 import { formatDateTime } from '../../lib/format.js';
 import { useAppStore } from '../../store/app-store.js';
+import { healthStatusFromLastSync } from '../Map/node-icon.js';
 
 export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
   const graph = useAppStore((s) => s.graph);
@@ -16,6 +17,11 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
 
   const hasContact = node.personName != null || node.email != null || node.phone != null;
   const hasConfig = node.status != null || node.appTheme != null;
+  const hasHealth =
+    node.lastSync != null ||
+    node.sentMessages != null ||
+    node.receivedMessages != null;
+  const health = healthStatusFromLastSync(node.lastSync);
 
   return (
     <div className="space-y-3">
@@ -150,6 +156,59 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
         </div>
       ) : null}
 
+      {hasHealth ? (
+        <div>
+          <h3 className="mb-1 text-sm font-medium">Santé (vue CD)</h3>
+          <dl className="text-sm">
+            <div className="grid grid-cols-3 gap-2 py-1">
+              <dt className="text-gray-500">Dernière sync</dt>
+              <dd className="col-span-2">
+                <HealthBadge status={health} /> {formatDateTime(node.lastSync)}
+              </dd>
+            </div>
+            {node.sentMessages != null ? (
+              <div className="grid grid-cols-3 gap-2 py-1">
+                <dt className="text-gray-500">Msg envoyés (cumul)</dt>
+                <dd className="col-span-2">{formatCount(node.sentMessages)}</dd>
+              </div>
+            ) : null}
+            {node.receivedMessages != null ? (
+              <div className="grid grid-cols-3 gap-2 py-1">
+                <dt className="text-gray-500">Msg reçus (cumul)</dt>
+                <dd className="col-span-2">{formatCount(node.receivedMessages)}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+      ) : null}
+
+      {node.uploadTargets.length > 0 ? (
+        <div>
+          <h3 className="mb-1 text-sm font-medium">Cibles d'upload ({node.uploadTargets.length})</h3>
+          <ul className="space-y-1 text-xs font-mono">
+            {node.uploadTargets.map((eic) => {
+              const target = graph?.nodes.find((n) => n.eic === eic) ?? null;
+              return (
+                <li key={eic}>
+                  {target != null ? (
+                    <button
+                      type="button"
+                      onClick={() => selectNode(eic)}
+                      className="text-rte underline underline-offset-2 hover:text-red-800"
+                      title={`Aller à ${target.displayName}`}
+                    >
+                      {eic}
+                    </button>
+                  ) : (
+                    <span title="Cette cible n'est pas présente dans l'env courant">{eic}</span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       {node.urls.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-medium">URLs</h3>
@@ -181,4 +240,22 @@ function StatusBadge({ status }: { status: string }): JSX.Element {
       {status}
     </span>
   );
+}
+
+function HealthBadge({ status }: { status: 'healthy' | 'warning' | 'stale' | 'unknown' }): JSX.Element {
+  const cfg = {
+    healthy: { bg: 'bg-emerald-100 text-emerald-800', label: 'Frais' },
+    warning: { bg: 'bg-amber-100 text-amber-800', label: '< 24h' },
+    stale: { bg: 'bg-red-100 text-red-800', label: 'Obsolète' },
+    unknown: { bg: 'bg-gray-100 text-gray-600', label: 'Inconnu' },
+  }[status];
+  return (
+    <span className={`inline-block rounded px-2 py-0.5 text-xs ${cfg.bg}`}>
+      {cfg.label}
+    </span>
+  );
+}
+
+function formatCount(n: number): string {
+  return n.toLocaleString('fr-FR');
 }
