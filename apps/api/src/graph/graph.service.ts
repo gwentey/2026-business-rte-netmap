@@ -345,6 +345,7 @@ export class GraphService {
       sentMessages: compStat?.sentMessages ?? null,
       receivedMessages: compStat?.receivedMessages ?? null,
       uploadTargets,
+      interlocutors: [],
       country: g.country,
       lat: g.lat,
       lng: g.lng,
