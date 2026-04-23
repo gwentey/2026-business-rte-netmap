@@ -86,15 +86,14 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   };
 
   const handleExportJson = (): void => {
+    // Exporte toujours l'intégralité du dataset (rows), indépendamment du
+    // filtre de recherche ou du toggle "Seulement surchargés" — c'est
+    // l'action "Tout exporter".
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      filter: {
-        search: search.trim() || null,
-        onlyOverridden,
-      },
-      totals: { filtered: filtered.length, total: rows.length },
-      components: filtered.map((r) => ({
+      totals: { total: rows.length },
+      components: rows.map((r) => ({
         eic: r.eic,
         displayName: r.current.displayName,
         type: r.current.type,
@@ -144,11 +143,11 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
         <button
           type="button"
           onClick={handleExportJson}
-          disabled={filtered.length === 0}
+          disabled={rows.length === 0}
           className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
-          title="Télécharger les lignes affichées au format JSON"
+          title="Télécharger l'intégralité du tableau (ignore les filtres actifs)"
         >
-          ⬇ Exporter JSON ({filtered.length})
+          ⬇ Tout exporter ({rows.length})
         </button>
       </div>
 

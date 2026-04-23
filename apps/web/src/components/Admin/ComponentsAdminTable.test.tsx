@@ -104,7 +104,7 @@ describe('ComponentsAdminTable', () => {
     expect(screen.getByRole('heading', { name: /Surcharge pour 17V-EDIT/i })).toBeInTheDocument();
   });
 
-  it('[Export JSON] le bouton declenche un download et respecte le filtre courant', async () => {
+  it('[Export JSON] "Tout exporter" declenche un download de TOUS les rows meme avec un filtre actif', async () => {
     vi.mocked(api.listAdminComponents).mockResolvedValue([
       fakeRow({ eic: '17V-ALPHA', current: { ...fakeRow().current, displayName: 'Alpha', organization: 'APG' } }),
       fakeRow({ eic: '17V-BETA', current: { ...fakeRow().current, displayName: 'Beta', organization: 'Tennet' } }),
@@ -117,35 +117,30 @@ describe('ComponentsAdminTable', () => {
     render(<ComponentsAdminTable />);
     await waitFor(() => expect(screen.getByText('17V-ALPHA')).toBeInTheDocument());
 
-    // Sans filtre : le bouton affiche le total
-    const btn = screen.getByRole('button', { name: /Exporter JSON \(2\)/ });
-    await userEvent.click(btn);
-    expect(createObjectURL).toHaveBeenCalledTimes(1);
-
-    // Avec filtre : le bouton reflete le count filtre et exporte seulement
-    // les lignes visibles. On verifie que le blob contient bien alpha et pas beta.
+    // Applique un filtre (1 seul match)
     const searchInput = screen.getByPlaceholderText(/EIC, nom/i);
     await userEvent.type(searchInput, 'APG');
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Exporter JSON \(1\)/ })).toBeInTheDocument();
-    });
-    await userEvent.click(screen.getByRole('button', { name: /Exporter JSON \(1\)/ }));
-    expect(createObjectURL).toHaveBeenCalledTimes(2);
-    // Le second appel recoit un Blob contenant la serialisation filtree
-    const blobArg = createObjectURL.mock.calls[1]![0] as Blob;
+    await waitFor(() => expect(screen.queryByText('17V-BETA')).not.toBeInTheDocument());
+
+    // Le bouton affiche TOUJOURS 2 (total des rows, pas filtered)
+    const btn = screen.getByRole('button', { name: /Tout exporter \(2\)/ });
+    await userEvent.click(btn);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    // Le blob contient les 2 lignes
+    const blobArg = createObjectURL.mock.calls[0]![0] as Blob;
     expect(blobArg).toBeInstanceOf(Blob);
+    const text = await blobArg.text();
+    const parsed = JSON.parse(text);
+    expect(parsed.totals.total).toBe(2);
+    expect(parsed.components).toHaveLength(2);
+    expect(parsed.components.map((c: { eic: string }) => c.eic).sort()).toEqual(['17V-ALPHA', '17V-BETA']);
   });
 
-  it('[Export JSON] le bouton est disable quand aucun composant ne matche le filtre', async () => {
-    vi.mocked(api.listAdminComponents).mockResolvedValue([
-      fakeRow({ eic: '17V-A', current: { ...fakeRow().current, organization: 'RTE' } }),
-    ]);
+  it('[Export JSON] le bouton est disable quand aucun composant en DB', async () => {
+    vi.mocked(api.listAdminComponents).mockResolvedValue([]);
     render(<ComponentsAdminTable />);
-    await waitFor(() => expect(screen.getByText('17V-A')).toBeInTheDocument());
-    const searchInput = screen.getByPlaceholderText(/EIC, nom/i);
-    await userEvent.type(searchInput, 'zzzzzzzz-absent');
     await waitFor(() => {
-      const btn = screen.getByRole('button', { name: /Exporter JSON \(0\)/ });
+      const btn = screen.getByRole('button', { name: /Tout exporter \(0\)/ });
       expect(btn).toBeDisabled();
     });
   });
