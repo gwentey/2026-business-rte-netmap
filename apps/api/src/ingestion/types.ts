@@ -229,6 +229,7 @@ export type BuiltImport = {
   sourceComponentEic: string | null;
   sourceDumpTimestamp: Date | null;
   effectiveDate: Date;
+  hasConfigurationProperties: boolean;
   components: BuiltImportedComponent[];
   paths: BuiltImportedPath[];
   messagingStats: BuiltImportedMessagingStat[];

@@ -8,6 +8,7 @@ import { CsvReaderService } from '../ingestion/csv-reader.service.js';
 import { XmlMadesParserService } from '../ingestion/xml-mades-parser.service.js';
 import { ImportBuilderService } from '../ingestion/import-builder.service.js';
 import { CsvPathReaderService } from '../ingestion/csv-path-reader.service.js';
+import { PropertiesParserService } from '../ingestion/properties-parser.service.js';
 import { RawPersisterService } from '../ingestion/raw-persister.service.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE } from '../../test/fixtures-loader.js';
 
@@ -21,7 +22,8 @@ describe('DangerService', () => {
       providers: [
         DangerService, PrismaService, ImportsService,
         ZipExtractorService, CsvReaderService, XmlMadesParserService,
-        ImportBuilderService, CsvPathReaderService, RawPersisterService,
+        ImportBuilderService, CsvPathReaderService,
+        PropertiesParserService, RawPersisterService,
       ],
     }).compile();
     await moduleRef.init();

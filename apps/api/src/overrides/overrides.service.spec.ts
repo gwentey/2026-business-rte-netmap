@@ -8,6 +8,7 @@ import { CsvReaderService } from '../ingestion/csv-reader.service.js';
 import { XmlMadesParserService } from '../ingestion/xml-mades-parser.service.js';
 import { ImportBuilderService } from '../ingestion/import-builder.service.js';
 import { CsvPathReaderService } from '../ingestion/csv-path-reader.service.js';
+import { PropertiesParserService } from '../ingestion/properties-parser.service.js';
 import { RawPersisterService } from '../ingestion/raw-persister.service.js';
 import { RegistryService } from '../registry/registry.service.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE } from '../../test/fixtures-loader.js';
@@ -80,7 +81,8 @@ describe('listAdminComponents', () => {
       providers: [
         OverridesService, ImportsService, PrismaService,
         ZipExtractorService, CsvReaderService, XmlMadesParserService,
-        ImportBuilderService, CsvPathReaderService, RawPersisterService,
+        ImportBuilderService, CsvPathReaderService,
+        PropertiesParserService, RawPersisterService,
         RegistryService,
       ],
     }).compile();

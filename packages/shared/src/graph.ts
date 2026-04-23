@@ -82,6 +82,7 @@ export type ImportSummary = {
   sourceDumpTimestamp: string | null;
   uploadedAt: string;
   effectiveDate: string;
+  hasConfigurationProperties: boolean;
 };
 
 export type ImportDetail = ImportSummary & {

@@ -7,6 +7,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.11 — Slice 2i Upload couplé zip + configuration.properties (2026-04-23)
+
+L'admin peut désormais uploader **zip + `<EIC>-configuration.properties` ensemble** sur `/upload`. Le `.properties` externe (exporté via `Admin ECP > Settings > Runtime Configuration > Export Configuration`) fournit les vraies valeurs courantes de configuration (`ecp.projectName`, `ecp.envName`, `ecp.natEnabled`, `ecp.appTheme`, URLs home CD, etc.) — elles écrasent les clés homonymes du CSV interne au zip. Un badge rouge ✗ / vert ✓ dans `/admin > Imports` signale les imports sans `.properties`.
+
+**Highlights :**
+
+- **Prisma** : `Import.hasConfigurationProperties Boolean @default(false)` (migration `add_has_configuration_properties`). Exposé dans `ImportSummary` + `ImportDetail` (shared).
+- **Nouveau service** `PropertiesParserService` (`apps/api/src/ingestion/properties-parser.service.ts`) qui parse le format Java `.properties` : clé=valeur, espaces tolérés autour du `=`, commentaires `#` / `!`, CRLF, BOM UTF-8, valeurs vides préservées. Filtre automatique des clés sensibles (regex élargi pour capturer `keyStorePass` en plus de `password`, `secret`, `privateKey`, `credentials`).
+- **`ImportsController.create`** : remplace `FileInterceptor` par `FileFieldsInterceptor` sur `[file, configurationProperties]`. Validations supplémentaires : extension `.properties`, taille max 128 kB, erreurs typées `PROPERTIES_INVALID_EXT` / `PROPERTIES_TOO_LARGE`.
+- **`ImportsService.createImport`** : reçoit `configurationProperties?: { originalname, buffer }`. Parse le buffer, fusionne avec `application_property.csv` (external gagne sur les clés en conflit), propage au flux ENDPOINT et COMPONENT_DIRECTORY. Si absent → warning non-bloquant `CONFIGURATION_PROPERTIES_MISSING`.
+- **Frontend UploadPage** : dropzone accepte maintenant `.zip` ET `.properties`. Les `.properties` sont indexés par EIC (pattern `<EIC>-configuration.properties`) dans `propertiesFiles` du store. Au `submitBatch`, chaque zip est apparié à son `.properties` par `sourceComponentEic.toUpperCase()` et envoyé ensemble via le même POST `/api/imports`. Chip violette "N fichier(s) .properties en attente" pour feedback immédiat.
+- **Frontend ImportsAdminTable** : nouvelle colonne "Props" avec badge `✓` (vert, tooltip "fichier fourni") ou `✗` (rouge, tooltip "valeurs issues uniquement du CSV interne").
+- **`api.createImport`** accepte un 6ᵉ paramètre optionnel `configurationProperties?: File`.
+
+**Tests :**
+- API : 241 → **243/243** (+2 tests d'intégration : ingestion avec `.properties` → `hasConfigurationProperties=true` + clés externes persistées ; sans `.properties` → warning `CONFIGURATION_PROPERTIES_MISSING`).
+- **11 nouveaux tests unitaires** `PropertiesParserService` : parse simple, tolérance espaces/CRLF/BOM, commentaires, filtrage secrets, cas réel ECP.
+- **3 nouveaux tests controller** : upload avec `.properties` valide, rejet extension invalide, rejet taille excessive.
+- Web : **88/88** inchangés (les tests d'intégration dropzone ajoutent le champ `hasConfigurationProperties: false` dans les mocks `ImportDetail`).
+
+**Breaking changes :** aucun pour le contrat public. `FileInterceptor` → `FileFieldsInterceptor` côté controller : les tests directs qui construisaient `ctrl.create(body, file)` doivent passer par `{ file: [file] }`.
+
 ### v2.0-alpha.10 — Slice 2j projectName / envName sur la carte (2026-04-23)
 
 La carte affiche désormais le **nom humain ECP officiel** (ex. `INTERNET-EP1`, `ECP-CWERPN`, `PCN-EP1`) pour chaque composant, lu directement depuis la propriété `ecp.projectName` du dump — conformément à la convention admin ECP (Admin Guide §4.4 : `Endpoint | <projectName> | <envName>`). L'env name est exposé dans le popup.

@@ -187,6 +187,7 @@ describe('useAppStore — uploadBatch', () => {
       id: 'new-id', envName: 'OPF', label: '', fileName: '', dumpType: 'ENDPOINT',
       sourceComponentEic: null, sourceDumpTimestamp: null,
       uploadedAt: '2026-04-19T00:00:00.000Z', effectiveDate: '2026-04-19T00:00:00.000Z',
+      hasConfigurationProperties: false,
       warnings: [], stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
     });
     vi.mocked(api.listEnvs).mockResolvedValue(['OPF']);

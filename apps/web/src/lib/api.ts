@@ -41,6 +41,7 @@ export const api = {
     label: string,
     dumpType?: 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER',
     replaceImportId?: string,
+    configurationProperties?: File,
   ): Promise<ImportDetail> {
     const fd = new FormData();
     fd.append('file', file);
@@ -48,6 +49,7 @@ export const api = {
     fd.append('label', label);
     if (dumpType) fd.append('dumpType', dumpType);
     if (replaceImportId) fd.append('replaceImportId', replaceImportId);
+    if (configurationProperties) fd.append('configurationProperties', configurationProperties);
     return request<ImportDetail>('/api/imports', { method: 'POST', body: fd });
   },
 

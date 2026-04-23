@@ -5,7 +5,12 @@ import { AppModule } from '../src/app.module.js';
 import { ImportsService } from '../src/ingestion/imports.service.js';
 import { GraphService } from '../src/graph/graph.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
-import { buildZipFromFixture, ENDPOINT_FIXTURE, CD_FIXTURE } from './fixtures-loader.js';
+import {
+  buildZipFromFixture,
+  ENDPOINT_FIXTURE,
+  CD_FIXTURE,
+  readFixtureProperties,
+} from './fixtures-loader.js';
 
 const TEST_ENV = 'INTEG_OPF_V2';
 
@@ -99,4 +104,68 @@ describe('Full ingestion v2 (integration)', () => {
     });
     expect(envs.map((e) => e.envName)).toContain(TEST_ENV);
   });
+
+  it('slice 2i : accepte un .properties externe et marque hasConfigurationProperties=true', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const properties = readFixtureProperties(ENDPOINT_FIXTURE);
+    const propsEnv = 'INTEG_PROPS_V2';
+
+    try {
+      const detail = await imports.createImport({
+        file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+        envName: propsEnv,
+        label: 'ep with properties',
+        configurationProperties: {
+          originalname: '17V000000498771C-configuration.properties',
+          buffer: properties,
+        },
+      });
+
+      expect(detail.hasConfigurationProperties).toBe(true);
+      // Pas de warning CONFIGURATION_PROPERTIES_MISSING attendu
+      expect(detail.warnings.some((w) => w.code === 'CONFIGURATION_PROPERTIES_MISSING')).toBe(false);
+
+      // Les clés du .properties externe sont persistées dans ImportedAppProperty
+      // (après filtrage des clés sensibles).
+      const props = await prisma.importedAppProperty.findMany({
+        where: { importId: detail.id },
+      });
+      const keys = new Set(props.map((p) => p.key));
+      expect(keys.has('ecp.projectName')).toBe(true);
+      expect(keys.has('ecp.envName')).toBe(true);
+      expect(keys.has('ecp.directory.client.synchronization.homeComponentDirectoryPrimaryUrl')).toBe(true);
+    } finally {
+      const rows = await prisma.import.findMany({ where: { envName: propsEnv } });
+      for (const r of rows) {
+        if (existsSync(r.zipPath)) {
+          try { unlinkSync(r.zipPath); } catch { /* best effort */ }
+        }
+      }
+      await prisma.import.deleteMany({ where: { envName: propsEnv } });
+    }
+  }, 30_000);
+
+  it('slice 2i : sans .properties, ajoute le warning CONFIGURATION_PROPERTIES_MISSING', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const envLegacy = 'INTEG_PROPS_LEGACY';
+    try {
+      const detail = await imports.createImport({
+        file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+        envName: envLegacy,
+        label: 'legacy without properties',
+      });
+      expect(detail.hasConfigurationProperties).toBe(false);
+      expect(
+        detail.warnings.some((w) => w.code === 'CONFIGURATION_PROPERTIES_MISSING'),
+      ).toBe(true);
+    } finally {
+      const rows = await prisma.import.findMany({ where: { envName: envLegacy } });
+      for (const r of rows) {
+        if (existsSync(r.zipPath)) {
+          try { unlinkSync(r.zipPath); } catch { /* best effort */ }
+        }
+      }
+      await prisma.import.deleteMany({ where: { envName: envLegacy } });
+    }
+  }, 30_000);
 });

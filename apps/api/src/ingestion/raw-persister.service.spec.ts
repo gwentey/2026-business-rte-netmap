@@ -16,6 +16,7 @@ function makeBuilt(): BuiltImport {
     sourceComponentEic: '17V000000TEST___A',
     sourceDumpTimestamp: new Date('2026-04-17T21:27:17Z'),
     effectiveDate: new Date('2026-04-17T21:27:17Z'),
+    hasConfigurationProperties: false,
     components: [{
       eic: 'EIC-RP-1', type: 'ENDPOINT',
       organization: 'RTE', personName: null, email: null, phone: null,

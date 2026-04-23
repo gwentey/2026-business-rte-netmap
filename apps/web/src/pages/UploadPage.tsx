@@ -12,6 +12,7 @@ export function UploadPage(): JSX.Element {
   const [searchParams] = useSearchParams();
 
   const batch = useAppStore((s) => s.uploadBatch);
+  const propertiesFiles = useAppStore((s) => s.propertiesFiles);
   const uploadInProgress = useAppStore((s) => s.uploadInProgress);
   const addBatchFiles = useAppStore((s) => s.addBatchFiles);
   const submitBatch = useAppStore((s) => s.submitBatch);
@@ -21,10 +22,16 @@ export function UploadPage(): JSX.Element {
   const [dropError, setDropError] = useState<string | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    accept: { 'application/zip': ['.zip'] },
+    accept: {
+      'application/zip': ['.zip'],
+      // Les fichiers `<EIC>-configuration.properties` exportés par l'admin ECP
+      // sont acceptés en plus du zip : ils alimentent les champs projectName,
+      // envName, NAT, etc. du composant source.
+      'text/plain': ['.properties'],
+    },
     maxSize: MAX_UPLOAD,
     multiple: true,
-    maxFiles: MAX_FILES_PER_BATCH,
+    maxFiles: MAX_FILES_PER_BATCH * 2,
     onDrop: (accepted) => {
       setDropError(null);
       if (accepted.length > 0) {
@@ -75,16 +82,32 @@ export function UploadPage(): JSX.Element {
 
       <div
         {...getRootProps()}
-        className={`mb-4 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition ${
+        className={`mb-2 cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition ${
           isDragActive ? 'border-rte bg-red-50' : 'border-gray-300 bg-gray-50'
         }`}
       >
         <input {...getInputProps()} />
-        <p>{isDragActive ? 'Déposez ici' : `Glissez jusqu'à ${MAX_FILES_PER_BATCH} .zip ou cliquez`}</p>
+        <p>
+          {isDragActive
+            ? 'Déposez ici'
+            : `Glissez jusqu'à ${MAX_FILES_PER_BATCH} dumps .zip + leurs <EIC>-configuration.properties, ou cliquez`}
+        </p>
       </div>
+      <p className="mb-4 text-xs text-gray-500">
+        Chaque dump zip peut être accompagné de son fichier <code>&lt;EIC&gt;-configuration.properties</code>
+        {' '}exporté via <em>Admin ECP › Settings › Runtime Configuration › Export Configuration</em> :
+        {' '}projectName, envName, NAT et autres métadonnées officielles seront alors utilisés à l'ingestion.
+      </p>
 
       {dropError ? (
         <p className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700" role="alert">{dropError}</p>
+      ) : null}
+
+      {Object.keys(propertiesFiles).length > 0 ? (
+        <p className="mb-4 rounded bg-violet-50 p-3 text-xs text-violet-800">
+          {Object.keys(propertiesFiles).length} fichier(s) .properties en attente
+          d'association : {Object.keys(propertiesFiles).join(', ')}
+        </p>
       ) : null}
 
       <UploadBatchTable />

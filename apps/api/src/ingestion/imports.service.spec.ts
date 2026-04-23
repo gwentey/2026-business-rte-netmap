@@ -7,6 +7,7 @@ import { CsvReaderService } from './csv-reader.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
 import { ImportBuilderService } from './import-builder.service.js';
 import { CsvPathReaderService } from './csv-path-reader.service.js';
+import { PropertiesParserService } from './properties-parser.service.js';
 import { RawPersisterService } from './raw-persister.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE, CD_FIXTURE } from '../../test/fixtures-loader.js';
@@ -24,6 +25,7 @@ describe('ImportsService', () => {
         XmlMadesParserService,
         ImportBuilderService,
         CsvPathReaderService,
+        PropertiesParserService,
         RawPersisterService,
         PrismaService,
       ],
@@ -122,6 +124,7 @@ describe('ImportsService.inspectBatch', () => {
         XmlMadesParserService,
         ImportBuilderService,
         CsvPathReaderService,
+        PropertiesParserService,
         RawPersisterService,
         PrismaService,
       ],
@@ -219,6 +222,7 @@ describe('ImportsService.createImport — routing par dumpType', () => {
         XmlMadesParserService,
         ImportBuilderService,
         CsvPathReaderService,
+        PropertiesParserService,
         RawPersisterService,
         PrismaService,
       ],
@@ -289,7 +293,7 @@ describe('ImportsService.listImports — retourne ImportDetail[]', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ImportsService, ZipExtractorService, CsvReaderService, XmlMadesParserService,
-        ImportBuilderService, CsvPathReaderService, RawPersisterService, PrismaService,
+        ImportBuilderService, CsvPathReaderService, PropertiesParserService, RawPersisterService, PrismaService,
       ],
     }).compile();
     await moduleRef.init();
@@ -346,7 +350,7 @@ describe('ImportsService.updateImport', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ImportsService, ZipExtractorService, CsvReaderService, XmlMadesParserService,
-        ImportBuilderService, CsvPathReaderService, RawPersisterService, PrismaService,
+        ImportBuilderService, CsvPathReaderService, PropertiesParserService, RawPersisterService, PrismaService,
       ],
     }).compile();
     await moduleRef.init();
@@ -426,6 +430,7 @@ describe('ImportsService.createImport — replaceImportId', () => {
         XmlMadesParserService,
         ImportBuilderService,
         CsvPathReaderService,
+        PropertiesParserService,
         RawPersisterService,
         PrismaService,
       ],

@@ -10,6 +10,7 @@ const fakeDetail = {
   sourceComponentEic: null, sourceDumpTimestamp: null,
   uploadedAt: '2026-04-19T00:00:00.000Z',
   effectiveDate: '2026-04-19T00:00:00.000Z',
+  hasConfigurationProperties: false,
   warnings: [],
   stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
 };
@@ -19,6 +20,10 @@ const fakeService = {
   listImports: async () => [fakeDetail],
   deleteImport: async () => undefined,
 };
+
+const zipFile = { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' };
+const zipFiles = { file: [zipFile] };
+const validZipPadded = { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00]), mimetype: 'application/zip' };
 
 describe('ImportsController', () => {
   let ctrl: ImportsController;
@@ -33,19 +38,13 @@ describe('ImportsController', () => {
 
   it('rejects body with missing envName', async () => {
     await expect(
-      ctrl.create(
-        { label: 'l' } as any,
-        { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
-      ),
+      ctrl.create({ label: 'l' } as any, zipFiles as any),
     ).rejects.toThrow(BadRequestException);
   });
 
   it('rejects body with missing label', async () => {
     await expect(
-      ctrl.create(
-        { envName: 'X' } as any,
-        { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
-      ),
+      ctrl.create({ envName: 'X' } as any, zipFiles as any),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -53,7 +52,7 @@ describe('ImportsController', () => {
     await expect(
       ctrl.create(
         { envName: 'X', label: 'l' },
-        { originalname: 'x.txt', buffer: Buffer.from('hi'), mimetype: 'text/plain' } as any,
+        { file: [{ originalname: 'x.txt', buffer: Buffer.from('hi'), mimetype: 'text/plain' }] } as any,
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -62,7 +61,7 @@ describe('ImportsController', () => {
     await expect(
       ctrl.create(
         { envName: 'X', label: 'l' },
-        { originalname: 'x.zip', buffer: Buffer.from([0xDE, 0xAD, 0xBE, 0xEF]), mimetype: 'application/zip' } as any,
+        { file: [{ originalname: 'x.zip', buffer: Buffer.from([0xDE, 0xAD, 0xBE, 0xEF]), mimetype: 'application/zip' }] } as any,
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -70,7 +69,7 @@ describe('ImportsController', () => {
   it('calls service on valid input', async () => {
     const result = await ctrl.create(
       { envName: 'X', label: 'l' },
-      { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00]), mimetype: 'application/zip' } as any,
+      { file: [validZipPadded] } as any,
     );
     expect(result.id).toBe('fake-id');
   });
@@ -88,7 +87,7 @@ describe('ImportsController', () => {
   it('accepts dumpType in body (optional)', async () => {
     const result = await ctrl.create(
       { envName: 'X', label: 'l', dumpType: 'BROKER' },
-      { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+      zipFiles as any,
     );
     expect(result).toBeTruthy();
   });
@@ -97,9 +96,84 @@ describe('ImportsController', () => {
     await expect(
       ctrl.create(
         { envName: 'X', label: 'l', dumpType: 'INVALID' } as any,
-        { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+        zipFiles as any,
       ),
     ).rejects.toThrow(BadRequestException);
+  });
+});
+
+describe('ImportsController.create — configurationProperties', () => {
+  let ctrl: ImportsController;
+  const createSpy = vi.fn(async () => fakeDetail);
+
+  beforeEach(async () => {
+    createSpy.mockClear();
+    const moduleRef = await Test.createTestingModule({
+      controllers: [ImportsController],
+      providers: [
+        {
+          provide: ImportsService,
+          useValue: {
+            createImport: createSpy,
+            inspectBatch: async () => [],
+            listImports: async () => [],
+            deleteImport: async () => undefined,
+          },
+        },
+      ],
+    }).compile();
+    ctrl = moduleRef.get(ImportsController);
+  });
+
+  it('accepts a .properties file alongside the zip', async () => {
+    const props = {
+      originalname: '17V000000498771C-configuration.properties',
+      buffer: Buffer.from('ecp.projectName = INTERNET-EP2\n'),
+      mimetype: 'application/octet-stream',
+    };
+    await ctrl.create(
+      { envName: 'X', label: 'l' },
+      { file: [validZipPadded], configurationProperties: [props] } as any,
+    );
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        configurationProperties: expect.objectContaining({
+          originalname: '17V000000498771C-configuration.properties',
+        }),
+      }),
+    );
+  });
+
+  it('rejects a properties file with the wrong extension', async () => {
+    const props = {
+      originalname: 'config.txt',
+      buffer: Buffer.from('ecp.projectName = X\n'),
+      mimetype: 'text/plain',
+    };
+    await expect(
+      ctrl.create(
+        { envName: 'X', label: 'l' },
+        { file: [validZipPadded], configurationProperties: [props] } as any,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'PROPERTIES_INVALID_EXT' }),
+    });
+  });
+
+  it('rejects a properties file that is too large', async () => {
+    const props = {
+      originalname: 'x-configuration.properties',
+      buffer: Buffer.alloc(256 * 1024),
+      mimetype: 'application/octet-stream',
+    };
+    await expect(
+      ctrl.create(
+        { envName: 'X', label: 'l' },
+        { file: [validZipPadded], configurationProperties: [props] } as any,
+      ),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ code: 'PROPERTIES_TOO_LARGE' }),
+    });
   });
 });
 
@@ -182,6 +256,7 @@ describe('ImportsController.update', () => {
     sourceComponentEic: null, sourceDumpTimestamp: null,
     uploadedAt: '2026-04-19T00:00:00.000Z',
     effectiveDate: '2030-01-15T10:00:00.000Z',
+    hasConfigurationProperties: false,
     warnings: [], stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
   }));
 
@@ -249,6 +324,7 @@ describe('ImportsController.create — replaceImportId', () => {
     sourceComponentEic: null, sourceDumpTimestamp: null,
     uploadedAt: '2026-04-19T00:00:00.000Z',
     effectiveDate: '2026-04-19T00:00:00.000Z',
+    hasConfigurationProperties: false,
     warnings: [], stats: { componentsCount: 0, pathsCount: 0, messagingStatsCount: 0 },
   }));
 
@@ -274,7 +350,7 @@ describe('ImportsController.create — replaceImportId', () => {
   it('forwards replaceImportId to service when provided', async () => {
     await ctrl.create(
       { envName: 'X', label: 'l', replaceImportId: '11111111-2222-3333-4444-555555555555' },
-      { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+      zipFiles as any,
     );
     expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({
       replaceImportId: '11111111-2222-3333-4444-555555555555',
@@ -285,7 +361,7 @@ describe('ImportsController.create — replaceImportId', () => {
     await expect(
       ctrl.create(
         { envName: 'X', label: 'l', replaceImportId: 'not-a-uuid' },
-        { originalname: 'x.zip', buffer: Buffer.from([0x50, 0x4b, 0x03, 0x04]), mimetype: 'application/zip' } as any,
+        zipFiles as any,
       ),
     ).rejects.toThrow(BadRequestException);
   });

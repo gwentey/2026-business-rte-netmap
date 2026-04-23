@@ -7,6 +7,7 @@ import { ZipExtractorService } from './zip-extractor.service.js';
 import { CsvReaderService } from './csv-reader.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
 import { ImportBuilderService } from './import-builder.service.js';
+import { PropertiesParserService } from './properties-parser.service.js';
 import { RawPersisterService } from './raw-persister.service.js';
 import { detectDumpType } from './dump-type-detector.js';
 import { parseDumpFilename } from './filename-parser.js';
@@ -19,6 +20,7 @@ export type CreateImportInput = {
   label: string;
   dumpType?: DumpType;
   replaceImportId?: string;
+  configurationProperties?: { originalname: string; buffer: Buffer };
 };
 
 type ImportRow = {
@@ -32,6 +34,7 @@ type ImportRow = {
   uploadedAt: Date;
   effectiveDate: Date;
   zipPath: string;
+  hasConfigurationProperties: boolean;
 };
 
 @Injectable()
@@ -42,6 +45,7 @@ export class ImportsService {
     private readonly csvReader: CsvReaderService,
     private readonly xmlParser: XmlMadesParserService,
     private readonly builder: ImportBuilderService,
+    private readonly propertiesParser: PropertiesParserService,
     private readonly persister: RawPersisterService,
   ) {}
 
@@ -78,6 +82,35 @@ export class ImportsService {
     let paths: BuiltImportedPath[] = [];
     let messagingStats: BuiltImportedMessagingStat[] = [];
     let appProperties: Array<{ key: string; value: string }> = [];
+
+    // --- 2.bis. Parsing du .properties externe (optionnel) ---
+    // Clés issues du `<EIC>-configuration.properties` exporté par l'admin ECP.
+    // Si présent, elles écrasent les clés homonymes lues depuis
+    // `application_property.csv` (état courant au moment de l'export).
+    let externalProperties: Record<string, string> = {};
+    const hasConfigurationProperties = input.configurationProperties != null;
+    if (input.configurationProperties) {
+      try {
+        externalProperties = this.propertiesParser.parse(
+          input.configurationProperties.buffer,
+        );
+      } catch (err) {
+        warnings.push({
+          code: 'CONFIGURATION_PROPERTIES_PARSE_ERROR',
+          message: `Parse error on ${input.configurationProperties.originalname}: ${
+            (err as Error).message
+          }`,
+        });
+      }
+    } else {
+      warnings.push({
+        code: 'CONFIGURATION_PROPERTIES_MISSING',
+        message:
+          "Fichier <EIC>-configuration.properties non fourni. Exportez-le via " +
+          "Admin ECP > Settings > Runtime Configuration > Export Configuration pour " +
+          'des valeurs projectName / envName / NAT fidèles au composant.',
+      });
+    }
 
     // --- 3. Routing selon dumpType ---
     if (dumpType === 'ENDPOINT') {
@@ -122,14 +155,27 @@ export class ImportsService {
       // Read application_property.csv
       const appPropBuffer = extracted.files.get('application_property.csv')!;
       const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
+
+      // Fusion CSV interne + .properties externe (external gagne sur les clés
+      // en conflit car le .properties reflète l'état courant au moment de
+      // l'export admin).
+      const csvPairs = appPropRows
+        .filter((r) => r.value != null)
+        .map((r) => ({ key: r.key, value: r.value! }));
+      const externalPairs = Object.entries(externalProperties).map(([key, value]) => ({
+        key,
+        value,
+      }));
+      const mergedPairs = new Map<string, string>();
+      for (const p of csvPairs) mergedPairs.set(p.key, p.value);
+      for (const p of externalPairs) mergedPairs.set(p.key, p.value); // external écrase
       appProperties = this.builder.buildAppProperties(
-        appPropRows
-          .filter((r) => r.value != null)
-          .map((r) => ({ key: r.key, value: r.value! })),
+        Array.from(mergedPairs.entries()).map(([key, value]) => ({ key, value })),
       );
 
-      // Determine local source EIC for messaging stats (from app props or filename)
-      const appsMap = new Map(appPropRows.map((r) => [r.key, r.value] as const));
+      // Determine local source EIC for messaging stats (from app props, merged
+      // map donc .properties écrase si renseigné, ou filename en fallback).
+      const appsMap = mergedPairs;
       const localEic = appsMap.get('ecp.componentCode') ?? sourceComponentEic ?? '';
 
       // Read messaging_statistics.csv (optional)
@@ -182,8 +228,14 @@ export class ImportsService {
       // (ex. "1"), pas l'EIC réel du composant directory.
       const appPropBuffer = extracted.files.get('application_property.csv')!;
       const appPropRows = this.csvReader.readApplicationProperties(appPropBuffer, warnings);
-      const appsMapCd = new Map(appPropRows.map((r) => [r.key, r.value] as const));
-      const cdRealEic = appsMapCd.get('ecp.componentCode') ?? sourceComponentEic ?? '';
+      const appsMapCd = new Map<string, string | null>(
+        appPropRows.map((r) => [r.key, r.value] as const),
+      );
+      // External .properties écrase les clés homonymes du CSV
+      for (const [key, value] of Object.entries(externalProperties)) {
+        appsMapCd.set(key, value);
+      }
+      const cdRealEic = (appsMapCd.get('ecp.componentCode') ?? sourceComponentEic ?? '') as string;
       const projectNameCd = appsMapCd.get('ecp.projectName') ?? null;
 
       const cdBuffer = extracted.files.get('component_directory.csv')!;
@@ -202,10 +254,17 @@ export class ImportsService {
       paths = cdBuilt.paths;
       warnings.push(...cdBuilt.warnings);
 
+      // Fusion CSV + .properties externe : external gagne, propagé à appProperties
+      const csvCdPairs = appPropRows
+        .filter((r) => r.value != null)
+        .map((r) => ({ key: r.key, value: r.value! }));
+      const mergedCdPairs = new Map<string, string>();
+      for (const p of csvCdPairs) mergedCdPairs.set(p.key, p.value);
+      for (const [key, value] of Object.entries(externalProperties)) {
+        mergedCdPairs.set(key, value);
+      }
       appProperties = this.builder.buildAppProperties(
-        appPropRows
-          .filter((r) => r.value != null)
-          .map((r) => ({ key: r.key, value: r.value! })),
+        Array.from(mergedCdPairs.entries()).map(([key, value]) => ({ key, value })),
       );
 
       // Injecte ecp.projectName sur le composant CD lui-même (source du dump).
@@ -235,6 +294,7 @@ export class ImportsService {
       sourceComponentEic,
       sourceDumpTimestamp,
       effectiveDate,
+      hasConfigurationProperties,
       components,
       paths,
       messagingStats,
@@ -430,6 +490,7 @@ export class ImportsService {
       sourceDumpTimestamp: r.sourceDumpTimestamp?.toISOString() ?? null,
       uploadedAt: r.uploadedAt.toISOString(),
       effectiveDate: r.effectiveDate.toISOString(),
+      hasConfigurationProperties: r.hasConfigurationProperties,
     };
   }
 }

@@ -10,18 +10,19 @@ datasource db {
 }
 
 model Import {
-  id                    String   @id @default(uuid())
-  envName               String
-  label                 String
-  fileName              String
-  fileHash              String   // SHA256 du zip brut
-  sourceComponentEic    String?  // Extrait du nom de fichier si pattern reconnu
-  sourceDumpTimestamp   DateTime?  // Extrait du nom de fichier si pattern reconnu
-  dumpType              String   // 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER'
-  zipPath               String   // storage/imports/{id}.zip
-  uploadedAt            DateTime @default(now())
-  effectiveDate         DateTime // default = sourceDumpTimestamp ?? uploadedAt
-  warningsJson          String   @default("[]")
+  id                           String   @id @default(uuid())
+  envName                      String
+  label                        String
+  fileName                     String
+  fileHash                     String   // SHA256 du zip brut
+  sourceComponentEic           String?  // Extrait du nom de fichier si pattern reconnu
+  sourceDumpTimestamp          DateTime?  // Extrait du nom de fichier si pattern reconnu
+  dumpType                     String   // 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER'
+  zipPath                      String   // storage/imports/{id}.zip
+  uploadedAt                   DateTime @default(now())
+  effectiveDate                DateTime // default = sourceDumpTimestamp ?? uploadedAt
+  hasConfigurationProperties   Boolean  @default(false)  // .properties externe fourni à l'ingestion ?
+  warningsJson                 String   @default("[]")
 
   importedComponents    ImportedComponent[]
   importedPaths         ImportedPath[]

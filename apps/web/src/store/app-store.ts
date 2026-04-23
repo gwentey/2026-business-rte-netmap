@@ -35,6 +35,12 @@ type AppState = {
   loading: boolean;
   error: string | null;
   uploadBatch: UploadBatchItem[];
+  /**
+   * Fichiers <EIC>-configuration.properties indexés par EIC (sans la partie
+   * "-configuration.properties"). Associés automatiquement au zip correspondant
+   * au moment du submit.
+   */
+  propertiesFiles: Record<string, File>;
   uploadInProgress: boolean;
   refDate: Date | null;
 
@@ -52,6 +58,15 @@ type AppState = {
   setRefDate: (date: Date | null) => Promise<void>;
 };
 
+/**
+ * Extrait l'EIC depuis un nom de fichier `<EIC>-configuration.properties`.
+ * Retourne null si le pattern n'est pas reconnu.
+ */
+function extractEicFromPropertiesName(fileName: string): string | null {
+  const m = /^([0-9A-Z-]{16})-configuration\.properties$/i.exec(fileName);
+  return m ? m[1]!.toUpperCase() : null;
+}
+
 export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -64,6 +79,7 @@ export const useAppStore = create<AppState>()(
       loading: false,
       error: null,
       uploadBatch: [],
+      propertiesFiles: {},
       uploadInProgress: false,
       refDate: null,
 
@@ -121,8 +137,26 @@ export const useAppStore = create<AppState>()(
         set({ selectedEdgeId: id, selectedNodeEic: null }),
 
       addBatchFiles: async (files) => {
+        // Sépare les .properties (métadonnées externes) des .zip (dumps).
+        const zipFiles: File[] = [];
+        const newProperties: Record<string, File> = {};
+        for (const f of files) {
+          if (/\.properties$/i.test(f.name)) {
+            const eic = extractEicFromPropertiesName(f.name);
+            if (eic) newProperties[eic] = f;
+          } else {
+            zipFiles.push(f);
+          }
+        }
+        if (Object.keys(newProperties).length > 0) {
+          set((s) => ({
+            propertiesFiles: { ...s.propertiesFiles, ...newProperties },
+          }));
+        }
+        if (zipFiles.length === 0) return;
+
         const existing = get().uploadBatch;
-        const pending: UploadBatchItem[] = files.map((file) => ({
+        const pending: UploadBatchItem[] = zipFiles.map((file) => ({
           id: crypto.randomUUID(),
           file,
           fileName: file.name,
@@ -135,7 +169,7 @@ export const useAppStore = create<AppState>()(
 
         const envName = get().activeEnv ?? undefined;
         try {
-          const results = await api.inspectBatch(files, envName);
+          const results = await api.inspectBatch(zipFiles, envName);
           set((s) => ({
             uploadBatch: s.uploadBatch.map((item) => {
               if (item.state !== 'pending-inspect') return item;
@@ -189,12 +223,17 @@ export const useAppStore = create<AppState>()(
           }
           get().updateBatchItem(item.id, { state: 'uploading' });
           try {
+            const propsFile =
+              item.sourceComponentEic != null
+                ? get().propertiesFiles[item.sourceComponentEic.toUpperCase()]
+                : undefined;
             const detail = await api.createImport(
               item.file,
               envName,
               item.label.trim() || item.fileName,
               item.overrideDumpType ?? item.dumpType,
               item.forceReplace ? item.duplicateOf?.importId : undefined,
+              propsFile,
             );
             get().updateBatchItem(item.id, { state: 'done', createdImportId: detail.id });
           } catch (err) {
@@ -214,7 +253,8 @@ export const useAppStore = create<AppState>()(
         await get().loadEnvs();
       },
 
-      clearBatch: () => set({ uploadBatch: [], uploadInProgress: false }),
+      clearBatch: () =>
+        set({ uploadBatch: [], propertiesFiles: {}, uploadInProgress: false }),
 
       setRefDate: async (date) => {
         set({ refDate: date });

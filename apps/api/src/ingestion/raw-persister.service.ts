@@ -41,6 +41,7 @@ export class RawPersisterService {
             dumpType: built.dumpType,
             zipPath,
             effectiveDate: built.effectiveDate,
+            hasConfigurationProperties: built.hasConfigurationProperties,
             warningsJson: JSON.stringify(built.warnings),
           },
         });

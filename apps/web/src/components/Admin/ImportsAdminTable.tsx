@@ -108,6 +108,7 @@ export function ImportsAdminTable(): JSX.Element {
             <th className="px-2 py-1 text-left">Source EIC</th>
             <th className="px-2 py-1 text-left">Label</th>
             <th className="px-2 py-1 text-left">Type</th>
+            <th className="px-2 py-1 text-left">Props</th>
             <th className="px-2 py-1 text-left">Effective date</th>
             <th className="px-2 py-1 text-left">Uploaded at</th>
             <th className="px-2 py-1 text-left">Stats</th>
@@ -126,7 +127,7 @@ export function ImportsAdminTable(): JSX.Element {
           ))}
           {filtered.length === 0 && !loading ? (
             <tr>
-              <td colSpan={9} className="p-4 text-center text-sm text-gray-500">
+              <td colSpan={10} className="p-4 text-center text-sm text-gray-500">
                 Aucun import pour ce filtre.
               </td>
             </tr>
@@ -234,6 +235,9 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
         <TypeBadge dumpType={item.dumpType} />
       </td>
       <td className="px-2 py-1">
+        <PropertiesBadge present={item.hasConfigurationProperties} />
+      </td>
+      <td className="px-2 py-1">
         <input
           type="datetime-local"
           defaultValue={toDatetimeLocalInput(item.effectiveDate)}
@@ -266,6 +270,27 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
         </button>
       </td>
     </tr>
+  );
+}
+
+function PropertiesBadge({ present }: { present: boolean }): JSX.Element {
+  if (present) {
+    return (
+      <span
+        className="inline-block rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800"
+        title="Fichier <EIC>-configuration.properties fourni à l'ingestion"
+      >
+        ✓
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-block rounded bg-red-100 px-2 py-0.5 text-xs text-red-800"
+      title="Aucun fichier .properties fourni : valeurs projectName/envName/NAT issues uniquement du CSV interne au zip."
+    >
+      ✗
+    </span>
   );
 }
 

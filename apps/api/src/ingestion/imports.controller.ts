@@ -9,11 +9,10 @@ import {
   Patch,
   Post,
   Query,
-  UploadedFile,
   UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
+import { FileFieldsInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { z } from 'zod';
 import type { ImportDetail, InspectResult } from '@carto-ecp/shared';
 import { ImportsService } from './imports.service.js';
@@ -35,22 +34,40 @@ const UpdateImportSchema = z.object({
 }).strict();
 
 const MAX_SIZE = 50 * 1024 * 1024;
+const MAX_PROPERTIES_SIZE = 128 * 1024; // 128 kB largement suffisant pour un Export Configuration
 const ZIP_MAGIC = Buffer.from([0x50, 0x4b, 0x03, 0x04]);
+
+type UploadedFileShape = { originalname: string; buffer: Buffer; mimetype?: string; size?: number };
 
 @Controller('imports')
 export class ImportsController {
   constructor(private readonly imports: ImportsService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_SIZE } }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'file', maxCount: 1 },
+        { name: 'configurationProperties', maxCount: 1 },
+      ],
+      { limits: { fileSize: MAX_SIZE } },
+    ),
+  )
   async create(
     @Body() body: unknown,
-    @UploadedFile() file: { originalname: string; buffer: Buffer; mimetype?: string } | undefined,
+    @UploadedFiles()
+    files:
+      | {
+          file?: UploadedFileShape[];
+          configurationProperties?: UploadedFileShape[];
+        }
+      | undefined,
   ): Promise<ImportDetail> {
     const parsed = CreateImportSchema.safeParse(body);
     if (!parsed.success) {
       throw new BadRequestException({ code: 'INVALID_BODY', errors: parsed.error.issues });
     }
+    const file = files?.file?.[0];
     if (!file || !file.buffer) {
       throw new BadRequestException({ code: 'INVALID_UPLOAD', message: 'Fichier manquant' });
     }
@@ -70,12 +87,32 @@ export class ImportsController {
         message: 'Magic bytes ZIP invalides',
       });
     }
+
+    const propertiesFile = files?.configurationProperties?.[0];
+    if (propertiesFile) {
+      if (propertiesFile.buffer.byteLength > MAX_PROPERTIES_SIZE) {
+        throw new BadRequestException({
+          code: 'PROPERTIES_TOO_LARGE',
+          message: `Fichier .properties trop volumineux (> ${MAX_PROPERTIES_SIZE} octets)`,
+        });
+      }
+      if (!/\.properties$/i.test(propertiesFile.originalname)) {
+        throw new BadRequestException({
+          code: 'PROPERTIES_INVALID_EXT',
+          message: 'Le fichier de configuration doit avoir l\'extension .properties',
+        });
+      }
+    }
+
     return this.imports.createImport({
       file,
       envName: parsed.data.envName,
       label: parsed.data.label,
       dumpType: parsed.data.dumpType,
       replaceImportId: parsed.data.replaceImportId,
+      configurationProperties: propertiesFile
+        ? { originalname: propertiesFile.originalname, buffer: propertiesFile.buffer }
+        : undefined,
     });
   }
 
