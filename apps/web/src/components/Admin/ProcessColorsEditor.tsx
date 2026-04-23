@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ProcessKey, RegistryColorRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { useAppStore } from '../../store/app-store.js';
+import styles from './ProcessColorsEditor.module.scss';
 
 export function ProcessColorsEditor(): JSX.Element {
   const [rows, setRows] = useState<RegistryColorRow[]>([]);
@@ -56,21 +57,21 @@ export function ProcessColorsEditor(): JSX.Element {
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       {error ? (
-        <p className="mb-3 rounded bg-red-100 p-2 text-sm text-red-700" role="alert">
+        <p className={styles.alertError} role="alert">
           {error}
         </p>
       ) : null}
-      <table className="w-full table-auto border-collapse border border-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <table className={styles.table}>
+        <thead>
           <tr>
-            <th className="px-2 py-1 text-left">Process</th>
-            <th className="px-2 py-1 text-left">Couleur actuelle</th>
-            <th className="px-2 py-1 text-left">Choisir</th>
-            <th className="px-2 py-1 text-left">Défaut</th>
-            <th className="px-2 py-1 text-left">Statut</th>
-            <th className="px-2 py-1 text-left">Actions</th>
+            <th>Process</th>
+            <th>Couleur actuelle</th>
+            <th>Choisir</th>
+            <th>Défaut</th>
+            <th>Statut</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -80,18 +81,20 @@ export function ProcessColorsEditor(): JSX.Element {
             const changed = current.toLowerCase() !== row.color.toLowerCase();
             const isBusy = busy === row.process;
             return (
-              <tr key={row.process} className="border-t border-gray-200">
-                <td className="px-2 py-1 font-mono text-xs">{row.process}</td>
-                <td className="px-2 py-1">
-                  <span
-                    className="inline-block h-4 w-8 rounded border border-gray-300"
-                    style={{ backgroundColor: row.color }}
-                    aria-label={`Couleur actuelle ${row.color}`}
-                  />
-                  <span className="ml-2 font-mono text-xs text-gray-600">{row.color}</span>
+              <tr key={row.process}>
+                <td className={styles.processName}>{row.process}</td>
+                <td>
+                  <span className={styles.currentColor}>
+                    <span
+                      className={styles.swatch}
+                      style={{ backgroundColor: row.color }}
+                      aria-label={`Couleur actuelle ${row.color}`}
+                    />
+                    <span className={styles.hex}>{row.color}</span>
+                  </span>
                 </td>
-                <td className="px-2 py-1">
-                  <label htmlFor={inputId} className="sr-only">
+                <td>
+                  <label htmlFor={inputId} className={styles.srOnly}>
                     Choisir la couleur pour {row.process}
                   </label>
                   <input
@@ -101,35 +104,37 @@ export function ProcessColorsEditor(): JSX.Element {
                     onChange={(e) =>
                       setDraft((d) => ({ ...d, [row.process]: e.target.value }))
                     }
-                    className="h-7 w-12 cursor-pointer rounded border border-gray-300"
+                    className={styles.picker}
                   />
                 </td>
-                <td className="px-2 py-1 font-mono text-xs text-gray-500">{row.default}</td>
-                <td className="px-2 py-1 text-xs">
+                <td className={styles.defaultColor}>{row.default}</td>
+                <td className={styles.status}>
                   {row.isOverride ? (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">
-                      surchargé
-                    </span>
+                    <span className={styles.badgeOverride}>surchargé</span>
                   ) : (
-                    <span className="text-gray-400">défaut</span>
+                    <span className={styles.badgeDefault}>défaut</span>
                   )}
                 </td>
-                <td className="px-2 py-1">
-                  <div className="flex gap-2">
+                <td>
+                  <div className={styles.actions}>
                     <button
                       type="button"
-                      onClick={() => { void save(row.process, current); }}
+                      onClick={() => {
+                        void save(row.process, current);
+                      }}
                       disabled={!changed || isBusy}
-                      className="rounded bg-rte px-2 py-1 text-xs text-white hover:bg-red-700 disabled:opacity-40"
+                      className={styles.saveButton}
                     >
                       {isBusy ? '…' : 'Enregistrer'}
                     </button>
                     {row.isOverride ? (
                       <button
                         type="button"
-                        onClick={() => { void reset(row.process); }}
+                        onClick={() => {
+                          void reset(row.process);
+                        }}
                         disabled={isBusy}
-                        className="rounded border border-gray-400 px-2 py-1 text-xs text-gray-700 hover:bg-gray-100 disabled:opacity-40"
+                        className={styles.resetButton}
                       >
                         Réinitialiser
                       </button>
@@ -141,7 +146,7 @@ export function ProcessColorsEditor(): JSX.Element {
           })}
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={6} className="p-4 text-center text-sm text-gray-500">
+              <td colSpan={6} className={styles.emptyRow}>
                 Chargement…
               </td>
             </tr>
