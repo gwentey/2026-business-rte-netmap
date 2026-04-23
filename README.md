@@ -1,62 +1,81 @@
-# Carto ECP Network Map — Slice #1
+# Carto ECP Network Map
 
-Application interne RTE pour visualiser le réseau ECP sur une carte d'Europe.
-Première livraison : vertical slice upload → parser → carte, sans authentification, dev local.
+Monorepo pnpm — NestJS 10 + Prisma 5 + SQLite (api) · React 18 + Vite + Leaflet (web).
 
 ## Prérequis
 
-- Node 20 LTS
+- Node ≥ 20.11
 - pnpm ≥ 9
 
-## Installation
+## Setup
 
 ```bash
 pnpm install
-pnpm --filter @carto-ecp/api prisma migrate dev
+pnpm --filter @carto-ecp/api prisma:migrate
 ```
 
-## Développement local
+## Dev
 
 ```bash
-pnpm dev
+pnpm dev              # api (3000) + web (5173)
+pnpm dev:api
+pnpm dev:web
 ```
 
-- API : http://localhost:3000/api
-- Web : http://localhost:5173
+## Build
+
+```bash
+pnpm build
+```
 
 ## Tests
 
 ```bash
-pnpm test           # unit + intégration backend + frontend
-pnpm test:e2e       # Playwright (démarre dev servers)
+pnpm typecheck
+pnpm test                                          # vitest (api + web)
+pnpm test:e2e                                      # playwright
+pnpm --filter @carto-ecp/api test -- <pattern>     # un seul spec
+pnpm --filter @carto-ecp/api test:watch
 ```
 
-## Charger un backup
+## Prisma
 
-1. Ouvrir http://localhost:5173
-2. Cliquer sur « Charger un snapshot »
-3. Déposer un zip de backup ECP (Endpoint ou Component Directory)
-4. Entrer un label + un environnement (ex. OPF)
-5. Envoyer → cliquer « Voir sur la carte »
+```bash
+pnpm --filter @carto-ecp/api prisma:migrate        # applique migrations + régénère client
+pnpm --filter @carto-ecp/api prisma:generate       # régénère client
+pnpm --filter @carto-ecp/api prisma:studio         # UI DB
+```
 
-Deux backups réels sont dans `tests/fixtures/` pour tester.
+## Format
 
-## Attention — sécurité
+```bash
+pnpm format
+```
 
-Ce slice #1 n'a **pas d'authentification**. Ne jamais l'exposer sur Internet.
-Les fichiers `local_key_store.csv`, `registration_store.csv` et `registration_requests.csv`
-(clés privées + inventaire interne) ne sont **jamais** parsés ni persistés.
+## Import d'un dump
 
-## Architecture
+1. http://localhost:5173/upload
+2. Drop `<EIC>_<timestamp>.zip` + son `<EIC>-configuration.properties` (dossier `tests/fixtures/EXPORT/PRFRI-*/`)
+3. Saisir env (ex. `PRFRI`) → `Importer tout`
+4. `Voir sur la carte →`
 
-Monorepo pnpm :
-- `apps/api/` — NestJS 10 + Prisma 5 + SQLite
-- `apps/web/` — React 18 + Vite + Leaflet
-- `packages/shared/` — types TypeScript partagés
-- `packages/registry/` — données de référence (CSV ENTSO-E + overlay RTE)
+## Structure
 
-Pipeline d'ingestion : `ZipExtractor → CsvReader → XmlMadesParser →
-NetworkModelBuilder → SnapshotPersister`.
+- `apps/api/` — backend NestJS
+- `apps/web/` — frontend Vite
+- `packages/shared/` — types partagés
+- `packages/registry/` — référentiels EIC (CSV ENTSO-E + overlay RTE)
+- `tests/fixtures/EXPORT/` — 7 dumps PRFRI réels (zips gitignorés, `.properties` tracked)
 
-Voir `docs/superpowers/specs/2026-04-18-carto-ecp-slice-1-design.md` pour le design complet
-et `docs/superpowers/plans/2026-04-18-carto-ecp-slice-1-plan.md` pour le plan d'implémentation.
+## Sécurité
+
+Pas d'authentification. Dev local uniquement.
+Les zips `tests/fixtures/EXPORT/**/*.zip` sont gitignorés : ils contiennent `local_key_store.csv`, `registration_store.csv`, `registration_requests.csv` (clés privées + inventaire RTE) — le pipeline d'ingestion les filtre avant toute persistance.
+
+## Docs
+
+- `CLAUDE.md` — conventions, friction points
+- `CHANGELOG.md` — historique des releases
+- `docs/specs/` — specs fonctionnelles + techniques
+- `docs/adr/` — décisions d'architecture
+- `docs/officiel/` — doc ECP v4.16.0 (PDF)
