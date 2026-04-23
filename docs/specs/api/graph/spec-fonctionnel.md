@@ -61,7 +61,7 @@ Le module `graph` est le service de lecture centrale : il calcule à la volée l
     - **`organizationOverlay`** — lu depuis `overlay.organizationGeocode[orgName]` via `RegistryService.resolveByOrganization`. Source statique MCO pour les TSOs principaux avec coords GPS précises + pays ISO-2. Niveau 3 pour `lat/lng/country`.
     - **`organizationMemory`** — lu depuis la table `OrganizationEntry` (mémoire interne éditable) via `OrganizationsService.loadAsMap`, lookup par `organizationName` normalisé (lowercase + trim). Fournit `country` et `address` quand connus. Inséré entre `organizationOverlay` et `merged` pour `country` ; fournit `address` seul.
     - **`countryGeocode[country]`** — lu depuis `overlay.countryGeocode` via `RegistryService.resolveByCountry(country)` où `country` est le résultat intermédiaire de la cascade country ci-dessus. Fallback approximatif qui place le composant au centre de son pays résolu, avant le fallback final Bruxelles.
-    Ordre final `country` : override > entsoe > registry RTE > organizationOverlay > organizationMemory > merged. Ordre final `lat/lng` : override > registry RTE > organizationOverlay > countryGeo > merged > Bruxelles. L'address vient uniquement de la mémoire interne.
+    Ordre final `country` : override > entsoe > registry RTE > organizationOverlay > organizationMemory > merged. Ordre final `lat/lng` : override > registry RTE > organizationOverlay > **organizationMemory** > countryGeo > merged > Bruxelles (la mémoire interne peut fournir des coords précises saisies par l'utilisateur, entre l'overlay MCO et le fallback par pays). L'address vient uniquement de la mémoire interne.
 
 ---
 

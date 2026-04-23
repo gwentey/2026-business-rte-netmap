@@ -32,6 +32,9 @@ export type OrganizationMemoryInput = {
   country?: string | null;
   address?: string | null;
   displayName?: string | null;
+  /** Coords GPS précises saisies par l'utilisateur via /admin. */
+  lat?: number | null;
+  lng?: number | null;
 };
 
 /** Slice 3d — overlay.organizationGeocode statique MCO (par nom d'organisation). */
@@ -154,11 +157,14 @@ export function applyCascade(
     ) ?? 'ENDPOINT';
 
   // Slice 3d — lat/lng : injection de organizationOverlay (coords précises
-  // MCO) puis countryGeo (fallback approximatif par pays).
+  // MCO statiques), puis organizationMemory (coords saisies par
+  // l'utilisateur via /admin), puis countryGeo (fallback approximatif par
+  // pays). Les lat/lng sont indépendants (on évite un couple partiel).
   const lat = pickField(
     override?.lat,
     registry?.lat,
     organizationOverlay?.lat,
+    organizationMemory?.lat,
     countryGeo?.lat,
     merged?.lat,
   );
@@ -166,6 +172,7 @@ export function applyCascade(
     override?.lng,
     registry?.lng,
     organizationOverlay?.lng,
+    organizationMemory?.lng,
     countryGeo?.lng,
     merged?.lng,
   );

@@ -7,6 +7,30 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.5 — Slice 3d+ : coordonnées GPS dans la mémoire interne (2026-04-23)
+
+Extension de la Slice 3d : la mémoire interne stocke désormais aussi `lat` et `lng` optionnels, éditables via le modal admin et exportables/importables dans le JSON. Les coords sont injectées dans la cascade **entre `overlay.organizationGeocode` (MCO-statique) et `overlay.countryGeocode` (fallback par pays)**, permettant à l'utilisateur de placer avec précision une organisation inconnue du MCO sans toucher au code.
+
+**Highlights :**
+
+- **Colonnes `lat` et `lng` ajoutées** à `OrganizationEntry` (migration `20260423134400_add_org_memory_coords`, Float nullables). Le seed JSON est bumpé en version 2 avec les lat/lng des 40 TSOs et entités connus (siège officiel ou capitale).
+- **Validation Zod côté backend** : `lat ∈ [-90, 90]`, `lng ∈ [-180, 180]`, nullables.
+- **Validation UX côté modal** : si l'un est renseigné sans l'autre → erreur `Latitude et longitude doivent être toutes deux renseignées ou toutes deux vides.`
+- **Cascade lat/lng enrichie** : `override > registry RTE > organizationOverlay > organizationMemory > countryGeo > merged > Bruxelles`.
+- **UI** : 2 champs number dans `OrganizationEditModal` (placeholder `-90 … 90` / `-180 … 180`), nouvelle colonne « Position » dans `OrganizationsAdminTab` (affiche `lat.toFixed(3), lng.toFixed(3)` ou `—`).
+- **Import/Export JSON** : le format passe à `version: 2` et inclut `lat`/`lng` sur chaque entry. Compatible en lecture avec les exports v1 (les entries v1 importées auront `lat=null, lng=null`).
+- **OrganizationSeederService** : passe `lat`/`lng` depuis le seed JSON lors du create/refresh. Flag `userEdited=true` protège les coords modifiées par l'utilisateur contre un re-seed.
+- **OrganizationLookup** (utilisé par `GraphService.loadAsMap`) : inclut désormais `lat: number | null` et `lng: number | null`.
+
+**Tests :**
+- API : **313 tests verts** (tests existants adaptés pour la nouvelle forme `OrganizationLookup` et `version: 2` dans l'export).
+- Web : **144 tests verts** (mock `OrganizationEntryRow` enrichi).
+- Typecheck global OK.
+
+**Breaking changes :** aucun pour l'API HTTP (nouveaux champs optionnels). Le format du seed JSON est v2 mais le seeder lit toujours v1 correctement (les champs manquants deviennent null).
+
+**Comportement au prochain boot** : le seeder voit `seedVersion=1` en DB (depuis v3.0-alpha.4) et `JSON.version=2`, il va donc refresh toutes les entries **non modifiées par l'utilisateur** avec les nouvelles coords. Les entries `userEdited=true` sont préservées (seul `seedVersion` passe à 2).
+
 ### v3.0-alpha.4 — Slice 3d : mémoire interne des organisations (2026-04-23)
 
 Introduit la **mémoire interne** : une table éditable en BDD qui fait le mapping `organisation name → {country, address, typeHint}`. Résout la demande du user : « quand le pays d'une organisation (TSO, RCC, NEMO, plateforme…) est inconnu de l'annuaire ENTSO-E, il faut pouvoir le renseigner manuellement sans toucher au code ». Le résultat : les composants externes dont l'organisation est connue (Swissgrid, Amprion, EPEX Spot, CORESO…) sont désormais placés dans leur pays au lieu de tomber au fallback Bruxelles.

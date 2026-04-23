@@ -30,6 +30,8 @@ const UpsertSchema = z
       .optional(),
     address: z.string().max(1024).nullable().optional(),
     typeHint: z.string().max(64).nullable().optional(),
+    lat: z.number().min(-90).max(90).nullable().optional(),
+    lng: z.number().min(-180).max(180).nullable().optional(),
     notes: z.string().max(2000).nullable().optional(),
   })
   .strict();

@@ -273,6 +273,10 @@ export type OrganizationEntryRow = {
   address: string | null;
   /** Libre, recommandé parmi `ORGANIZATION_TYPE_HINTS`. */
   typeHint: string | null;
+  /** Latitude GPS (WGS84) de l'adresse. Null si inconnue. */
+  lat: number | null;
+  /** Longitude GPS (WGS84) de l'adresse. Null si inconnue. */
+  lng: number | null;
   notes: string | null;
   /** True = champs édités par l'utilisateur (protégés contre le re-seed). */
   userEdited: boolean;
@@ -288,6 +292,8 @@ export type OrganizationUpsertInput = {
   country?: string | null;
   address?: string | null;
   typeHint?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   notes?: string | null;
 };
 

@@ -24,6 +24,8 @@ function row(overrides: Partial<OrganizationEntryRow>): OrganizationEntryRow {
     country: 'FR',
     address: null,
     typeHint: 'TSO',
+    lat: null,
+    lng: null,
     notes: null,
     userEdited: false,
     seedVersion: 1,

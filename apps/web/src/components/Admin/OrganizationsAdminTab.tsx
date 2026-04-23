@@ -187,6 +187,7 @@ export function OrganizationsAdminTab(): JSX.Element {
                 <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Pays</th>
                 <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Type</th>
                 <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Adresse</th>
+                <th className="border-b border-gray-300 px-2 py-1.5 font-semibold">Position</th>
                 <th className="border-b border-gray-300 px-2 py-1.5 font-semibold text-center">Édité</th>
                 <th className="border-b border-gray-300 px-2 py-1.5 font-semibold"></th>
               </tr>
@@ -206,6 +207,13 @@ export function OrganizationsAdminTab(): JSX.Element {
                   </td>
                   <td className="border-b border-gray-200 px-2 py-1.5 text-gray-600">
                     {row.address ?? <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="border-b border-gray-200 px-2 py-1.5 font-mono text-[10px] text-gray-600">
+                    {row.lat != null && row.lng != null ? (
+                      `${row.lat.toFixed(3)}, ${row.lng.toFixed(3)}`
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
                   </td>
                   <td className="border-b border-gray-200 px-2 py-1.5 text-center">
                     {row.userEdited ? (
