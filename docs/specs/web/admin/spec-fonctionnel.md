@@ -22,11 +22,13 @@
 
 La page Admin centralise les opérations administratives qui ne font pas partie du flux normal d'utilisation (consultation de la carte). Elle est accessible depuis le menu de navigation. Elle est destinée aux administrateurs de l'application qui gèrent les données en base.
 
-La page est organisée en 4 onglets thématiques :
+La page est organisée en 6 onglets thématiques :
 1. **Imports** — gestion des imports (liste, suppression, édition label/date)
 2. **Composants** — surcharges manuelles des métadonnées de composants
-3. **ENTSO-E** — mise à jour de l'annuaire EIC depuis le site officiel
-4. **Zone danger** — purges irréversibles
+3. **Organisations** — mémoire interne (mapping organisation → pays/adresse/type), CRUD + import/export JSON *(Slice 3d)*
+4. **ENTSO-E** — mise à jour de l'annuaire EIC depuis le site officiel
+5. **Registry RTE** — édition des couleurs de process et des endpoints RTE
+6. **Zone danger** — purges irréversibles
 
 ---
 
@@ -39,6 +41,10 @@ La page est organisée en 4 onglets thématiques :
 3. **ENTSO-E** : L'administrateur peut uploader le CSV officiel ENTSO-E pour mettre à jour l'annuaire en base. Cet annuaire enrichit les noms d'affichage et pays des composants qui ne sont pas dans l'overlay RTE.
 
 4. **Zone danger** : Trois niveaux de purge. Chacun requiert la saisie d'un mot-clé de confirmation dans un modal. Le bouton Confirmer n'est actif que si le mot-clé est correct. Les purges sont irréversibles.
+
+5. **Onglet Organisations (Slice 3d)** : tableau CRUD de la mémoire interne avec recherche libre sur nom/pays/type/adresse, badge d'édition utilisateur, boutons « + Nouvelle organisation », « ⬆ Importer JSON », « ⬇ Exporter JSON ». Import par `organizationName` normalisé (upsert).
+
+6. **Badge « ⚠ pays manquant » dans l'onglet Composants (Slice 3d)** : si un composant a `country === null` après cascade et que `organization` est connue, la cellule Pays affiche un badge orange cliquable `⚠ Manquant [+]` qui ouvre le modal d'édition de la mémoire interne en mode création, pré-rempli avec `displayName = organization` du composant. Si organization est aussi null, le badge est un simple `⚠` non-cliquable.
 
 ---
 
