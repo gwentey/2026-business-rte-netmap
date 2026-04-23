@@ -54,13 +54,15 @@ Le module `ingestion` est le chemin critique de l'application. Il reçoit un fic
 
 11. **Normalisation des valeurs nulles CSV.** La chaîne `NULL_VALUE_PLACEHOLDER` dans les CSV est normalisée en `null`.
 
+12. **Paths ENDPOINT lus aussi depuis `message_path.csv` local.** Pour un dump ENDPOINT, les paths sont extraits à la fois du XML MADES (déduit du CD) et du CSV `message_path.csv` local. Ces deux sources sont dédupliquées via la clé 5-champs `(receiverEic, senderEic, messageType, transportPattern, intermediateBrokerEic)` avec XML prioritaire — le CSV ne fait qu'ajouter les paths absents du XML. Les rows `messagePathType === 'ACKNOWLEDGEMENT'`, `status === 'INVALID'` ou `applied === false` sont ignorées à l'ingestion. Les `allowedSenders` multi-EIC (séparés par `;`) sont explosés en N paths (1 par sender). Wildcards (`*` en sender ou receiver) exclus à l'ingestion.
+
 ---
 
 ## Cas d'usage
 
 ### CU-001 — Import d'un dump Endpoint
 
-**Flux** : ZIP soumis -> détection ENDPOINT (messaging_statistics.csv présent) -> extraction CSV + parsing XML blobs -> construction BuiltImport -> persistance -> `ImportDetail` retourné.
+**Flux** : ZIP soumis -> détection ENDPOINT (messaging_statistics.csv présent) -> extraction CSV (application_property + component_directory + messaging_statistics + message_path + message_upload_route) + parsing XML blobs MADES -> construction BuiltImport (merge XML/CSV des paths, XML prioritaire) -> persistance -> `ImportDetail` retourné.
 
 ### CU-002 — Import d'un dump Component Directory
 

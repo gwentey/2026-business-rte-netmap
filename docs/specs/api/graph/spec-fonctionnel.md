@@ -53,6 +53,8 @@ Le module `graph` est le service de lecture centrale : il calcule à la volée l
 
 10. **ID d'edge déterministe.** Calculé via SHA1(`{fromEic}|{toEic}|{process}`).slice(16 chars). Stable entre les rechargements.
 
+11. **Interlocuteurs dérivés des edges agrégées.** Pour chaque `GraphNode`, la liste `interlocutors` est calculée à partir des edges BUSINESS (pas PEERING) : pour chaque edge où le noeud est `fromEic` ou `toEic`, l'autre extrémité est ajoutée avec la direction vue depuis le noeud (IN si le noeud est `toEic`, OUT si `fromEic`, BIDI si présent des deux côtés). Les messageTypes sont unis et triés alphabétiquement. Tri des interlocuteurs : (1) direction BIDI > OUT > IN, (2) nombre de messageTypes décroissant, (3) EIC croissant. Cohérence garantie avec la carte : un interlocuteur affiché ⇔ une edge visible.
+
 ---
 
 ## Cas d'usage
