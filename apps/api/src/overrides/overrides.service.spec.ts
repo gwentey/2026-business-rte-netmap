@@ -11,6 +11,7 @@ import { CsvPathReaderService } from '../ingestion/csv-path-reader.service.js';
 import { PropertiesParserService } from '../ingestion/properties-parser.service.js';
 import { RawPersisterService } from '../ingestion/raw-persister.service.js';
 import { RegistryService } from '../registry/registry.service.js';
+import { OrganizationsService } from '../organizations/organizations.service.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE } from '../../test/fixtures-loader.js';
 
 describe('OverridesService', () => {
@@ -19,7 +20,7 @@ describe('OverridesService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [OverridesService, PrismaService, RegistryService],
+      providers: [OverridesService, PrismaService, RegistryService, OrganizationsService],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(OverridesService);
@@ -83,7 +84,7 @@ describe('listAdminComponents', () => {
         ZipExtractorService, CsvReaderService, XmlMadesParserService,
         ImportBuilderService, CsvPathReaderService,
         PropertiesParserService, RawPersisterService,
-        RegistryService,
+        RegistryService, OrganizationsService,
       ],
     }).compile();
     await moduleRef.init();

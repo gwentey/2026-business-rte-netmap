@@ -22,6 +22,8 @@ import {
   type MergedPath,
 } from './merge-paths.js';
 import { buildInterlocutorsByEic } from './build-interlocutors.js';
+import { OrganizationsService } from '../organizations/organizations.service.js';
+import { normalizeOrgName } from '../organizations/normalize-org-name.js';
 
 const DEFAULT_ISRECENT_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
@@ -40,6 +42,7 @@ export class GraphService {
     private readonly prisma: PrismaService,
     private readonly registry: RegistryService,
     private readonly registrySettings: RegistrySettingsService,
+    private readonly organizations: OrganizationsService,
   ) {}
 
   async getGraph(envName: string, refDate?: Date): Promise<GraphResponse> {
@@ -59,11 +62,15 @@ export class GraphService {
       },
     });
 
-    const [overrides, entsoeEntries, processColors] = await Promise.all([
-      this.prisma.componentOverride.findMany(),
-      this.prisma.entsoeEntry.findMany(),
-      this.registrySettings.getEffectiveProcessColors(),
-    ]);
+    const [overrides, entsoeEntries, processColors, orgMemoryByName] =
+      await Promise.all([
+        this.prisma.componentOverride.findMany(),
+        this.prisma.entsoeEntry.findMany(),
+        this.registrySettings.getEffectiveProcessColors(),
+        // Slice 3d : charger une fois la mémoire interne (lookup par
+        // organizationName normalisé) pour éviter N requêtes dans la cascade.
+        this.organizations.loadAsMap(),
+      ]);
 
     // 1. Merge ImportedComponent par EIC (T12)
     const componentRows: ImportedComponentWithImport[] = imports.flatMap((imp) =>
@@ -224,10 +231,38 @@ export class GraphService {
       ) {
         registryEntry = { ...(registryEntry ?? {}), type: 'COMPONENT_DIRECTORY' };
       }
+      // Slice 3d — enrichissement par nom d'organisation :
+      // 1) overlay.organizationGeocode (coords + country MCO-précis)
+      // 2) mémoire interne DB (country + address)
+      // 3) countryGeocode[country résolu] (fallback lat/lng approximatif)
+      const rawOrgName = merged?.organization ?? null;
+      const organizationOverlay = this.registry.resolveByOrganization(rawOrgName);
+      const normalizedOrgName = normalizeOrgName(rawOrgName);
+      const organizationMemory = normalizedOrgName
+        ? orgMemoryByName.get(normalizedOrgName) ?? null
+        : null;
+      // Résolution intermédiaire du pays pour alimenter countryGeo
+      const intermediateCountry =
+        override?.country ??
+        entsoe?.country ??
+        registryEntry?.country ??
+        organizationOverlay?.country ??
+        organizationMemory?.country ??
+        merged?.country ??
+        null;
+      const countryGeo = this.registry.resolveByCountry(intermediateCountry);
+
       const global = applyCascade(
         eic,
         merged,
-        { override, entsoe, registry: registryEntry },
+        {
+          override,
+          entsoe,
+          registry: registryEntry,
+          organizationOverlay,
+          organizationMemory,
+          countryGeo,
+        },
         defaultFallback,
       );
       globalComponents.set(eic, global);

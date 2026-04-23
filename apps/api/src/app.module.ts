@@ -10,6 +10,7 @@ import { EnvsModule } from './envs/envs.module.js';
 import { OverridesModule } from './overrides/overrides.module.js';
 import { AdminModule } from './admin/admin.module.js';
 import { RegistrySettingsModule } from './registry-settings/registry-settings.module.js';
+import { OrganizationsModule } from './organizations/organizations.module.js';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { RegistrySettingsModule } from './registry-settings/registry-settings.mo
     OverridesModule,
     AdminModule,
     RegistrySettingsModule,
+    OrganizationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

@@ -200,3 +200,35 @@ model ProcessColorOverride {
   color     String
   updatedAt DateTime @updatedAt
 }
+
+// Slice 3d — Mémoire interne des organisations.
+// Mapping organization name -> { country, address, typeHint } éditable via /admin
+// et utilisé par la cascade graph pour enrichir les composants dont l'organisation
+// est connue mais dont aucun niveau supérieur (override/entsoe/registry) n'a fourni
+// le pays. Pré-peuplée au boot via OrganizationSeederService depuis
+// packages/registry/organization-memory-seed.json (versionné).
+model OrganizationEntry {
+  id               String   @id @default(uuid())
+  // Nom normalisé (lowercase + trim + collapse whitespace) — clé unique de lookup.
+  // Le nom affiché à l'utilisateur est stocké dans displayName.
+  organizationName String   @unique
+  displayName      String
+  // ISO 3166-1 alpha-2 (ex. "CH", "DE"), null si inconnu ou multi-pays.
+  country          String?
+  address          String?
+  // Hint libre : "TSO" | "RCC" | "NEMO" | "PLATFORM" | "INTERCONNECTOR" |
+  // "EXCHANGE" | "CAO" | "AO" | "ASSOCIATION" | "PARTNER" | "OTHER".
+  typeHint         String?
+  notes            String?
+  // Version du seed au moment de la dernière synchro auto. Incrémentée à chaque
+  // passage d'onModuleInit quand le JSON a une version supérieure.
+  seedVersion      Int      @default(0)
+  // Passé à true dès qu'un PATCH utilisateur survient — empêche OrganizationSeederService
+  // d'écraser les champs manuellement édités lors d'un re-seed.
+  userEdited       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([country])
+  @@index([seedVersion])
+}

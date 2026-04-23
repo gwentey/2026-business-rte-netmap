@@ -234,6 +234,70 @@ export type OverrideUpsertInput = {
   notes?: string | null;
 };
 
+export type OrganizationTypeHint =
+  | 'TSO'
+  | 'RCC'
+  | 'NEMO'
+  | 'PLATFORM'
+  | 'INTERCONNECTOR'
+  | 'EXCHANGE'
+  | 'CAO'
+  | 'AO'
+  | 'ASSOCIATION'
+  | 'PARTNER'
+  | 'OTHER';
+
+/** Liste ouverte des typeHints proposés dans la datalist UI. */
+export const ORGANIZATION_TYPE_HINTS: OrganizationTypeHint[] = [
+  'TSO',
+  'RCC',
+  'NEMO',
+  'PLATFORM',
+  'INTERCONNECTOR',
+  'EXCHANGE',
+  'CAO',
+  'AO',
+  'ASSOCIATION',
+  'PARTNER',
+  'OTHER',
+];
+
+export type OrganizationEntryRow = {
+  id: string;
+  /** Nom normalisé (lowercase + trim + collapse whitespace) — clé de lookup. */
+  organizationName: string;
+  /** Nom affiché à l'utilisateur, ex. "Swissgrid AG". */
+  displayName: string;
+  /** ISO-2 ("CH", "DE") ou null si inconnu / multi-pays. */
+  country: string | null;
+  address: string | null;
+  /** Libre, recommandé parmi `ORGANIZATION_TYPE_HINTS`. */
+  typeHint: string | null;
+  notes: string | null;
+  /** True = champs édités par l'utilisateur (protégés contre le re-seed). */
+  userEdited: boolean;
+  /** Version du seed JSON au moment de la dernière synchro. */
+  seedVersion: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OrganizationUpsertInput = {
+  organizationName?: string;
+  displayName?: string;
+  country?: string | null;
+  address?: string | null;
+  typeHint?: string | null;
+  notes?: string | null;
+};
+
+export type OrganizationImportResult = {
+  inserted: number;
+  updated: number;
+  skipped: number;
+  errors: Array<{ organizationName: string; reason: string }>;
+};
+
 export type EntsoeStatus = { count: number; refreshedAt: string | null };
 export type PurgeResult = { deletedCount: number };
 export type ResetAllResult = { imports: number; overrides: number; entsoe: number };

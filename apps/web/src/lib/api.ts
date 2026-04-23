@@ -5,6 +5,9 @@ import type {
   ImportSummary,
   InspectResult,
   AdminComponentRow,
+  OrganizationEntryRow,
+  OrganizationImportResult,
+  OrganizationUpsertInput,
   OverrideUpsertInput,
   EntsoeStatus,
   ProcessKey,
@@ -149,5 +152,56 @@ export const api = {
     return request<ComponentConfigResponse>(
       `/api/admin/components/${encodeURIComponent(eic)}/config`,
     );
+  },
+
+  // Slice 3d — mémoire interne des organisations
+  async listOrganizations(): Promise<OrganizationEntryRow[]> {
+    return request<OrganizationEntryRow[]>('/api/admin/organizations');
+  },
+
+  async createOrganization(patch: OrganizationUpsertInput): Promise<OrganizationEntryRow> {
+    return request<OrganizationEntryRow>('/api/admin/organizations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+  },
+
+  async updateOrganization(
+    id: string,
+    patch: OrganizationUpsertInput,
+  ): Promise<OrganizationEntryRow> {
+    return request<OrganizationEntryRow>(
+      `/api/admin/organizations/${encodeURIComponent(id)}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      },
+    );
+  },
+
+  async deleteOrganization(id: string): Promise<void> {
+    await request<void>(`/api/admin/organizations/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async importOrganizations(file: File): Promise<OrganizationImportResult> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return request<OrganizationImportResult>('/api/admin/organizations/import', {
+      method: 'POST',
+      body: fd,
+    });
+  },
+
+  async exportOrganizations(): Promise<Blob> {
+    const res = await fetch(`${BASE_URL}/api/admin/organizations/export`);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`${res.status} ${res.statusText}: ${body}`);
+    }
+    return res.blob();
   },
 };

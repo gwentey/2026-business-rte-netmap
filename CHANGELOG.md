@@ -7,6 +7,57 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.4 — Slice 3d : mémoire interne des organisations (2026-04-23)
+
+Introduit la **mémoire interne** : une table éditable en BDD qui fait le mapping `organisation name → {country, address, typeHint}`. Résout la demande du user : « quand le pays d'une organisation (TSO, RCC, NEMO, plateforme…) est inconnu de l'annuaire ENTSO-E, il faut pouvoir le renseigner manuellement sans toucher au code ». Le résultat : les composants externes dont l'organisation est connue (Swissgrid, Amprion, EPEX Spot, CORESO…) sont désormais placés dans leur pays au lieu de tomber au fallback Bruxelles.
+
+**Highlights :**
+
+- **Nouvelle table Prisma `OrganizationEntry`** — `{id, organizationName @unique, displayName, country, address, typeHint, notes, seedVersion, userEdited, createdAt, updatedAt}`. Clé de lookup = `organizationName` normalisé (lowercase + trim + collapse whitespace). Migration `20260423125149_add_organization_entry`.
+- **Pré-seed versionné au boot** — `OrganizationSeederService` lit `packages/registry/organization-memory-seed.json` (44 entrées couvrant TSOs européens, RCCs, NEMOs, plateformes, interconnecteurs) et applique une stratégie 3-mode :
+  - absente en DB → `insert`
+  - présente + `userEdited=false` + `seedVersion < JSON.version` → `refresh` des champs + bump `seedVersion`
+  - présente + `userEdited=true` → `preserve` (on bumpe juste `seedVersion` pour tracer)
+  - Log résumé : `inserted: N, refreshed: N, preserved: N`.
+- **Cascade enrichie `applyCascade`** — 3 nouvelles sources :
+  - `organizationOverlay` (lu par `RegistryService.resolveByOrganization` depuis `overlay.organizationGeocode` — jamais câblé avant)
+  - `organizationMemory` (lu par `OrganizationsService.loadAsMap` depuis la table DB)
+  - `countryGeo` (lu par `RegistryService.resolveByCountry` depuis `overlay.countryGeocode` — jamais câblé avant)
+  - Ordre `country` : override > entsoe > registry RTE > organizationOverlay > **organizationMemory** > merged
+  - Ordre `lat/lng` : override > registry RTE > organizationOverlay > **countryGeo** > merged > Bruxelles
+  - `address` : mémoire interne uniquement
+  - `GlobalComponent` gagne un champ `address`.
+- **6 routes REST** sous `/api/admin/organizations` : `GET` liste, `POST` create, `PATCH :id`, `DELETE :id` (204), `POST /import` (multipart JSON, upsert par organizationName), `GET /export` (téléchargement JSON avec Content-Disposition).
+- **Nouvel onglet « Organisations »** dans `/admin` (entre Composants et ENTSO-E). Tableau triable/filtrable, badges d'édition utilisateur, compteurs `{filtered}/{total}` et `N éditées`. Boutons Import / Export + bouton + Nouvelle organisation.
+- **Modal d'édition `OrganizationEditModal`** — datalist ISO-3166-1 alpha-2 (33 pays européens) pour country, datalist des 11 typeHints (TSO, RCC, NEMO, PLATFORM, INTERCONNECTOR, EXCHANGE, CAO, AO, ASSOCIATION, PARTNER, OTHER). Mode création/édition avec métadonnées (id, organizationName normalisé, seedVersion, userEdited) affichées en bas.
+- **Badge ⚠ Manquant dans `/admin > Composants`** — si `country === null` et `organization` est connue, un badge orange cliquable ouvre le modal d'édition en mode création pré-rempli avec `displayName = organization` du composant. L'utilisateur complète une fois, **tous les composants partageant la même organisation sont résolus** au prochain reload du graphe.
+
+**Tests :**
+- API : 313 → **313+** (+24 sur le nouveau module : 4 normalize-org-name, 6 seeder, 14 service — les spécifiques passent à 100%).
+- Web : 144 → **144+** (+8 OrganizationsAdminTab, AdminTabs mis à jour pour 6 tabs).
+- Typecheck global OK, aucune régression.
+
+**Fichiers clés :**
+- `apps/api/src/organizations/` — nouveau module (service, seeder, controller, module, normalize-org-name)
+- `apps/api/prisma/migrations/20260423125149_add_organization_entry/`
+- `packages/registry/organization-memory-seed.json` (44 entrées v1)
+- `apps/api/src/graph/apply-cascade.ts` — 3 nouvelles sources
+- `apps/api/src/graph/graph.service.ts` + `overrides.service.ts` — câblage loadAsMap + cascade
+- `apps/api/src/registry/registry.service.ts` — `resolveByCountry` + `resolveByOrganization`
+- `apps/web/src/components/Admin/OrganizationsAdminTab.tsx` + `OrganizationEditModal.tsx`
+- `apps/web/src/components/Admin/ComponentsAdminTable.tsx` — badge + modal flow
+- `packages/shared/src/graph.ts` — types `OrganizationEntryRow`, `OrganizationUpsertInput`, `OrganizationImportResult`, `ORGANIZATION_TYPE_HINTS`
+
+**Décisions :**
+- Scope `country + address + typeHint` seulement. Pas de lat/lng dans la mémoire interne — on câble `countryGeocode` comme fallback par pays.
+- Clé de lookup = `organizationName` normalisé (pas EIC). TenneT NL et TenneT DE = 2 entrées distinctes.
+- Auto-seed versionné au boot, préserve les édits utilisateur via flag `userEdited`.
+- Clic sur ⚠ → modal mémoire interne (pas override par EIC) : résolution en lot, plus efficace.
+
+**Breaking changes :** aucun. Nouveaux champs additifs sur `GlobalComponent.address`.
+
+**Prépare :** éventuelle UI « suggestions mémoire interne » basée sur les organisations observées dans les ZIPs mais absentes de la mémoire (Slice 3e optionnelle).
+
 ### v3.0-alpha.3 — Slice 3c : filtre « par BA » sur la carte (2026-04-23)
 
 Dernière slice de la version 3.0 sur les Business Applications. La carte expose désormais un **filtre par BA** qui répond au cas d'usage MCO « analyse d'impact » (§10 du document fonctionnel) : sélectionner une ou plusieurs BAs pour ne voir que les endpoints qui les portent et leurs interlocuteurs directs.

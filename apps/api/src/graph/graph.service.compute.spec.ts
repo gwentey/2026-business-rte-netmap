@@ -8,6 +8,7 @@ import { IngestionModule } from '../ingestion/ingestion.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { RegistryModule } from '../registry/registry.module.js';
 import { RegistrySettingsModule } from '../registry-settings/registry-settings.module.js';
+import { OrganizationsModule } from '../organizations/organizations.module.js';
 import { buildZipFromFixture, ENDPOINT_FIXTURE, CD_FIXTURE } from '../../test/fixtures-loader.js';
 
 describe('GraphService.getGraph — compute on read', () => {
@@ -17,7 +18,13 @@ describe('GraphService.getGraph — compute on read', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [PrismaModule, RegistryModule, RegistrySettingsModule, IngestionModule],
+      imports: [
+        PrismaModule,
+        RegistryModule,
+        RegistrySettingsModule,
+        IngestionModule,
+        OrganizationsModule,
+      ],
       providers: [GraphService],
     }).compile();
     await moduleRef.init();

@@ -57,6 +57,12 @@ Le module `graph` est le service de lecture centrale : il calcule à la volée l
 
 12. **Business Applications résolues via le registry overlay.** Pour chaque `GraphNode`, la liste `businessApplications` est calculée via `RegistryService.resolveBusinessApplications(eic)` qui lit le mapping statique `eic-rte-overlay.json → rteBusinessApplications[*].endpoints[]`. Matrice métier source : `carto-ecp-document-fonctionnel-v1.2.md §5bis`. Les BAs sont triées par criticité (P1 > P2 > P3) puis par code alphabétique. La liste est vide pour les partenaires externes, les brokers et les CDs (non-RTE ou RTE non-endpoint).
 
+13. **Cascade enrichie par la mémoire interne des organisations.** `applyCascade` consulte trois sources additionnelles (Slice 3d) :
+    - **`organizationOverlay`** — lu depuis `overlay.organizationGeocode[orgName]` via `RegistryService.resolveByOrganization`. Source statique MCO pour les TSOs principaux avec coords GPS précises + pays ISO-2. Niveau 3 pour `lat/lng/country`.
+    - **`organizationMemory`** — lu depuis la table `OrganizationEntry` (mémoire interne éditable) via `OrganizationsService.loadAsMap`, lookup par `organizationName` normalisé (lowercase + trim). Fournit `country` et `address` quand connus. Inséré entre `organizationOverlay` et `merged` pour `country` ; fournit `address` seul.
+    - **`countryGeocode[country]`** — lu depuis `overlay.countryGeocode` via `RegistryService.resolveByCountry(country)` où `country` est le résultat intermédiaire de la cascade country ci-dessus. Fallback approximatif qui place le composant au centre de son pays résolu, avant le fallback final Bruxelles.
+    Ordre final `country` : override > entsoe > registry RTE > organizationOverlay > organizationMemory > merged. Ordre final `lat/lng` : override > registry RTE > organizationOverlay > countryGeo > merged > Bruxelles. L'address vient uniquement de la mémoire interne.
+
 ---
 
 ## Cas d'usage

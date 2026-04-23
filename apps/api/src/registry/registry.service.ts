@@ -118,6 +118,40 @@ export class RegistryService implements OnModuleInit {
   }
 
   /**
+   * Résout les coordonnées GPS approximatives d'un pays via
+   * `overlay.countryGeocode[country]`. Utilisé par la cascade graph comme
+   * fallback quand aucun niveau supérieur (override / registry RTE /
+   * overlay.organizationGeocode) n'a fourni de coords — permet de placer
+   * un composant dans son pays même sans coords précises d'organisation.
+   *
+   * Retourne null si le code pays est inconnu ou null.
+   */
+  resolveByCountry(
+    country: string | null | undefined,
+  ): { lat: number; lng: number } | null {
+    if (country == null || country.length === 0) return null;
+    const entry = this.overlay.countryGeocode[country];
+    if (!entry) return null;
+    return { lat: entry.lat, lng: entry.lng };
+  }
+
+  /**
+   * Résout les coordonnées et le pays par nom d'organisation via
+   * `overlay.organizationGeocode[name]`. Utilisé par la cascade comme
+   * niveau statique (MCO) en priorité sur la mémoire interne DB.
+   * Le lookup est fait sur le nom brut (clés de l'overlay conservées
+   * telles quelles : "SwissGrid", "Terna"...).
+   */
+  resolveByOrganization(
+    orgName: string | null | undefined,
+  ): { lat: number; lng: number; country: string } | null {
+    if (orgName == null) return null;
+    const entry = this.overlay.organizationGeocode[orgName];
+    if (!entry) return null;
+    return { lat: entry.lat, lng: entry.lng, country: entry.country };
+  }
+
+  /**
    * Résout les Business Applications RTE qui utilisent cet endpoint.
    * Mapping statique maintenu dans `eic-rte-overlay.json` par MCO.
    *

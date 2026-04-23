@@ -43,6 +43,12 @@ Le module `admin` regroupe les fonctions d'administration avancées qui ne sont 
 
 7. **Format attendu du CSV ENTSO-E.** Le format correspond au fichier officiel téléchargeable sur le site ENTSO-E : délimiteur `;`, BOM UTF-8, colonnes `EicCode`, `EicLongName`, `EicDisplayName`, `MarketParticipantIsoCountryCode`, `EicTypeFunctionList`.
 
+8. **Mémoire interne des organisations (Slice 3d).** Table `OrganizationEntry` éditable via `/admin > Organisations` : mapping `organizationName normalisé → {country, address, typeHint}`. Utilisée par la cascade graph pour résoudre le pays et l'adresse d'un composant dont l'organisation est connue mais absente de l'annuaire ENTSO-E. Pré-peuplée au boot via `OrganizationSeederService` depuis `packages/registry/organization-memory-seed.json` (versionné). Import/export JSON au format `{version, entries[]}`.
+
+9. **Seed versionné, édits préservés.** Au boot, si une entrée a `userEdited=false` et `seedVersion < JSON.version`, ses champs sont rafraîchis depuis le JSON ; si elle a `userEdited=true`, seuls `seedVersion` est mis à jour pour tracer — les champs métier restent intacts. Toute modification via `PATCH /api/admin/organizations/:id` ou `POST .../import` passe `userEdited=true`.
+
+10. **Normalisation du nom d'organisation.** Lookup effectué sur `organizationName = raw.trim().replace(/\s+/g, ' ').toLocaleLowerCase('fr')`. Le nom affiché est stocké séparément dans `displayName`. Ainsi "Swissgrid AG", "SWISSGRID AG", "  swissgrid ag  " résolvent vers la même entry.
+
 ---
 
 ## Cas d'usage
@@ -77,9 +83,39 @@ Le module `admin` regroupe les fonctions d'administration avancées qui ne sont 
 **Flux** :
 1. L'onglet ENTSO-E affiche le nombre d'entrées en base et la date du dernier upload (ou "Aucun upload" si la table est vide).
 
+### CU-004 — Ajouter une organisation inconnue à la mémoire interne (Slice 3d)
+
+**Acteur** : administrateur (onglet Composants ou Organisations)
+
+**Flux** :
+1. Dans `/admin > Composants`, l'administrateur repère une ligne avec un badge `⚠ Manquant [+]` dans la colonne Pays.
+2. Il clique sur le badge — `OrganizationEditModal` s'ouvre pré-rempli avec `displayName = organization` du composant.
+3. Il renseigne le code pays ISO-2 (datalist), optionnellement l'adresse et le type, et valide.
+4. `POST /api/admin/organizations` crée l'entry avec `userEdited=true`, `seedVersion=0`.
+5. Au prochain chargement du graphe, tous les composants partageant cette organisation sont placés correctement sur la carte.
+
+### CU-005 — Exporter la mémoire interne pour sauvegarde ou partage (Slice 3d)
+
+**Acteur** : administrateur
+
+**Flux** :
+1. Dans `/admin > Organisations`, clic sur ⬇ Exporter JSON.
+2. `GET /api/admin/organizations/export` retourne un fichier `organization-memory.json` au format `{version:1, exportedAt, entries:[…]}`.
+3. Le navigateur télécharge le fichier.
+
+### CU-006 — Importer un lot d'organisations (Slice 3d)
+
+**Acteur** : administrateur
+
+**Flux** :
+1. Clic sur ⬆ Importer JSON, sélection d'un fichier au même format que l'export.
+2. `POST /api/admin/organizations/import` upsert chaque entry par `organizationName` normalisé. Chaque ligne matche est `updated` (pas `inserted`), les nouvelles sont `inserted`, les lignes invalides (nom vide, JSON cassé) sont `skipped` avec raison.
+3. Un bandeau vert récapitule le bilan `{inserted, updated, skipped, errors}`.
+
 ---
 
 ## Dépendances
 
-- **api/graph** — consomme `EntsoeEntry` (niveau 2 de la cascade)
-- **web/admin** — interface DangerZoneTab + EntsoeAdminTab
+- **api/graph** — consomme `EntsoeEntry` (niveau 2 de la cascade) et `OrganizationEntry` (niveau 4 pour `country/address`, via `OrganizationsService.loadAsMap`)
+- **web/admin** — interface DangerZoneTab + EntsoeAdminTab + OrganizationsAdminTab
+- **packages/registry/organization-memory-seed.json** — source de vérité du seed, éditable via PR MCO
