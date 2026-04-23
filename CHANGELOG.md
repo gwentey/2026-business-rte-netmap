@@ -7,6 +7,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.9 — Slice 4c.2 : migration onglet Registry + ProcessColorsEditor + RteEndpointsTable (2026-04-23)
+
+Deuxième mini-slice de la série 4c. Migre l'onglet Registry RTE et ses 2 sous-composants de Tailwind inliné vers CSS Modules.
+
+**Highlights :**
+
+- **`RegistryAdminTab.{tsx,module.scss}`** — wrapper 2 sections (Couleurs des process + Endpoints RTE), gap 2rem, titres 1.125rem.
+- **`ProcessColorsEditor.{tsx,module.scss}`** — table 6 colonnes (Process, Couleur, Picker, Défaut, Statut, Actions). Color picker 3rem×1.75rem, badge `surchargé` ambre, boutons Enregistrer rouge RTE + Réinitialiser gris. Label `.srOnly` conservé pour a11y.
+- **`RteEndpointsTable.{tsx,module.scss}`** — table 7 colonnes (EIC, Code, Nom, Ville, Coord, Statut, Action). Hover rows gris, bouton Modifier bleu outline.
+
+**Tests :** typecheck OK, 143 verts + 3 `.todo`, build OK.
+
+---
+
 ### v3.0-alpha.8 — Slice 4c.1 : migration Admin shell + 2 onglets simples (2026-04-23)
 
 Première mini-slice d'une série de 4-5 (4c.1 à 4c.5) qui migre progressivement les 6 onglets admin de Tailwind inliné vers CSS Modules. Cette slice couvre le shell (AdminPage + AdminTabs) et les 2 onglets les plus simples (EntsoeAdminTab + DangerZoneTab).

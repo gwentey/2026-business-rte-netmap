@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { RegistryRteEndpointRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
+import styles from './RteEndpointsTable.module.scss';
 
 type Props = {
   onEdit: (eic: string) => void;
@@ -31,49 +32,47 @@ export function RteEndpointsTable({ onEdit }: Props): JSX.Element {
   }, []);
 
   return (
-    <div>
+    <div className={styles.container}>
       {error ? (
-        <p className="mb-3 rounded bg-red-100 p-2 text-sm text-red-700" role="alert">
+        <p className={styles.alertError} role="alert">
           {error}
         </p>
       ) : null}
-      {loading ? <p className="mb-2 text-sm text-gray-500">Chargement…</p> : null}
-      <table className="w-full table-auto border-collapse border border-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      {loading ? <p className={styles.loading}>Chargement…</p> : null}
+      <table className={styles.table}>
+        <thead>
           <tr>
-            <th className="px-2 py-1 text-left">EIC</th>
-            <th className="px-2 py-1 text-left">Code</th>
-            <th className="px-2 py-1 text-left">Nom affiché</th>
-            <th className="px-2 py-1 text-left">Ville</th>
-            <th className="px-2 py-1 text-left">Coord</th>
-            <th className="px-2 py-1 text-left">Statut</th>
-            <th className="px-2 py-1 text-left">Action</th>
+            <th>EIC</th>
+            <th>Code</th>
+            <th>Nom affiché</th>
+            <th>Ville</th>
+            <th>Coord</th>
+            <th>Statut</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.eic} className="border-t border-gray-200 hover:bg-gray-50">
-              <td className="px-2 py-1 font-mono text-xs">{row.eic}</td>
-              <td className="px-2 py-1 text-xs">{row.code}</td>
-              <td className="px-2 py-1 text-xs">{row.displayName}</td>
-              <td className="px-2 py-1 text-xs">{row.city}</td>
-              <td className="px-2 py-1 text-xs">
+            <tr key={row.eic}>
+              <td className={styles.mono}>{row.eic}</td>
+              <td className={styles.small}>{row.code}</td>
+              <td className={styles.small}>{row.displayName}</td>
+              <td className={styles.small}>{row.city}</td>
+              <td className={styles.small}>
                 {row.lat.toFixed(3)}, {row.lng.toFixed(3)}
               </td>
-              <td className="px-2 py-1 text-xs">
+              <td>
                 {row.hasOverride ? (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-800">
-                    surchargé
-                  </span>
+                  <span className={styles.badgeOverride}>surchargé</span>
                 ) : (
-                  <span className="text-gray-400">défaut</span>
+                  <span className={styles.badgeDefault}>défaut</span>
                 )}
               </td>
-              <td className="px-2 py-1">
+              <td>
                 <button
                   type="button"
                   onClick={() => onEdit(row.eic)}
-                  className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-700 hover:bg-blue-50"
+                  className={styles.editButton}
                   aria-label={`Modifier ${row.eic}`}
                 >
                   Modifier
@@ -83,7 +82,7 @@ export function RteEndpointsTable({ onEdit }: Props): JSX.Element {
           ))}
           {rows.length === 0 && !loading ? (
             <tr>
-              <td colSpan={7} className="p-4 text-center text-sm text-gray-500">
+              <td colSpan={7} className={styles.emptyRow}>
                 Aucun endpoint RTE chargé.
               </td>
             </tr>

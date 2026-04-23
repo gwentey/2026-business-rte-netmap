@@ -1,5 +1,6 @@
 import { ProcessColorsEditor } from './ProcessColorsEditor.js';
 import { RteEndpointsTable } from './RteEndpointsTable.js';
+import styles from './RegistryAdminTab.module.scss';
 
 type Props = {
   onEditComponent: (eic: string) => void;
@@ -7,20 +8,20 @@ type Props = {
 
 export function RegistryAdminTab({ onEditComponent }: Props): JSX.Element {
   return (
-    <div className="space-y-8">
-      <section>
-        <h3 className="mb-1 text-lg font-medium">Couleurs des process</h3>
-        <p className="mb-3 text-sm text-gray-600">
-          Surcharge persistée en base. Une couleur modifiée est appliquée à la
-          prochaine actualisation du graphe.
+    <div className={styles.container}>
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Couleurs des process</h3>
+        <p className={styles.sectionDescription}>
+          Surcharge persistée en base. Une couleur modifiée est appliquée à la prochaine
+          actualisation du graphe.
         </p>
         <ProcessColorsEditor />
       </section>
-      <section>
-        <h3 className="mb-1 text-lg font-medium">Endpoints RTE</h3>
-        <p className="mb-3 text-sm text-gray-600">
-          Lecture seule. Modifier un endpoint ouvre la surcharge dans l'onglet
-          Composants pré-rempli avec l'EIC.
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Endpoints RTE</h3>
+        <p className={styles.sectionDescription}>
+          Lecture seule. Modifier un endpoint ouvre la surcharge dans l'onglet Composants
+          pré-rempli avec l'EIC.
         </p>
         <RteEndpointsTable onEdit={onEditComponent} />
       </section>

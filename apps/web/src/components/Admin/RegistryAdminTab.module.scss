@@ -1,0 +1,24 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.sectionDescription {
+  margin: 0 0 0.5rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+}
