@@ -7,6 +7,42 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.17 — Slice 5c : Upload & Map chrome (2026-04-23)
+
+Troisième slice de la refonte visuelle : l'écran d'ingestion `UploadPage`
+et les overlays de la carte (`NetworkMap`, `BaFilter`, `NodeMarker`,
+`TimelineSlider`) basculent sur la charte cyan/teal/dark. 5 fichiers
+`.module.scss` refondus, tous les styles consomment les `--c-*/--t-*/
+--r-*/--shadow-*/--motion-*/--layout-*`.
+
+- `UploadPage.module.scss` : refonte complète — dropzone avec pastille
+  cyan animée (flèche qui descend au drag + inversion couleur), bouton
+  primaire cyan avec shadow 1→2 au hover, alertes error charte, notices
+  properties en primary-soft, summary avec border-left cyan, mapLink
+  dark (surface-dark) avec flèche cyan (signature RTE).
+- `Map/NetworkMap.module.scss` : toggle "Hiérarchie CD" bascule du slate
+  hors charte (`#1e293b`) vers le teal charte `--c-surface-deep`.
+- `Map/BaFilter.module.scss` : trigger idem NetworkMap, popup dropdown
+  sur fond `--c-surface-dark` (signature "tooltip technique RTE"), items
+  blancs hover white/8%, **criticity pure palette** : P1 = `--c-error`
+  rouge + triangle alerte, P2 = `--c-surface-deep` teal, P3 = white/12%
+  muted gras. Résout l'incohérence P2 ambre flaggée au brainstorm.
+- `Map/NodeMarker.module.scss` : tooltip Leaflet global bascule en
+  `--c-surface-dark` + `--c-text-inverse` + `--shadow-2`, toutes les
+  flèches de tooltip synchronisées.
+- `TimelineSlider.module.scss` : rail `--c-border-strong` 4px, thumb
+  18px blanc bordure cyan 2px, animation scale(1.08) au hover, focus
+  ring `--shadow-focus` cyan, label date en `t-mono` 11rem, bouton
+  reset ghost cyan, customisation cross-browser WebKit + Firefox.
+
+**Effet visuel cumulé** (slices 5a+5b+5c) : tout l'écran Upload et
+tout ce que voit l'utilisateur sur la carte (hors DetailPanel et Admin
+qui restent sur Slice 5d) sont désormais alignés sur la charte
+web/marketing RTE.
+
+**Tests :** 157/160 vitest passent, typecheck OK, build Vite OK
+(CSS bundle 203 KB, +9 KB vs alpha.16).
+
 ### v3.0-alpha.16 — Slice 5b : Shell & navigation — header dark + MapPage shell (2026-04-23)
 
 Deuxième slice de la refonte visuelle : le shell applicatif (header global,

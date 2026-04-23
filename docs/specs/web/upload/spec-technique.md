@@ -3,9 +3,9 @@
 | Champ  | Valeur                          |
 |--------|---------------------------------|
 | Module | web/upload                      |
-| Version| 2.0.0                           |
-| Date   | 2026-04-20                      |
-| Source | v2.0 post-implémentation        |
+| Version| 2.0.1                           |
+| Date   | 2026-04-23                      |
+| Source | v2.0.1 — refonte styling 5c     |
 
 ---
 
@@ -123,3 +123,17 @@ Sinon : `"{fileName sans .zip}"`.
 | `UploadPage.test.tsx` | Dropzone, submit avec envName, état disabled, navigation post-submit |
 
 Ref. croisées : [web/upload-batch-table](../upload-batch-table/spec-technique.md), [api/imports](../../api/imports/spec-technique.md).
+
+---
+
+## Styling — Slice 5c (v2.0.1)
+
+`UploadPage.module.scss` a été refondu intégralement en Slice 5c (286 lignes). Tous les hex codés en dur ont été remplacés par les tokens `--c-*` / `--r-*` / `--shadow-*` / `--motion-*` de `apps/web/src/styles/brand.scss`, importé via `@use "@/styles/brand" as *;`.
+
+Points notables :
+- Dropzone : border dashed cyan (`--c-primary`) animée par `@keyframes` pulse, fond idle `--c-surface-dark`, fond hover/drag `--c-surface-deep`.
+- Bouton primaire "Importer tout" : `--c-primary` + `--c-primary-hover` + `--shadow-1`/`--shadow-2` pour l'élévation.
+- Alertes : tokens sémantiques `--c-error-bg`/`--c-error-border`/`--c-primary-soft` selon le type.
+- Lien "Voir sur la carte" : fond `--c-surface-dark`, flèche et accent en `--c-primary`, transition `--motion-fast`.
+
+Voir `docs/specs/web/charte-visuelle/spec-technique.md §12` pour le détail complet des tokens consommés.

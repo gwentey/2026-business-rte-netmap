@@ -3,9 +3,9 @@
 | Champ  | Valeur                                             |
 |--------|----------------------------------------------------|
 | Module | web/charte-visuelle                                |
-| Version| 3.0-alpha.16                                       |
+| Version| 3.0-alpha.17                                       |
 | Date   | 2026-04-23                                         |
-| Source | Slice 5b — Shell & navigation (base : Slice 5a)    |
+| Source | Slice 5c — Upload & Map chrome (base : Slice 5b)   |
 
 Accompagne [`spec-fonctionnel.md`](./spec-fonctionnel.md). Documente l'architecture des fichiers, le pipeline CSS, les CSS vars exposées, les mixins et les tests de contraste.
 
@@ -238,7 +238,7 @@ La spec §3.1 indique `--c-text-disabled: #94a3b1`. L'implémentation utilise `#
 Les éléments suivants sont décrits dans la design spec mais n'étaient pas implémentés en Slice 5a — c'est normal, ils font l'objet des prochaines slices :
 
 - **Slice 5b** : `App.module.scss` header sombre, `EnvSelector.module.scss`, `MapPage.module.scss`. **[LIVRÉ — voir §11]**
-- **Slice 5c** : `NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`, `TimelineSlider.module.scss`. *(en cours)*
+- **Slice 5c** : `UploadPage.module.scss`, `NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`, `TimelineSlider.module.scss`. **[LIVRÉ — voir §12]**
 - **Slice 5d** : tous les `Admin/*.module.scss`, `DetailPanel/*.module.scss`, `UploadBatchTable.module.scss`, composants UI maison.
 - **Slice 5e** : composants `Skeleton`, `EmptyState`, intégration Toast DS, script `check:no-hex`, audit axe-core.
 
@@ -336,5 +336,96 @@ Zéro valeur hexadécimale codée en dur introduite en Slice 5b dans les fichier
 - `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
 - `pnpm typecheck` : 0 erreurs.
 - `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~194 KB** (vs ~190 KB Slice 5a).
+
+---
+
+## 12. Slice 5c — Upload & Map chrome (v3.0-alpha.17)
+
+### 12.1 Périmètre
+
+La Slice 5c tokenise les overlays de la vue Upload et de la vue Map qui n'avaient pas été touchés en Slice 5b. Elle couvre cinq fichiers `.module.scss` :
+
+| Fichier | Composant | Avant 5c |
+|---------|-----------|----------|
+| `apps/web/src/pages/UploadPage.module.scss` | Page dépôt ZIP | Hex codés en dur, pas de tokens |
+| `apps/web/src/components/Map/NetworkMap.module.scss` | Conteneur carte + toggle Hiérarchie CD | Couleur slate `#1e293b` codée en dur |
+| `apps/web/src/components/Map/BaFilter.module.scss` | Popup filtres BA | Hex codés en dur, incohérence P2 ambre |
+| `apps/web/src/components/Map/NodeMarker.module.scss` | Tooltip Leaflet (global) | Absent (styles inline ou hérités) |
+| `apps/web/src/components/TimelineSlider/TimelineSlider.module.scss` | Slider temporal | Hex codés en dur, pas de custom track |
+
+Le pattern d'import `@use "@/styles/brand" as *;` établi en Slice 5b est maintenu sans modification.
+
+### 12.2 Détail par fichier
+
+#### `UploadPage.module.scss` (286 lignes)
+
+Refonte complète. Principaux éléments tokenisés :
+
+| Élément | Token(s) |
+|---------|---------|
+| Dropzone zone — fond idle/hover/drag | `--c-surface-dark`, `--c-surface-deep`, `--c-primary` (border dashed cyan) |
+| Dropzone animation pulse border cyan | `@keyframes` avec `--c-primary` (border-color) |
+| Bouton primaire "Importer tout" | `--c-primary`, `--c-primary-hover`, `--c-primary-pressed`, `--shadow-1`, `--shadow-2` |
+| Alertes (succès / erreur) | `--c-primary-soft`, `--c-error-bg`, `--c-error-border`, `--c-error` |
+| Lien "Voir sur la carte" | `--c-surface-dark` (fond dark), `--c-primary` (flèche + accent), `--r-sm`, `--motion-fast` |
+| Typographie | `@mixin t-h2`, `@mixin t-body`, `@mixin t-small`, `@mixin t-caps` |
+
+#### `NetworkMap.module.scss`
+
+Toggle "Hiérarchie CD" : fond idle remplacé de `#1e293b` (slate codé en dur) par `var(--c-surface-deep)` (teal dark `#0d2a31`). Cohérence garantie si le token est mis à jour.
+
+#### `BaFilter.module.scss`
+
+Popup de filtres BA refondue en dark pur :
+
+| Élément | Token |
+|---------|-------|
+| Fond popup | `--c-surface-dark` |
+| Texte items | `--c-text-inverse` (blanc) |
+| Criticité P1 | `--c-error` (rouge) |
+| Criticité P2 | `--c-primary` (teal cyan) — **résolution incohérence P2 ambre** |
+| Criticité P3 | `--c-text-muted` (gris) |
+| Séparateurs | `--c-border-subtle` |
+| Border radius | `--r-md` |
+
+**Résolution de l'incohérence P2** : avant 5c, la criticité P2 était rendue en ambre (`#f59e0b` ou équivalent) — couleur sans lien avec la palette projet. En Slice 5c, P2 est mappé sur `--c-primary` (cyan teal), cohérent avec la hiérarchie chromatique : P1=danger, P2=brand/teal, P3=muted.
+
+#### `NodeMarker.module.scss`
+
+Ajout d'un sélecteur `:global(.leaflet-tooltip)` pour styler les tooltips Leaflet en dark :
+
+```scss
+:global(.leaflet-tooltip) {
+  background: var(--c-surface-dark);
+  border-color: var(--c-border-subtle);
+  color: var(--c-text-inverse);
+  // ...
+}
+```
+
+**Note technique** : les tooltips Leaflet sont montés par la bibliothèque en dehors du sous-arbre React du composant (dans `document.body`). CSS Modules scoped ne peut pas les atteindre. L'usage de `:global()` est intentionnel et documenté ici — c'est le seul moyen de styler ces éléments cross-subtree sans modifier le CSS global de `globals.scss`. Ce pattern est limité à `NodeMarker.module.scss` ; tout autre composant nécessitant un style global Leaflet doit procéder de la même façon plutôt que modifier `globals.scss`.
+
+#### `TimelineSlider.module.scss`
+
+Slider `<input type="range">` entièrement tokenisé :
+
+| Élément | Token |
+|---------|-------|
+| Rail (track) | `--c-border-subtle` (fond) + `--c-primary` (portion remplie, WebKit `accent-color`) |
+| Thumb | `--c-primary` fond, `--shadow-focus` au `:focus-visible` |
+| Custom WebKit (`-webkit-slider-thumb`) | `background: var(--c-primary)`, `box-shadow: var(--shadow-focus)` |
+| Custom Firefox (`-moz-range-thumb`) | Identique WebKit |
+| Focus ring | `var(--c-primary)` outline via token `--shadow-focus` |
+| Typographie label / compteur | `@mixin t-small`, `@mixin t-mono` |
+
+### 12.3 Contrainte zero-hex
+
+Slice 5c n'introduit aucun hex codé en dur dans les cinq fichiers modifiés. Exception héritée de Slice 5b : `rgba(0, 189, 237, 0.12)` pour la bordure basse du header dans `App.module.scss` — non concerné par cette slice, sera revu en Slice 5e.
+
+### 12.4 Résultats des tests Slice 5c
+
+- `pnpm --filter @carto-ecp/web test` : **157 passed**, 3 todo (inchangés).
+- `pnpm typecheck` : 0 erreurs.
+- `pnpm --filter @carto-ecp/web build` : bundle Vite OK, CSS **~203 KB** (+9 KB vs Slice 5b ~194 KB).
 
 ---

@@ -1,121 +1,234 @@
+@use "@/styles/brand" as *;
+
+// =============================================================================
+// UploadPage — ingestion de dumps ECP
+// =============================================================================
+
 .page {
   height: 100%;
   overflow-y: auto;
+  background: var(--c-surface-sunken);
 }
 
 .container {
   margin: 0 auto;
-  max-width: 56rem;
-  padding: 2rem;
+  max-width: var(--layout-page-max-w);
+  padding: 32px var(--layout-page-px);
+
+  @media (max-width: 640px) {
+    padding: 20px var(--layout-page-px-mobile);
+  }
 }
 
+// --------- Titre & sous-titre ---------------------------------------------
+
 .title {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
+  @include t-display;
+  color: var(--c-text);
+  margin: 0 0 8px;
 }
 
 .subtitle {
-  margin: 0 0 1.5rem;
-  font-size: 0.875rem;
-  color: #4b5563;
+  @include t-body;
+  color: var(--c-text-muted);
+  margin: 0 0 28px;
 }
+
+// --------- Champ env -------------------------------------------------------
 
 .fieldBlock {
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
 .fieldLabel {
   display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #374151;
+  @include t-body-strong;
+  color: var(--c-text);
+  margin-bottom: 6px;
 }
 
 .envInput {
-  width: 12rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+  width: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  @include t-body;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--c-text-muted);
+  }
 
   &:focus {
     outline: none;
-    border-color: #e30613;
-    box-shadow: 0 0 0 2px rgba(227, 6, 19, 0.15);
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-focus);
   }
 
   &:disabled {
-    background: #f9fafb;
+    background: var(--c-surface-sunken);
+    color: var(--c-text-disabled);
     cursor: not-allowed;
   }
 }
 
+// --------- Dropzone --------------------------------------------------------
+
 .dropzone {
-  margin-bottom: 0.5rem;
-  padding: 2rem;
-  border: 2px dashed #d1d5db;
-  border-radius: 0.5rem;
-  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 40px 24px;
+  border: 2px dashed var(--c-border-strong);
+  border-radius: var(--r-lg);
+  background: var(--c-surface);
   text-align: center;
   cursor: pointer;
-  transition: background 0.1s ease, border-color 0.1s ease;
-}
+  transition:
+    background var(--motion-fast),
+    border-color var(--motion-fast);
 
-.dropzoneActive {
-  border-color: #e30613;
-  background: #fef2f2;
-}
+  p {
+    margin: 0;
+    @include t-body;
+    color: var(--c-text);
+    font-weight: var(--t-body-strong-weight);
+  }
 
-.dropzoneHint {
-  margin: 0 0 1rem;
-  font-size: 0.75rem;
-  color: #6b7280;
+  &::before {
+    content: "↓";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--r-pill);
+    background: var(--c-primary-soft);
+    color: var(--c-primary-pressed);
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    transition: transform var(--motion-std);
+  }
 
-  code {
-    padding: 0.125rem 0.25rem;
-    background: #f3f4f6;
-    border-radius: 0.125rem;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  &:hover {
+    border-color: var(--c-primary);
+    background: var(--c-primary-soft);
   }
 }
 
-.alertError {
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  background: #fee2e2;
-  color: #991b1b;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+.dropzoneActive {
+  border-color: var(--c-primary);
+  background: var(--c-primary-soft);
+
+  &::before {
+    transform: translateY(4px);
+    background: var(--c-primary);
+    color: var(--c-text);
+  }
 }
 
+.dropzoneHint {
+  @include t-small;
+  color: var(--c-text-muted);
+  margin: 0 0 20px;
+  max-width: 640px;
+  line-height: 1.6;
+
+  code {
+    padding: 2px 6px;
+    background: var(--c-surface-sunken);
+    border: 1px solid var(--c-border-subtle);
+    border-radius: var(--r-xs);
+    font-family: var(--font-family-mono);
+    font-size: 12px;
+    color: var(--c-text);
+  }
+
+  em {
+    font-style: normal;
+    color: var(--c-text);
+    font-weight: var(--t-body-strong-weight);
+  }
+}
+
+// --------- Alertes & notices ----------------------------------------------
+
+.alertError {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
+  border-radius: var(--r-md);
+  @include t-body;
+
+  &::before {
+    content: "⚠";
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+}
+
+.propertiesNotice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border: 1px solid rgba(0, 189, 237, 0.2);
+  border-radius: var(--r-md);
+  @include t-small;
+}
+
+// --------- Dernier drop ---------------------------------------------------
+
 .lastDrop {
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  background: #f9fafb;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-subtle);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
+  @include t-small;
 }
 
 .lastDropHeader {
-  margin-bottom: 0.25rem;
-  font-weight: 600;
-  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  @include t-body-strong;
+  color: var(--c-text);
 }
 
 .lastDropClose {
-  margin-left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--c-text-muted);
+  border-radius: var(--r-sm);
   cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
 
   &:hover {
-    color: #4b5563;
+    color: var(--c-text);
+    background: var(--c-surface-sunken);
   }
 }
 
@@ -123,119 +236,185 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-family-mono);
 
   li {
-    padding: 0.125rem 0;
+    padding: 2px 0;
+    @include t-mono;
   }
 }
 
 .lineOk {
-  color: #047857;
+  color: var(--c-surface-deep);
 }
 
 .lineProp {
-  color: #6d28d9;
+  color: var(--c-primary-pressed);
 }
 
 .lineError {
-  color: #b91c1c;
+  color: var(--c-error);
 }
+
+// --------- Fallback input natif -------------------------------------------
 
 .fallbackLabel {
   display: block;
-  margin-bottom: 1rem;
-  font-size: 0.75rem;
-  color: #6b7280;
+  margin-bottom: 20px;
+  @include t-small;
+  color: var(--c-text-muted);
 
-  input {
-    margin-left: 0.5rem;
+  span {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  input[type="file"] {
+    @include t-small;
+    color: var(--c-text);
+    padding: 6px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+  }
+
+  input[type="file"]::-webkit-file-upload-button {
+    margin-right: 12px;
+    padding: 6px 12px;
+    background: var(--c-surface-sunken);
+    color: var(--c-text);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    font-family: inherit;
+
+    &:hover {
+      background: var(--c-primary-soft);
+      border-color: var(--c-primary);
+    }
   }
 }
 
-.propertiesNotice {
-  padding: 0.75rem;
-  margin-bottom: 1rem;
-  background: #f5f3ff;
-  color: #5b21b6;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-}
+// --------- Toolbar submit -------------------------------------------------
 
 .submitToolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 1rem;
+  gap: 12px;
+  margin-top: 24px;
 }
 
 .submitButton {
-  padding: 0.5rem 1rem;
-  background: #e30613;
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--c-primary);
+  color: var(--c-text);
   border: none;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+  border-radius: var(--r-sm);
+  font-weight: var(--t-body-strong-weight);
+  @include t-body;
   cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: background var(--motion-fast), box-shadow var(--motion-fast);
 
   &:hover:not(:disabled) {
-    background: #b91c1c;
+    background: var(--c-primary-hover);
+    box-shadow: var(--shadow-2);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--c-primary-pressed);
+    color: var(--c-text-inverse);
   }
 
   &:disabled {
-    opacity: 0.5;
+    background: var(--c-surface-sunken);
+    color: var(--c-text-disabled);
     cursor: not-allowed;
+    box-shadow: none;
   }
 }
 
 .clearButton {
-  padding: 0.5rem 1rem;
-  background: #ffffff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 18px;
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  @include t-body;
   cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast),
+    border-color var(--motion-fast);
 
   &:hover:not(:disabled) {
-    background: #f9fafb;
+    color: var(--c-text);
+    border-color: var(--c-text-muted);
+    background: var(--c-surface-sunken);
   }
 
   &:disabled {
-    opacity: 0.5;
+    color: var(--c-text-disabled);
     cursor: not-allowed;
   }
 }
 
+// --------- Summary finale -------------------------------------------------
+
 .summary {
-  padding: 1rem;
-  margin-top: 1.5rem;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  margin-top: 28px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-subtle);
+  border-left: 3px solid var(--c-primary);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-1);
 }
 
 .summaryText {
-  margin: 0 0 0.5rem;
-  font-size: 0.875rem;
-  color: #374151;
+  margin: 0;
+  @include t-body;
+  color: var(--c-text-muted);
 
   strong {
-    color: #111827;
+    color: var(--c-text);
+    font-weight: 700;
   }
 }
 
 .mapLink {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: #111827;
-  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--c-surface-dark);
+  color: var(--c-text-inverse);
   text-decoration: none;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+  border-radius: var(--r-sm);
+  font-weight: var(--t-body-strong-weight);
+  @include t-body;
+  align-self: flex-start;
+  transition: background var(--motion-fast);
 
   &:hover {
-    background: #000000;
+    background: var(--c-surface-deep);
+    color: var(--c-text-inverse);
+    text-decoration: none;
+  }
+
+  &::after {
+    content: "→";
+    color: var(--c-primary);
+    font-weight: 700;
   }
 }

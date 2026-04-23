@@ -3,9 +3,9 @@
 | Champ  | Valeur                          |
 |--------|---------------------------------|
 | Module | web/timeline-slider             |
-| Version| 2.0.0                           |
-| Date   | 2026-04-20                      |
-| Source | v2.0 post-implémentation        |
+| Version| 2.0.1                           |
+| Date   | 2026-04-23                      |
+| Source | v2.0.1 — refonte styling 5c     |
 
 ---
 
@@ -84,3 +84,16 @@ La `refDate` est persistée dans le store mais PAS dans localStorage (partialize
 | `TimelineSlider.test.tsx` | Rendu null si < 2 dates, slider range, label date, bouton retour, appel setRefDate |
 
 Ref. croisées : [api/graph](../../api/graph/spec-technique.md) — `refDate` transmise comme `?refDate=` en query param. [web/map](../map/spec-technique.md) — TimelineSlider affiché dans MapPage au-dessus de NetworkMap.
+
+---
+
+## Styling — Slice 5c (v2.0.1)
+
+`TimelineSlider.module.scss` a été refondu en Slice 5c. L'`<input type="range">` est entièrement tokenisé avec des pseudo-éléments vendeur explicites :
+
+- Rail WebKit (`-webkit-slider-runnable-track`) : fond `--c-border-subtle`, `accent-color: var(--c-primary)` pour la portion remplie.
+- Thumb WebKit (`-webkit-slider-thumb`) et Firefox (`-moz-range-thumb`) : `background: var(--c-primary)`, `box-shadow: var(--shadow-focus)` au `:focus-visible`.
+- Focus ring : utilise `--shadow-focus` (token d'élévation focus cyan) au lieu d'un outline ad hoc.
+- Typographie label date / compteur : `@mixin t-small` et `@mixin t-mono`.
+
+Aucun hex codé en dur dans ce fichier après Slice 5c. Voir `docs/specs/web/charte-visuelle/spec-technique.md §12.2` pour le tableau complet des tokens.
