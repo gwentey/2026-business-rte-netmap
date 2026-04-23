@@ -1,0 +1,91 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.statusBox {
+  padding: 0.75rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #374151;
+
+  strong {
+    color: #111827;
+    font-weight: 600;
+  }
+}
+
+.statusMuted {
+  color: #6b7280;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.fileInput {
+  font-size: 0.875rem;
+  color: #111827;
+}
+
+.fileInfo {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.submitButton {
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  background: #e30613;
+  color: #ffffff;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease;
+
+  &:hover:not(:disabled) {
+    background: #b91c1c;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.alertError {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.875rem;
+}
+
+.alertSuccess {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 0.875rem;
+}

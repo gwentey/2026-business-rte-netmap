@@ -42,7 +42,7 @@ describe('AdminPage', () => {
   it('switches to Components tab with autoOpenEic when onEditComponent is invoked from Registry', async () => {
     render(<MemoryRouter><AdminPage /></MemoryRouter>);
     // Navigate to Registry tab first
-    await userEvent.click(screen.getByRole('button', { name: /Registry RTE/i }));
+    await userEvent.click(screen.getByRole('tab', { name: /Registry RTE/i }));
     expect(screen.getByTestId('registry-admin-tab')).toBeInTheDocument();
     // Trigger onEditComponent from the mock
     await userEvent.click(screen.getByRole('button', { name: /mock-edit/i }));
