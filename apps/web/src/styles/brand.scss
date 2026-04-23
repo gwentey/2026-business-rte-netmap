@@ -29,6 +29,8 @@
   --c-text-link: var(--c-primary-pressed);
 
   --c-error: #b3261e;
+  --c-error-hover: #9a211a;
+  --c-error-pressed: #821c16;
   --c-error-bg: #fdecea;
   --c-error-border: #e8a29c;
 
@@ -267,7 +269,11 @@
   transition: background var(--motion-fast);
 
   &:hover:not(:disabled) {
-    background: #9a211a;
+    background: var(--c-error-hover);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--c-error-pressed);
   }
 
   &:disabled {

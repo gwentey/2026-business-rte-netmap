@@ -145,7 +145,7 @@
   transition: color var(--motion-fast);
 
   &:hover {
-    color: #821c16;
+    color: var(--c-error-pressed);
   }
 }
 
