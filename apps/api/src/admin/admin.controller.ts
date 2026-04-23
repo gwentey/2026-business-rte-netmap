@@ -1,18 +1,22 @@
 import {
-  BadRequestException, Controller, Delete, Get,
+  BadRequestException, Controller, Delete, Get, Param,
   Post, UploadedFile, UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { ComponentConfigResponse } from '@carto-ecp/shared';
 import { DangerService } from './danger.service.js';
 import { EntsoeService } from './entsoe.service.js';
+import { ComponentConfigService } from './component-config.service.js';
 
 const MAX_SIZE = 5 * 1024 * 1024;
+const EIC_REGEX = /^[0-9A-Z-]{16}$/;
 
 @Controller()
 export class AdminController {
   constructor(
     private readonly danger: DangerService,
     private readonly entsoe: EntsoeService,
+    private readonly componentConfig: ComponentConfigService,
   ) {}
 
   @Delete('admin/purge-imports')
@@ -42,5 +46,16 @@ export class AdminController {
   @Get('entsoe/status')
   async entsoeStatus() {
     return this.entsoe.status();
+  }
+
+  @Get('admin/components/:eic/config')
+  async getComponentConfig(@Param('eic') eic: string): Promise<ComponentConfigResponse> {
+    if (!EIC_REGEX.test(eic.toUpperCase())) {
+      throw new BadRequestException({
+        code: 'INVALID_EIC',
+        message: `EIC invalide : ${eic} (attendu 16 caractères alphanumériques)`,
+      });
+    }
+    return this.componentConfig.getConfig(eic.toUpperCase());
   }
 }

@@ -7,6 +7,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v2.0-alpha.17 — Slice 2p Modal admin "Config ECP" par composant (2026-04-23)
+
+Dernier slice du plan d'enrichissement. Une modal admin affiche désormais **toutes les propriétés `ecp.*`** d'un composant (contact, réseau, antivirus, archivage, compression, sécurité, sync CD, messages, AMQP/Direct, handlers custom, broker…), regroupées par **section métier** lisible. Source : le dernier Import dont `sourceComponentEic` correspond. Accessible depuis `/admin > Composants` via le bouton ⚙ Config de chaque ligne avec au moins un import.
+
+**Highlights :**
+
+- **Nouveau endpoint backend** `GET /api/admin/components/:eic/config` — reçoit un EIC, le normalise en upper-case, valide le pattern 16 caractères alphanumériques.
+- **Nouveau service `ComponentConfigService`** (`apps/api/src/admin/`) :
+  - Sélectionne le `Import` le plus récent (`effectiveDate` desc) dont `sourceComponentEic` correspond à l'EIC demandé.
+  - Regroupe les `ImportedAppProperty` associées par **15 sections** via pattern regex : Identification, Contact, Synchronisation CD, Antivirus, Archivage, Compression, AMQP & Direct, Connectivité, Message paths, Messages, Sécurité, JMS/FSSF, Handlers custom, Broker, Réseau, Admin. Les clés non-reconnues tombent dans "Autres".
+  - Tri alphabétique des clés au sein de chaque section.
+  - Renvoie aussi la `source` : `importId`, `label`, `envName`, `uploadedAt`, `hasConfigurationProperties` (badge `.properties` fourni ✓/✗ dans l'UI).
+- **Shared DTO** `ComponentConfigResponse` + `ComponentConfigSection` + `ComponentConfigProperty`.
+- **Frontend `ComponentConfigModal.tsx`** — modal lecture seule :
+  - Header avec EIC + bouton de fermeture.
+  - Bandeau info source (import, env, date d'upload, badge Properties).
+  - Sections groupées (fond gris, compteur de clés), tableau `key → value` en police mono. Valeurs vides affichées en placeholder `(vide)` italique.
+  - Message d'aide dédié si aucun Import n'a ce composant comme source.
+- **`ComponentsAdminTable`** — nouveau bouton `⚙ Config` dans chaque ligne où `importsCount > 0` (à côté de `🖊 Éditer`), qui ouvre la modal.
+
+**Tests :**
+- API : 256 → **261/261** (+3 `ComponentConfigService` : source null quand aucun dump, groupement par section avec tri alphabétique, latest-wins entre imports ; +2 `AdminController` : EIC invalide rejeté, normalisation upper-case).
+- Web : 107 → **111/111** (+4 `ComponentConfigModal` : chargement + rendu sections, bannière quand source nulle, placeholder `(vide)`, bouton fermeture).
+
+**Breaking changes :** aucun. `AdminController` gagne une dépendance `ComponentConfigService` — les tests directs qui mockent le constructeur doivent provider ce service.
+
 ### v2.0-alpha.16 — Slice 2o Overlay endpoint → home CD (2026-04-23)
 
 Un nouveau toggle "Hiérarchie CD" sur la carte trace des liens fins gris-bleu **endpoint → Component Directory parent**, utilisant le champ `homeCdCode` déjà remonté par les slices précédents. Utile pour voir en un coup d'œil quel CD dessert quel groupe d'endpoints.

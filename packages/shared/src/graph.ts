@@ -215,3 +215,29 @@ export type RegistryRteEndpointRow = {
   lng: number;
   hasOverride: boolean;
 };
+
+export type ComponentConfigProperty = {
+  key: string;
+  value: string;
+};
+
+export type ComponentConfigSection = {
+  /** Nom lisible de la section (Identification, Réseau, Antivirus…). */
+  name: string;
+  /** Clé courte utilisée pour icônes / expand-collapse UI. */
+  slug: string;
+  properties: ComponentConfigProperty[];
+};
+
+export type ComponentConfigResponse = {
+  eic: string;
+  /** Import dont les `application_property.csv` ont été retenus (le plus récent). */
+  source: {
+    importId: string;
+    label: string;
+    envName: string;
+    uploadedAt: string;
+    hasConfigurationProperties: boolean;
+  } | null;
+  sections: ComponentConfigSection[];
+};

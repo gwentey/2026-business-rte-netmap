@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common';
 import { AdminController } from './admin.controller.js';
 import { DangerService } from './danger.service.js';
 import { EntsoeService } from './entsoe.service.js';
+import { ComponentConfigService } from './component-config.service.js';
 
 describe('AdminController', () => {
   let ctrl: AdminController;
@@ -16,15 +17,24 @@ describe('AdminController', () => {
     upload: vi.fn(async () => ({ count: 42, refreshedAt: '2026-04-20T10:00:00.000Z' })),
     status: vi.fn(async () => ({ count: 42, refreshedAt: '2026-04-20T10:00:00.000Z' })),
   };
+  const componentConfigMock = {
+    getConfig: vi.fn(async (eic: string) => ({
+      eic,
+      source: null,
+      sections: [],
+    })),
+  };
 
   beforeEach(async () => {
     Object.values(dangerMock).forEach((fn) => fn.mockClear());
     Object.values(entsoeMock).forEach((fn) => fn.mockClear());
+    componentConfigMock.getConfig.mockClear();
     const moduleRef = await Test.createTestingModule({
       controllers: [AdminController],
       providers: [
         { provide: DangerService, useValue: dangerMock },
         { provide: EntsoeService, useValue: entsoeMock },
+        { provide: ComponentConfigService, useValue: componentConfigMock },
       ],
     }).compile();
     ctrl = moduleRef.get(AdminController);
@@ -61,5 +71,15 @@ describe('AdminController', () => {
   it('GET entsoe/status delegates', async () => {
     const result = await ctrl.entsoeStatus();
     expect(result.count).toBe(42);
+  });
+
+  it('GET admin/components/:eic/config rejects an invalid EIC', async () => {
+    await expect(ctrl.getComponentConfig('not-an-eic')).rejects.toThrow(BadRequestException);
+  });
+
+  it('GET admin/components/:eic/config normalises case and forwards to the service', async () => {
+    const result = await ctrl.getComponentConfig('17v000000498771c');
+    expect(componentConfigMock.getConfig).toHaveBeenCalledWith('17V000000498771C');
+    expect(result.eic).toBe('17V000000498771C');
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AdminComponentRow } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { ComponentOverrideModal } from './ComponentOverrideModal.js';
+import { ComponentConfigModal } from './ComponentConfigModal.js';
 
 type Props = {
   autoOpenEic?: string | null;
@@ -15,6 +16,7 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   const [search, setSearch] = useState('');
   const [onlyOverridden, setOnlyOverridden] = useState(false);
   const [editing, setEditing] = useState<AdminComponentRow | null>(null);
+  const [configEic, setConfigEic] = useState<string | null>(null);
 
   const reload = async (): Promise<void> => {
     setLoading(true);
@@ -138,14 +140,26 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
               <td className="px-2 py-1 text-xs">{row.importsCount}</td>
               <td className="px-2 py-1 text-xs">{row.override !== null ? '🏷' : '—'}</td>
               <td className="px-2 py-1">
-                <button
-                  type="button"
-                  onClick={() => setEditing(row)}
-                  className="text-blue-600 hover:text-blue-800 text-xs"
-                  aria-label={`Éditer ${row.eic}`}
-                >
-                  🖊 Éditer
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditing(row)}
+                    className="text-blue-600 hover:text-blue-800 text-xs"
+                    aria-label={`Éditer ${row.eic}`}
+                  >
+                    🖊 Éditer
+                  </button>
+                  {row.importsCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setConfigEic(row.eic)}
+                      className="text-slate-700 hover:text-slate-900 text-xs"
+                      aria-label={`Voir la config ECP de ${row.eic}`}
+                    >
+                      ⚙ Config
+                    </button>
+                  ) : null}
+                </div>
               </td>
             </tr>
           ))}
@@ -165,6 +179,10 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
           onClose={() => setEditing(null)}
           onSaved={handleModalSaved}
         />
+      ) : null}
+
+      {configEic !== null ? (
+        <ComponentConfigModal eic={configEic} onClose={() => setConfigEic(null)} />
       ) : null}
     </div>
   );

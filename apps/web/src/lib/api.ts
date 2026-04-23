@@ -1,4 +1,5 @@
 import type {
+  ComponentConfigResponse,
   GraphResponse,
   ImportDetail,
   ImportSummary,
@@ -142,5 +143,11 @@ export const api = {
 
   async getRteEndpoints(): Promise<RegistryRteEndpointRow[]> {
     return request<RegistryRteEndpointRow[]>('/api/registry/rte-endpoints');
+  },
+
+  async getComponentConfig(eic: string): Promise<ComponentConfigResponse> {
+    return request<ComponentConfigResponse>(
+      `/api/admin/components/${encodeURIComponent(eic)}/config`,
+    );
   },
 };
