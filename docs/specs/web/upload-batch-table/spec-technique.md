@@ -3,9 +3,9 @@
 | Champ  | Valeur                          |
 |--------|---------------------------------|
 | Module | web/upload-batch-table          |
-| Version| 2.0.0                           |
-| Date   | 2026-04-20                      |
-| Source | v2.0 post-implémentation        |
+| Version| 2.1.0                           |
+| Date   | 2026-04-23                      |
+| Source | v2.1 — Slice 5d styling         |
 
 ---
 
@@ -92,3 +92,16 @@ Disabled si `state === 'uploading' || state === 'done'`.
 | `UploadBatchTable.test.tsx` | Message vide si batch vide, colonnes, états, checkbox doublon, input label, bouton supprimer |
 
 Ref. croisées : [web/upload](../upload/spec-technique.md) — UploadBatchTable est intégré dans UploadPage.
+
+---
+
+## Styling — Slice 5d
+
+`UploadBatchTable/UploadBatchTable.module.scss` créé en Slice 5d. Aucun composant TSX modifié.
+
+- Structure tableau via mixin `table-base` (`@use "@/styles/brand" as *`).
+- Inputs du tableau (LabelInput, select Type) : mixin `input-base` (focus ring `shadow-focus`, border `border-strong`).
+- `removeButton` : hover `error-bg` + texte `error` (intention destructive lisible sans être aussi fort que `button-danger`).
+- Zero hex codé en dur.
+
+Voir `docs/specs/web/charte-visuelle/spec-technique.md §13` pour la définition des mixins utilisés.

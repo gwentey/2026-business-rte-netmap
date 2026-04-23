@@ -156,3 +156,223 @@
   font-weight: var(--t-mono-weight);
   line-height: var(--t-mono-lh);
 }
+
+// =============================================================================
+// Mixins de composants (Slice 5d — factorisation inputs/boutons/alertes/modales)
+// =============================================================================
+
+@mixin input-base {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  background: var(--c-surface);
+  color: var(--c-text);
+  @include t-body;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    border-color: var(--c-text-muted);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    box-shadow: var(--shadow-focus);
+  }
+
+  &:disabled {
+    background: var(--c-surface-sunken);
+    color: var(--c-text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--c-primary);
+  color: var(--c-text);
+  border: none;
+  border-radius: var(--r-sm);
+  @include t-body;
+  font-weight: var(--t-body-strong-weight);
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: background var(--motion-fast), box-shadow var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    background: var(--c-primary-hover);
+    box-shadow: var(--shadow-2);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--c-primary-pressed);
+    color: var(--c-text-inverse);
+  }
+
+  &:disabled {
+    background: var(--c-surface-sunken);
+    color: var(--c-text-disabled);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+@mixin button-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--c-surface);
+  color: var(--c-text-muted);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--r-sm);
+  @include t-body;
+  cursor: pointer;
+  transition:
+    background var(--motion-fast),
+    color var(--motion-fast),
+    border-color var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    color: var(--c-text);
+    border-color: var(--c-text-muted);
+    background: var(--c-surface-sunken);
+  }
+
+  &:disabled {
+    color: var(--c-text-disabled);
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--c-error);
+  color: var(--c-text-inverse);
+  border: none;
+  border-radius: var(--r-sm);
+  @include t-body;
+  font-weight: var(--t-body-strong-weight);
+  cursor: pointer;
+  transition: background var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    background: #9a211a;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin button-danger-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--c-surface);
+  color: var(--c-error);
+  border: 1px solid var(--c-error);
+  border-radius: var(--r-sm);
+  @include t-body;
+  cursor: pointer;
+  transition: background var(--motion-fast);
+
+  &:hover:not(:disabled) {
+    background: var(--c-error-bg);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin alert-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--c-error-bg);
+  color: var(--c-error);
+  border: 1px solid var(--c-error-border);
+  border-radius: var(--r-md);
+  @include t-small;
+}
+
+@mixin alert-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--c-primary-soft);
+  color: var(--c-primary-pressed);
+  border: 1px solid rgba(0, 189, 237, 0.2);
+  border-radius: var(--r-md);
+  @include t-small;
+}
+
+@mixin modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 24, 29, 0.48);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+@mixin modal-box {
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--c-surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3);
+  padding: 24px;
+}
+
+@mixin table-base {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--c-border-subtle);
+  background: var(--c-surface);
+  @include t-small;
+
+  thead {
+    background: var(--c-surface-sunken);
+
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--c-border-strong);
+      color: var(--c-text-muted);
+      @include t-caps;
+    }
+  }
+
+  tbody tr {
+    transition: background var(--motion-fast);
+    border-top: 1px solid var(--c-border-subtle);
+
+    &:hover {
+      background: var(--c-primary-soft);
+    }
+
+    td {
+      padding: 8px 12px;
+      color: var(--c-text);
+      vertical-align: middle;
+    }
+  }
+}

@@ -1,31 +1,38 @@
+@use "@/styles/brand" as *;
+
 .tabs {
   display: flex;
-  gap: 0.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--c-border-subtle);
+  background: var(--c-surface);
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  padding: 0 8px;
 }
 
 .tab {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  padding: 10px 16px;
+  @include t-h3;
   border: none;
   background: none;
-  border-bottom: 2px solid transparent;
-  color: #374151;
+  border-bottom: 3px solid transparent;
+  color: var(--c-text-muted);
   cursor: pointer;
-  transition: color 0.1s ease, border-color 0.1s ease;
+  transition: color var(--motion-fast), border-color var(--motion-fast);
 
   &:hover:not(:disabled) {
-    color: #111827;
+    color: var(--c-text);
   }
 
   &:disabled {
-    color: #d1d5db;
+    color: var(--c-text-disabled);
     cursor: not-allowed;
   }
 }
 
 .tabActive {
-  border-bottom-color: #e30613;
-  color: #e30613;
+  border-bottom-color: var(--c-primary);
+  color: var(--c-text);
+  font-weight: 700;
 }
