@@ -7,6 +7,52 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.19 — Slice 5e : Finitions UX — Skeleton + EmptyState + check:no-hex (2026-04-23)
+
+**Dernière slice de la refonte visuelle (5a → 5e).** Clôture la migration
+avec 2 composants UI partagés, la tokenisation complète, et un script CI
+anti-régression.
+
+- **Tokens supplémentaires dans `brand.scss`** :
+  - `--c-primary-border-soft` (`rgba(0,189,237,0.2)`) pour bordures de badges soft
+  - `--c-primary-divider` (`rgba(0,189,237,0.12)`) pour séparation header dark
+  - `--c-surface-deep-soft` (`rgba(12,57,73,0.08)`) pour fonds badges teal soft
+  - `--c-error-hover` (`#9a211a`) et `--c-error-pressed` (`#821c16`)
+  → **11 usages rgba/hex résiduels** refactorés dans 9 fichiers `.module.scss`
+- **Composants partagés `ui/`** :
+  - `Skeleton` (5 variants : text/title/card/circle/rect) avec shimmer
+    animation respectant `prefers-reduced-motion`, a11y `role="status"`,
+    support multi-lignes (dernière à 60%). 6 tests Vitest.
+  - `EmptyState` avec slots icon/title/description/action, 3 tailles
+    (sm/md/lg), icône en `--c-primary`. 6 tests Vitest.
+  - Barrel `ui/index.ts` étendu : 6 composants maison (au lieu de 4).
+- **Script `check:no-hex`** (`apps/web/scripts/check-no-hex.mjs`) :
+  garde-fou Node qui scanne `apps/web/src/` et échoue si des hex sont
+  hardcodés hors d'une liste d'exceptions data-driven (`process-colors.ts`,
+  `node-icon.tsx`, `EdgePath.tsx`, `HomeCdOverlay.tsx`, `brand.scss`,
+  `brand.test.ts`, tous les `*.test.*`). Accessible via
+  `pnpm --filter @carto-ecp/web run check:no-hex`. **Passe à vert** sur
+  la branche.
+
+**Bilan cumulé Slices 5a → 5e** :
+- **33 fichiers `.module.scss` refondus** (100% des styles app).
+- **Zéro hex hardcodé** dans `apps/web/src/` hors exceptions carto/tests.
+- **~65 CSS custom properties** exposées (palette, radius, elevation,
+  motion, typo, layout, error states, border-soft variants).
+- **10 mixins composites** (input-base, button-primary/ghost/danger/
+  danger-outline, alert-error/success, modal-backdrop/box, table-base).
+- **169/172 vitest passent** (+12 nouveaux Skeleton/EmptyState vs 5d,
+  +25 vs avant Slice 5a).
+- **2 composants UI partagés ajoutés** (Skeleton, EmptyState) prêts à
+  remplacer les `<div>Chargement…</div>` bruts.
+- **1 ADR livré** (ADR-039 surcharge DS vers charte web/marketing).
+- **Build Vite OK** (CSS 234 KB raw / 32 KB gzip).
+
+**Ce qui reste non-traité (post-slice 5)** : utilisation effective de
+`Skeleton` et `EmptyState` dans `MapPage.loading`, `UploadBatchTable.empty`,
+`DetailPanel` — c'est la substitution dans les lieux d'usage qui sera faite
+au fil des évolutions métier, les composants sont disponibles côté `ui/`.
+
 ### v3.0-alpha.18 — Slice 5d : Admin + DetailPanel + ui composants maison (2026-04-23)
 
 Quatrième slice de la refonte visuelle, **la plus volumineuse** : 19
