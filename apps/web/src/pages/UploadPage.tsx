@@ -20,6 +20,13 @@ export function UploadPage(): JSX.Element {
 
   const [envName, setEnvName] = useState(searchParams.get('env') ?? 'OPF');
   const [dropError, setDropError] = useState<string | null>(null);
+  const [lastDrop, setLastDrop] = useState<{
+    total: number;
+    zips: string[];
+    propsAccepted: string[];
+    propsRejected: string[];
+    extRejected: string[];
+  } | null>(null);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     // Pas de filtre MIME ici : l'extension `.properties` n'a pas de MIME
@@ -33,14 +40,27 @@ export function UploadPage(): JSX.Element {
     onDrop: (accepted) => {
       setDropError(null);
       const valid: File[] = [];
+      const zips: string[] = [];
+      const propsAccepted: string[] = [];
       const extRejected: string[] = [];
       for (const f of accepted) {
-        if (/\.(zip|properties)$/i.test(f.name)) {
+        if (/\.zip$/i.test(f.name)) {
           valid.push(f);
+          zips.push(f.name);
+        } else if (/\.properties$/i.test(f.name)) {
+          valid.push(f);
+          propsAccepted.push(f.name);
         } else {
           extRejected.push(f.name);
         }
       }
+      setLastDrop({
+        total: accepted.length,
+        zips,
+        propsAccepted,
+        propsRejected: [],
+        extRejected,
+      });
       const errors: string[] = [];
       if (extRejected.length > 0) {
         errors.push(
@@ -49,6 +69,17 @@ export function UploadPage(): JSX.Element {
       }
       if (valid.length > 0) {
         void addBatchFiles(valid).then(({ propertiesRejected }) => {
+          setLastDrop((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  propsRejected: propertiesRejected,
+                  propsAccepted: prev.propsAccepted.filter(
+                    (n) => !propertiesRejected.includes(n),
+                  ),
+                }
+              : prev,
+          );
           if (propertiesRejected.length > 0) {
             setDropError(
               `Nom de .properties invalide (attendu <EIC>-configuration.properties) : ${propertiesRejected.join(', ')}`,
@@ -122,6 +153,95 @@ export function UploadPage(): JSX.Element {
       {dropError ? (
         <p className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700" role="alert">{dropError}</p>
       ) : null}
+
+      {lastDrop ? (
+        <div className="mb-4 rounded border border-gray-300 bg-gray-50 p-3 text-xs">
+          <div className="mb-1 font-semibold text-gray-700">
+            Dernier drop — {lastDrop.total} fichier(s) reçu(s)
+            <button
+              type="button"
+              onClick={() => setLastDrop(null)}
+              className="ml-2 text-gray-400 hover:text-gray-600"
+              aria-label="Masquer"
+            >
+              ✕
+            </button>
+          </div>
+          <ul className="space-y-0.5 font-mono">
+            {lastDrop.zips.map((n) => (
+              <li key={`z-${n}`} className="text-emerald-700">✓ zip · {n}</li>
+            ))}
+            {lastDrop.propsAccepted.map((n) => (
+              <li key={`pa-${n}`} className="text-violet-700">✓ properties · {n}</li>
+            ))}
+            {lastDrop.propsRejected.map((n) => (
+              <li key={`pr-${n}`} className="text-red-700">✗ properties (nom invalide) · {n}</li>
+            ))}
+            {lastDrop.extRejected.map((n) => (
+              <li key={`e-${n}`} className="text-red-700">✗ extension · {n}</li>
+            ))}
+            {lastDrop.total === 0 ? (
+              <li className="text-red-700">
+                ⚠ 0 fichier reçu par le dropzone — react-dropzone a filtré le drop (MIME ?
+                permission ?). Essayez le sélecteur natif ci-dessous.
+              </li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
+
+      <label className="mb-4 block text-xs">
+        <span className="mr-2 text-gray-600">
+          Alternative — sélecteur natif (bypass react-dropzone) :
+        </span>
+        <input
+          type="file"
+          multiple
+          accept=".zip,.properties"
+          onChange={(e) => {
+            const files = Array.from(e.currentTarget.files ?? []);
+            if (files.length === 0) return;
+            const zips: string[] = [];
+            const propsAccepted: string[] = [];
+            const extRejected: string[] = [];
+            const valid: File[] = [];
+            for (const f of files) {
+              if (/\.zip$/i.test(f.name)) {
+                valid.push(f);
+                zips.push(f.name);
+              } else if (/\.properties$/i.test(f.name)) {
+                valid.push(f);
+                propsAccepted.push(f.name);
+              } else {
+                extRejected.push(f.name);
+              }
+            }
+            setLastDrop({
+              total: files.length,
+              zips,
+              propsAccepted,
+              propsRejected: [],
+              extRejected,
+            });
+            if (valid.length > 0) {
+              void addBatchFiles(valid).then(({ propertiesRejected }) => {
+                setLastDrop((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        propsRejected: propertiesRejected,
+                        propsAccepted: prev.propsAccepted.filter(
+                          (n) => !propertiesRejected.includes(n),
+                        ),
+                      }
+                    : prev,
+                );
+              });
+            }
+            e.currentTarget.value = '';
+          }}
+        />
+      </label>
 
       {Object.keys(propertiesFiles).length > 0 ? (
         <p className="mb-4 rounded bg-violet-50 p-3 text-xs text-violet-800">
