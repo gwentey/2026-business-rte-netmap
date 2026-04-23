@@ -38,6 +38,8 @@ Comportement :
 - Sinon : `<select>` avec une `<option>` par env
 - `onChange` : appelle `setActiveEnv(e.target.value)`
 
+**Styling fallback dark (Slice 5b — v3.0-alpha.16)** : `EnvSelector.module.scss` utilise désormais `@use "@/styles/brand" as *` et le mixin `@include t-small` + `color: rgba(255,255,255,0.72)` pour le span `.empty`. Ce changement assure la lisibilité du texte "Aucun env" sur le fond `--c-surface-dark` du header principal. Le rendu du `<select>` lui-même est délégué au DS RTE dont les `--background-brand-*` / `--content-brand-*` sont surchargés globalement par Slice 5a.
+
 ### `setActiveEnv` dans le store
 
 ```typescript
