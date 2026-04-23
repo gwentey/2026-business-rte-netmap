@@ -209,6 +209,46 @@ export function NodeDetails({ node }: { node: GraphNode }): JSX.Element {
         </div>
       ) : null}
 
+      {node.interlocutors.length > 0 ? (
+        <div>
+          <h3 className="mb-1 text-sm font-medium">Interlocuteurs ({node.interlocutors.length})</h3>
+          <ul className="space-y-1 text-xs">
+            {node.interlocutors.map((i) => {
+              const target = graph?.nodes.find((n) => n.eic === i.eic) ?? null;
+              const visibleTypes = i.messageTypes.slice(0, 3);
+              const overflow = i.messageTypes.length - 3;
+              return (
+                <li key={i.eic} className="flex items-start gap-2">
+                  <DirectionBadge direction={i.direction} />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono">
+                      {target != null ? (
+                        <button
+                          type="button"
+                          onClick={() => selectNode(i.eic)}
+                          className="text-rte underline underline-offset-2 hover:text-red-800"
+                          title={`Aller à ${target.displayName}`}
+                        >
+                          {target.displayName || i.eic}
+                        </button>
+                      ) : (
+                        <span title="Cet interlocuteur n'est pas présent dans l'env courant">
+                          {i.eic}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-gray-500">
+                      {visibleTypes.join(', ')}
+                      {overflow > 0 && ` et ${overflow} autre${overflow > 1 ? 's' : ''}`}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       {node.urls.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-medium">URLs</h3>
@@ -258,4 +298,23 @@ function HealthBadge({ status }: { status: 'healthy' | 'warning' | 'stale' | 'un
 
 function formatCount(n: number): string {
   return n.toLocaleString('fr-FR');
+}
+
+function DirectionBadge({
+  direction,
+}: {
+  direction: 'IN' | 'OUT' | 'BIDI';
+}): JSX.Element {
+  const cfg = {
+    IN: { bg: 'bg-sky-100 text-sky-800', label: 'IN' },
+    OUT: { bg: 'bg-emerald-100 text-emerald-800', label: 'OUT' },
+    BIDI: { bg: 'bg-violet-100 text-violet-800', label: '⇄' },
+  }[direction];
+  return (
+    <span
+      className={`inline-flex h-5 min-w-[2rem] items-center justify-center rounded px-1 text-[10px] font-semibold ${cfg.bg}`}
+    >
+      {cfg.label}
+    </span>
+  );
 }
