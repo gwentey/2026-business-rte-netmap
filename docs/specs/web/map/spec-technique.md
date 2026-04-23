@@ -3,9 +3,9 @@
 | Champ  | Valeur                          |
 |--------|---------------------------------|
 | Module | web/map                         |
-| Version| 2.0.0                           |
-| Date   | 2026-04-20                      |
-| Source | v2.0 post-implémentation        |
+| Version| 2.0.1                           |
+| Date   | 2026-04-23                      |
+| Source | v2.0.1 — refonte overlays styling 5c |
 
 ---
 
@@ -105,7 +105,14 @@ Paramètres depuis `graph.mapConfig` : `rteClusterLat`, `rteClusterLng`, `rteClu
 - `NetworkMap` pour la carte
 - `DetailPanel` pour le panneau latéral (nœud ou edge sélectionné)
 
-**Styling du shell MapPage (Slice 5b — v3.0-alpha.16)** : `MapPage.module.scss` a été refondu pour consommer exclusivement les tokens `--c-*`/`--r-*`/`--shadow-*`/`--motion-*`/`--layout-*`/`--t-*` de `apps/web/src/styles/brand.scss`. Les états loading/error/empty, le sous-header, le footer légende, `snapshotLabel` et `snapshotLink` ne comportent plus aucun hex codé en dur. Les overlays internes (`NetworkMap.module.scss`, `BaFilter.module.scss`, `NodeMarker.module.scss`) ne sont **pas** concernés par cette refonte — ils seront tokenisés en Slice 5c. Voir `docs/specs/web/charte-visuelle/spec-technique.md §11` pour le détail complet des tokens consommés.
+**Styling du shell MapPage (Slice 5b — v3.0-alpha.16)** : `MapPage.module.scss` a été refondu pour consommer exclusivement les tokens `--c-*`/`--r-*`/`--shadow-*`/`--motion-*`/`--layout-*`/`--t-*` de `apps/web/src/styles/brand.scss`. Les états loading/error/empty, le sous-header, le footer légende, `snapshotLabel` et `snapshotLink` ne comportent plus aucun hex codé en dur. Voir `docs/specs/web/charte-visuelle/spec-technique.md §11` pour le détail complet des tokens consommés.
+
+**Styling des overlays Map (Slice 5c — v3.0-alpha.17)** : `NetworkMap.module.scss`, `BaFilter.module.scss` et `NodeMarker.module.scss` ont été tokenisés. Points clés :
+- `NetworkMap.module.scss` : toggle "Hiérarchie CD" migre de `#1e293b` (slate dur) vers `var(--c-surface-deep)`.
+- `BaFilter.module.scss` : popup dark avec `--c-surface-dark`, items `--c-text-inverse`, palette criticité P1=`--c-error` / P2=`--c-primary` (cyan — résolution de l'incohérence ambre antérieure) / P3=`--c-text-muted`.
+- `NodeMarker.module.scss` : styling des tooltips Leaflet via `:global(.leaflet-tooltip)` (seul moyen d'atteindre les éléments montés hors du sous-arbre React par Leaflet). Fond `--c-surface-dark`, texte `--c-text-inverse`, bordure `--c-border-subtle`.
+
+Voir `docs/specs/web/charte-visuelle/spec-technique.md §12` pour le détail complet.
 
 ---
 
