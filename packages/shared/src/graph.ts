@@ -10,6 +10,22 @@ export type NodeKind =
 
 export type EdgeDirection = 'IN' | 'OUT';
 
+export type InterlocutorDirection = 'IN' | 'OUT' | 'BIDI';
+
+export type GraphNodeInterlocutor = {
+  /** EIC de l'interlocuteur. Toujours différent du noeud courant. */
+  eic: string;
+  /** Union des messageTypes échangés avec cet interlocuteur, triés alpha. */
+  messageTypes: string[];
+  /**
+   * Direction vue depuis le noeud courant :
+   * IN   = il m'envoie
+   * OUT  = je lui envoie
+   * BIDI = les deux (au moins un message dans chaque sens)
+   */
+  direction: InterlocutorDirection;
+};
+
 export type GraphNode = {
   id: string;
   eic: string;
@@ -49,6 +65,13 @@ export type GraphNode = {
    * (message_upload_route.csv). Endpoint seulement ; vide pour les autres.
    */
   uploadTargets: string[];
+  /**
+   * Liste des interlocuteurs dérivés des edges BUSINESS agrégées pour ce
+   * noeud. Vide si le noeud n'a aucune edge BUSINESS. Calculée par le
+   * backend à la lecture (compute-on-read) — ne pas confondre avec les
+   * cibles d'upload qui sont déclarées sans observation de trafic.
+   */
+  interlocutors: GraphNodeInterlocutor[];
   country: string | null;
   lat: number;
   lng: number;

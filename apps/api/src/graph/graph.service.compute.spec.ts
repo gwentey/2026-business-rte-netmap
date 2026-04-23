@@ -147,4 +147,59 @@ describe('GraphService.getGraph — compute on read', () => {
     // Au moins un node doit exister pour que le test soit significatif.
     expect(g.nodes.length).toBeGreaterThan(0);
   });
+
+  it('[Slice 3a] node.interlocutors calcule a partir des edges BUSINESS', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const detail = await imports.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_GS_INTERLOC',
+      label: 'interloc',
+    });
+    expect(detail.stats.componentsCount).toBeGreaterThan(0);
+
+    // Injecter 2 paths non-wildcard bidirectionnels pour produire une edge BIDI
+    const createdImport = await prisma.import.findFirstOrThrow({ where: { envName: 'TEST_GS_INTERLOC' } });
+    const comps = await prisma.importedComponent.findMany({ where: { importId: createdImport.id }, take: 2 });
+    expect(comps.length).toBeGreaterThanOrEqual(2);
+    const [a, b] = comps;
+    await prisma.importedPath.createMany({
+      data: [
+        {
+          importId: createdImport.id,
+          receiverEic: b!.eic,
+          senderEic: a!.eic,
+          messageType: 'CGM',
+          transportPattern: 'DIRECT',
+        },
+        {
+          importId: createdImport.id,
+          receiverEic: a!.eic,
+          senderEic: b!.eic,
+          messageType: 'RSMD',
+          transportPattern: 'DIRECT',
+        },
+      ],
+    });
+
+    const g = await graph.getGraph('TEST_GS_INTERLOC');
+    const nodeA = g.nodes.find((n) => n.eic === a!.eic);
+    const nodeB = g.nodes.find((n) => n.eic === b!.eic);
+
+    expect(nodeA).toBeDefined();
+    expect(nodeB).toBeDefined();
+
+    // Tous les nodes doivent avoir interlocutors (au minimum [] pour ceux sans edge).
+    for (const n of g.nodes) {
+      expect(Array.isArray(n.interlocutors)).toBe(true);
+    }
+
+    // a et b s'echangent des messages dans les 2 sens -> BIDI
+    const aInterloc = nodeA!.interlocutors.find((i) => i.eic === b!.eic);
+    const bInterloc = nodeB!.interlocutors.find((i) => i.eic === a!.eic);
+    expect(aInterloc?.direction).toBe('BIDI');
+    expect(bInterloc?.direction).toBe('BIDI');
+    // Union des messageTypes
+    expect(aInterloc?.messageTypes.sort()).toEqual(['CGM', 'RSMD']);
+    expect(bInterloc?.messageTypes.sort()).toEqual(['CGM', 'RSMD']);
+  });
 });

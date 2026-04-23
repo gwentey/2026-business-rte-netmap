@@ -47,6 +47,8 @@ Le DetailPanel est le panneau de détail latéral de la carte ECP. Il se rend vi
 
 10. **Broker optionnel** — La ligne "Broker" dans la fiche arête n'est affichée que si `edge.intermediateBrokerEic` est non null.
 
+11. **Section « Interlocuteurs (N) » sur la fiche nœud** — Si `node.interlocutors.length > 0`, une section « Interlocuteurs (N) » est rendue sous « Cibles d'upload ». Chaque interlocuteur occupe une ligne avec : un badge de direction (`IN` en bleu ciel, `OUT` en vert émeraude, `⇄` en violet pour BIDI), le `displayName` (cliquable, appelle `selectNode`) ou l'EIC brut (si l'interlocuteur n'est pas dans le graph de l'env courant), puis un aperçu des messageTypes (3 premiers, suivis de « et N autre(s) » si plus de 3). L'ordre est déterministe côté backend (règle 11 spec api/graph).
+
 ---
 
 ## Cas d'usage (déduits)
@@ -84,6 +86,5 @@ L'opérateur clique directement sur un autre nœud ou arête sans passer par `×
 
 - Le champ `node.process` peut être `null` (arête `—` affiché). Il n'est pas clair si un nœud sans processus est un cas courant ou une anomalie de données à signaler visuellement.
 - La liste `node.urls` est rendue sans limite de hauteur interne ; avec un grand nombre d'URLs, la lisibilité n'a pas été vérifiée par rétro-ingénierie (aucune limite de rendu n'est imposée dans le code).
-- La section "liens IN/OUT" mentionnée dans le design §10.7 et dans la discovery #8 n'est pas implémentée dans le code actuel de `NodeDetails.tsx`. Il est possible que cette fonctionnalité soit prévue mais non encore réalisée.
 - Le champ `edge.activity.lastMessageDown` est présent dans le type `GraphEdge` mais n'est pas affiché dans `EdgeDetails` (seul `lastMessageUp` l'est). Usage intentionnel ou oubli à valider.
 - Le formatage de `validTo` lorsqu'il est `null` affiche `—` via `formatDateTime`, mais la plage est rendue `validFrom → —`, ce qui peut être déroutant pour l'opérateur.

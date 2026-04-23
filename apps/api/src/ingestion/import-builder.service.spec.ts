@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { ImportBuilderService, maskPrivateIp } from './import-builder.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
 import { CsvPathReaderService } from './csv-path-reader.service.js';
-import type { SynchronizedDirectoryRow } from './types.js';
+import type { MessagePathRow, SynchronizedDirectoryRow } from './types.js';
 import type { CdMessagePathRow } from './csv-reader.service.js';
 
 describe('ImportBuilderService — composants', () => {
@@ -484,5 +484,175 @@ describe('ImportBuilderService.buildDirectorySyncs (slice 2m)', () => {
     const result = builder.buildDirectorySyncs(rows);
     expect(result).toHaveLength(1);
     expect(result[0]!.directoryCode).toBe('VALID');
+  });
+});
+
+describe('ImportBuilderService — buildEndpointPaths — filtres', () => {
+  let builder: ImportBuilderService;
+  const effectiveDate = new Date('2026-04-01T00:00:00.000Z');
+  const localEic = '17V0000009823063';
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ImportBuilderService, CsvPathReaderService],
+    }).compile();
+    builder = moduleRef.get(ImportBuilderService);
+  });
+
+  const baseRow = (overrides: Partial<MessagePathRow>): MessagePathRow => ({
+    allowedSenders: '17V0000015538278',
+    applied: true,
+    intermediateBrokerCode: null,
+    intermediateComponent: null,
+    messagePathType: 'BUSINESS',
+    messageType: 'CORE-FB-A16A48-443-NOT',
+    receiver: localEic,
+    remote: false,
+    status: 'ACTIVE',
+    transportPattern: 'INDIRECT',
+    validFrom: new Date('2025-01-01T00:00:00.000Z'),
+    validTo: null,
+    ...overrides,
+  });
+
+  it('skip les paths ACKNOWLEDGEMENT', () => {
+    const rows = [baseRow({ messagePathType: 'ACKNOWLEDGEMENT' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+  });
+
+  it('skip les paths status=INVALID', () => {
+    const rows = [baseRow({ status: 'INVALID' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+  });
+
+  it('skip les paths applied=false', () => {
+    const rows = [baseRow({ applied: false })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+  });
+
+  it('skip les paths wildcard sender uniquement', () => {
+    const rows = [baseRow({ allowedSenders: '*' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+  });
+
+  it('skip les paths wildcard receiver', () => {
+    const rows = [baseRow({ receiver: '*' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+  });
+
+  it('skip les rows malformees + produit un warning', () => {
+    const rows = [baseRow({ receiver: null })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toEqual([]);
+    expect(out.warnings).toContainEqual(
+      expect.objectContaining({ code: 'MESSAGE_PATH_ROW_INCOMPLETE' }),
+    );
+  });
+
+  it('skip les rows avec allowedSenders vide/null', () => {
+    expect(
+      builder.buildEndpointPaths([baseRow({ allowedSenders: null })], localEic, effectiveDate).paths,
+    ).toEqual([]);
+    expect(
+      builder.buildEndpointPaths([baseRow({ allowedSenders: '' })], localEic, effectiveDate).paths,
+    ).toEqual([]);
+  });
+});
+
+describe('ImportBuilderService — buildEndpointPaths — expansion et mapping', () => {
+  let builder: ImportBuilderService;
+  const effectiveDate = new Date('2026-04-01T00:00:00.000Z');
+  const localEic = '17V0000009823063';
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ImportBuilderService, CsvPathReaderService],
+    }).compile();
+    builder = moduleRef.get(ImportBuilderService);
+  });
+
+  const baseRow = (overrides: Partial<MessagePathRow>): MessagePathRow => ({
+    allowedSenders: '17V0000015538278',
+    applied: true,
+    intermediateBrokerCode: null,
+    intermediateComponent: null,
+    messagePathType: 'BUSINESS',
+    messageType: 'CORE-FB-A16A48-443-NOT',
+    receiver: localEic,
+    remote: false,
+    status: 'ACTIVE',
+    transportPattern: 'INDIRECT',
+    validFrom: new Date('2025-01-01T00:00:00.000Z'),
+    validTo: null,
+    ...overrides,
+  });
+
+  it('expanse allowedSenders multi-EIC en N paths', () => {
+    const rows = [baseRow({ allowedSenders: '10V000000000012O;10V000000000013M;10V1001C--00004I' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toHaveLength(3);
+    expect(out.paths.map((p) => p.senderEic).sort()).toEqual([
+      '10V000000000012O',
+      '10V000000000013M',
+      '10V1001C--00004I',
+    ]);
+  });
+
+  it('ignore les entrees * et vides au milieu d une liste', () => {
+    const rows = [baseRow({ allowedSenders: '10V000000000012O;*;;10V000000000013M' })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toHaveLength(2);
+    expect(out.paths.map((p) => p.senderEic).sort()).toEqual([
+      '10V000000000012O',
+      '10V000000000013M',
+    ]);
+  });
+
+  it('isExpired=true si validTo < effectiveDate', () => {
+    const rows = [baseRow({ validTo: new Date('2025-12-19T22:00:00.000Z') })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths).toHaveLength(1);
+    expect(out.paths[0]!.isExpired).toBe(true);
+  });
+
+  it('isExpired=false si validTo >= effectiveDate ou null', () => {
+    const futur = baseRow({ validTo: new Date('2027-01-01T00:00:00.000Z') });
+    const nul = baseRow({ validTo: null });
+    const out = builder.buildEndpointPaths([futur, nul], localEic, effectiveDate);
+    expect(out.paths).toHaveLength(2);
+    expect(out.paths.every((p) => !p.isExpired)).toBe(true);
+  });
+
+  it('mappe correctement tous les champs', () => {
+    const rows = [baseRow({
+      allowedSenders: '17V0000015538278',
+      intermediateBrokerCode: '10V1001C--00087P',
+      transportPattern: 'INDIRECT',
+      messageType: 'MRC-XBID-A01A19-511',
+      validFrom: new Date('2025-12-19T23:00:00.000Z'),
+      validTo: null,
+    })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths[0]).toEqual({
+      receiverEic: localEic,
+      senderEic: '17V0000015538278',
+      messageType: 'MRC-XBID-A01A19-511',
+      transportPattern: 'INDIRECT',
+      intermediateBrokerEic: '10V1001C--00087P',
+      validFrom: new Date('2025-12-19T23:00:00.000Z'),
+      validTo: null,
+      isExpired: false,
+    });
+  });
+
+  it('intermediateBrokerCode null -> intermediateBrokerEic null', () => {
+    const rows = [baseRow({ transportPattern: 'DIRECT', intermediateBrokerCode: null })];
+    const out = builder.buildEndpointPaths(rows, localEic, effectiveDate);
+    expect(out.paths[0]!.intermediateBrokerEic).toBeNull();
   });
 });

@@ -6,7 +6,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { ZipExtractorService } from './zip-extractor.service.js';
 import { CsvReaderService } from './csv-reader.service.js';
 import { XmlMadesParserService } from './xml-mades-parser.service.js';
-import { ImportBuilderService } from './import-builder.service.js';
+import { ImportBuilderService, pathIdentityKey } from './import-builder.service.js';
 import { PropertiesParserService } from './properties-parser.service.js';
 import { RawPersisterService } from './raw-persister.service.js';
 import { detectDumpType } from './dump-type-detector.js';
@@ -86,6 +86,10 @@ export class ImportsService {
     const dumpType = detection.dumpType;
 
     const warnings: Warning[] = [];
+    // effectiveDate : extraite du nom de fichier si pattern EIC_TIMESTAMP,
+    // sinon now. Calculée tôt pour être disponible dans le pipeline (Slice 3a
+    // l'utilise pour le flag isExpired des paths endpoint).
+    const effectiveDate = sourceDumpTimestamp ?? new Date();
     let components: BuiltImportedComponent[] = [];
     let paths: BuiltImportedPath[] = [];
     let messagingStats: BuiltImportedMessagingStat[] = [];
@@ -225,6 +229,30 @@ export class ImportsService {
         if (src) src.projectName = projectName;
       }
 
+      // Slice 3a : merge des paths endpoint depuis message_path.csv local.
+      // XML prioritaire sur la clé 5-champs — le CSV ne fait qu'ajouter
+      // les paths absents du XML (paths déclarés localement, non propagés
+      // au CD home, ou visibles depuis un CD différent).
+      const pathsBuffer = extracted.files.get('message_path.csv');
+      if (pathsBuffer) {
+        const csvPathRows = this.csvReader.readEndpointMessagePaths(pathsBuffer, warnings);
+        const { paths: csvBuilt, warnings: csvWarnings } = this.builder.buildEndpointPaths(
+          csvPathRows,
+          localEic,
+          effectiveDate,
+        );
+        warnings.push(...csvWarnings);
+
+        const seenKeys = new Set<string>(xmlPaths.map((p) => pathIdentityKey(p)));
+        for (const p of csvBuilt) {
+          const k = pathIdentityKey(p);
+          if (!seenKeys.has(k)) {
+            seenKeys.add(k);
+            paths.push(p);
+          }
+        }
+      }
+
       // Slice 2n : message_upload_route.csv — cibles d'upload déclarées par l'endpoint.
       const uploadBuf = extracted.files.get('message_upload_route.csv');
       if (uploadBuf) {
@@ -315,8 +343,6 @@ export class ImportsService {
     }
 
     // --- 4. Build + persist ---
-    const effectiveDate = sourceDumpTimestamp ?? new Date();
-
     const built: BuiltImport = {
       envName,
       label,

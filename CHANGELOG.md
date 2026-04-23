@@ -7,6 +7,35 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.1 — Slice 3a : endpoint paths + interlocuteurs (2026-04-23)
+
+Première slice de la version v3 qui enrichit la carto ECP avec la dimension « interlocuteurs ». On exploite enfin `message_path.csv` côté endpoint (ignoré jusqu'ici au profit du XML MADES) et on affiche dans le panneau de détail la liste ordonnée des composants avec qui chaque noeud échange, avec direction IN/OUT/BIDI et aperçu des messageTypes.
+
+**Highlights :**
+
+- **Exploitation de `message_path.csv` côté endpoint.** Le pipeline ENDPOINT de `ImportsService` lit désormais `message_path.csv` (via `readEndpointMessagePaths` déjà présent mais jamais câblé) et merge les lignes CSV avec les paths extraits du XML MADES. Dédup via la clé 5-champs `(receiverEic, senderEic, messageType, transportPattern, intermediateBrokerEic)` — **XML prioritaire**, le CSV ne complète que les paths absents du XML. Permet de capturer les paths purement locaux (déclarés par l'endpoint mais non encore propagés au CD) ou visibles uniquement depuis la vue endpoint.
+- **Nouvelle méthode `ImportBuilderService.buildEndpointPaths`** — convertit `MessagePathRow[]` → `BuiltImportedPath[]`, applique les filtres décidés avec le user : `messagePathType === 'ACKNOWLEDGEMENT'` ignoré, `status === 'INVALID'` ignoré, `applied === false` ignoré, wildcards (`*` en sender ou receiver) exclus. `allowedSenders` multi-EIC (`"EIC1;EIC2;EIC3"`) explosés en N paths. `isExpired = validTo < effectiveDate` (reproductibilité historique).
+- **Helper exporté `pathIdentityKey`** — normalise la clé 5-champs utilisée à la fois par `mergePathsLatestWins` (graph) et la dédup XML↔CSV (ingestion). `null | undefined` sur `intermediateBrokerEic` normalisé en `''`.
+- **Nouveau calcul `GraphNode.interlocutors`.** `GraphService.getGraph` appelle `buildInterlocutorsByEic(edges)` après la construction des edges et attache la liste à chaque noeud via `toNode`. Un interlocuteur = EIC, messageTypes (union triée alpha), direction vue depuis le noeud (IN / OUT / BIDI). Tri déterministe : BIDI > OUT > IN, puis nombre de messageTypes décroissant, puis EIC croissant. Garantit que la liste est cohérente avec la carte : **un interlocuteur affiché ⇔ une edge visible**.
+- **Type shared `GraphNodeInterlocutor`** dans `packages/shared/src/graph.ts` + champ `GraphNode.interlocutors`.
+- **Fonction pure `buildInterlocutorsByEic`** (`apps/api/src/graph/build-interlocutors.ts`) — extraite pour isoler la logique de dérivation et la tester unitairement. Exclut les edges `PEERING`. Protection contre les self-edges improbables.
+- **Nouvelle section « Interlocuteurs (N) » dans `NodeDetails.tsx`** — sous « Cibles d'upload ». Chaque ligne : badge de direction coloré (`IN` bleu ciel, `OUT` vert émeraude, `⇄` violet), `displayName` cliquable (ou EIC brut si absent du graph), aperçu des 3 premiers messageTypes + « et N autre(s) ». Résout la zone d'incertitude §87 de la spec `web/detail-panel` (section IN/OUT mentionnée au design §10.7 mais jamais implémentée).
+- **Composant `DirectionBadge`** privé, dans `NodeDetails.tsx`.
+
+**Tests :**
+- API : 275 → **284/284** (+8 `buildInterlocutorsByEic`, +13 `buildEndpointPaths`, +1 intégration pipeline endpoint, +1 intégration graph interlocutors ; −6 qui se trouvaient sur la méthode précédente).
+- Web : 111 → **117/117** (+6 `NodeDetails` section Interlocuteurs : masquage si vide, compteur, troncature > 3 + singulier/pluriel, badges IN/OUT/BIDI, EIC brut si absent du graph).
+- Typecheck global OK.
+
+**Décisions :**
+- ACK / INVALID / `applied=false` / wildcards ignorés **à l'ingestion** (pas de flag). Les paths `ACTIVE` avec `validTo < effectiveDate` sont persistés avec `isExpired=true` et masqués par défaut (déjà l'invariant du graph).
+- `node.interlocutors` est **dérivé des edges agrégées** plutôt que des paths bruts : cohérence garantie avec la carte.
+- Interlocuteurs RTE ↔ BA : non traité dans cette slice. Arrivera en Slice 3b (mapping statique dans `eic-rte-overlay.json`).
+
+**Breaking changes :** aucun. Champ `GraphNode.interlocutors` est additif (défaut `[]` backend, deux mocks de test frontend alignés). Pas de migration Prisma.
+
+**Prépare :** Slice 3b (mapping BA ↔ endpoints dans le registry), Slice 3c (filtre « par BA » sur la carte).
+
 ### v2.0-alpha.17 — Slice 2p Modal admin "Config ECP" par composant (2026-04-23)
 
 Dernier slice du plan d'enrichissement. Une modal admin affiche désormais **toutes les propriétés `ecp.*`** d'un composant (contact, réseau, antivirus, archivage, compression, sécurité, sync CD, messages, AMQP/Direct, handlers custom, broker…), regroupées par **section métier** lisible. Source : le dernier Import dont `sourceComponentEic` correspond. Accessible depuis `/admin > Composants` via le bouton ⚙ Config de chaque ligne avec au moins un import.

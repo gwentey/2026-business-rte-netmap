@@ -10,6 +10,7 @@ import type {
   ComponentStatisticRow,
   MadesComponent,
   MadesTree,
+  MessagePathRow,
   SynchronizedDirectoryRow,
   UploadRouteRow,
 } from './types.js';
@@ -23,6 +24,27 @@ import type { CdMessagePathRow } from './csv-reader.service.js';
  */
 const PRIVATE_IPV4_REGEX =
   /\b(10\.\d{1,3}\.\d{1,3}\.)(\d{1,3})\b|\b(192\.168\.\d{1,3}\.)(\d{1,3})\b|\b(172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.)(\d{1,3})\b/g;
+
+/**
+ * Clé d'identité d'un path (5 champs). Identique à celle utilisée par
+ * `mergePathsLatestWins` dans le module graph. Permet la dédup XML↔CSV
+ * dans le pipeline ENDPOINT (Slice 3a).
+ */
+export function pathIdentityKey(p: {
+  receiverEic: string;
+  senderEic: string;
+  messageType: string;
+  transportPattern: string;
+  intermediateBrokerEic: string | null;
+}): string {
+  return [
+    p.receiverEic,
+    p.senderEic,
+    p.messageType,
+    p.transportPattern,
+    p.intermediateBrokerEic ?? '',
+  ].join('||');
+}
 
 /**
  * Masque les derniers octets d'une IPv4 privée dans une URL.
@@ -206,6 +228,71 @@ export class ImportBuilderService {
       targetComponentCode: r.targetComponentCode,
       createdDate: r.createdDate,
     }));
+  }
+
+  /**
+   * Convertit les rows `message_path.csv` d'un endpoint en BuiltImportedPath.
+   *
+   * Règles (décisions Slice 3a validées par le user) :
+   *  - skip messagePathType === 'ACKNOWLEDGEMENT' (polluent la carte, pas
+   *    de valeur métier pour la vue interlocuteurs)
+   *  - skip status === 'INVALID' (paths non opérationnels)
+   *  - skip applied === false (déclaré mais pas en service)
+   *  - skip receiver === '*' ou allowedSenders réduit à '*' (wildcards
+   *    exclus, cohérent avec règle §8 spec api/graph)
+   *  - expand allowedSenders : la liste `"EIC1;EIC2;EIC3"` génère 3 paths.
+   *    Les entrées `''` ou `'*'` intra-liste sont ignorées.
+   *  - isExpired = validTo != null && validTo < effectiveDate (reproductibilité
+   *    historique, cohérent avec ADR-010 / règle 9 spec api/graph)
+   *
+   * Retourne `paths` + `warnings` (rows malformées).
+   */
+  buildEndpointPaths(
+    rows: ReadonlyArray<MessagePathRow>,
+    _localEic: string,
+    effectiveDate: Date,
+  ): { paths: BuiltImportedPath[]; warnings: Warning[] } {
+    const paths: BuiltImportedPath[] = [];
+    const warnings: Warning[] = [];
+
+    for (const row of rows) {
+      if (row.messagePathType === 'ACKNOWLEDGEMENT') continue;
+      if (row.status === 'INVALID') continue;
+      if (row.applied === false) continue;
+
+      if (row.receiver == null || row.messageType == null || row.transportPattern == null) {
+        warnings.push({
+          code: 'MESSAGE_PATH_ROW_INCOMPLETE',
+          message: `Row skipped (receiver=${row.receiver ?? '<null>'}, messageType=${row.messageType ?? '<null>'}, transportPattern=${row.transportPattern ?? '<null>'})`,
+        });
+        continue;
+      }
+      if (row.receiver === '*') continue;
+      if (row.allowedSenders == null || row.allowedSenders.trim() === '') continue;
+
+      const senders = row.allowedSenders
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s !== '*');
+
+      if (senders.length === 0) continue; // allowedSenders === "*" ou "*;*"
+
+      for (const senderEic of senders) {
+        paths.push({
+          receiverEic: row.receiver,
+          senderEic,
+          messageType: row.messageType,
+          transportPattern: row.transportPattern,
+          intermediateBrokerEic: row.intermediateBrokerCode ?? null,
+          validFrom: row.validFrom,
+          validTo: row.validTo,
+          isExpired:
+            row.validTo != null && row.validTo.getTime() < effectiveDate.getTime(),
+        });
+      }
+    }
+
+    return { paths, warnings };
   }
 
   private fromXmlComponent(c: MadesComponent): BuiltImportedComponent {

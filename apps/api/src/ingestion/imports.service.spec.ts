@@ -109,6 +109,30 @@ describe('ImportsService', () => {
     });
     expect(orphan).toBeNull();
   });
+
+  it('[Slice 3a] merge paths XML + CSV avec XML prioritaire', async () => {
+    const zip = buildZipFromFixture(ENDPOINT_FIXTURE);
+    const created = await service.createImport({
+      file: { originalname: `${ENDPOINT_FIXTURE}.zip`, buffer: zip },
+      envName: 'TEST_IMPORTS_SVC_3A',
+      label: 'slice 3a merge',
+    });
+
+    const persisted = await prisma.import.findUnique({
+      where: { id: created.id },
+      include: { importedPaths: true },
+    });
+    expect(persisted).not.toBeNull();
+
+    // Invariant : chaque path persiste est unique sur la cle 5-champs
+    const keys = persisted!.importedPaths.map((p) =>
+      [p.receiverEic, p.senderEic, p.messageType, p.transportPattern, p.intermediateBrokerEic ?? ''].join('||'),
+    );
+    expect(new Set(keys).size).toBe(keys.length);
+
+    // Au moins quelques paths attendus (fixture PRFRI-EP2 a du contenu).
+    expect(persisted!.importedPaths.length).toBeGreaterThan(0);
+  });
 });
 
 describe('ImportsService.inspectBatch', () => {

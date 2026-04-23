@@ -21,6 +21,7 @@ function baseNode(overrides: Partial<GraphNode> = {}): GraphNode {
     sentMessages: null,
     receivedMessages: null,
     uploadTargets: [],
+    interlocutors: [],
     country: 'FR',
     lat: 48.89,
     lng: 2.34,
@@ -168,5 +169,80 @@ describe('NodeDetails', () => {
     expect(screen.getByText(/Cibles d'upload \(2\)/)).toBeInTheDocument();
     expect(screen.getByText('12V-0000000083-C')).toBeInTheDocument();
     expect(screen.getByText('10V1001C--000438')).toBeInTheDocument();
+  });
+});
+
+describe('NodeDetails — section Interlocuteurs', () => {
+  it('ne rend pas la section si interlocutors est vide', () => {
+    render(<NodeDetails node={baseNode({ interlocutors: [] })} />);
+    expect(screen.queryByText(/Interlocuteurs/)).not.toBeInTheDocument();
+  });
+
+  it('rend la section avec le bon compteur', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          interlocutors: [
+            { eic: 'B', messageTypes: ['CGM'], direction: 'OUT' },
+            { eic: 'C', messageTypes: ['RSMD', 'ACK'], direction: 'IN' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('Interlocuteurs (2)')).toBeInTheDocument();
+  });
+
+  it('tronque messageTypes > 3 avec "et N autres"', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          interlocutors: [
+            { eic: 'B', messageTypes: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'], direction: 'OUT' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('T1, T2, T3 et 4 autres')).toBeInTheDocument();
+  });
+
+  it('singulier pour 1 autre', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          interlocutors: [
+            { eic: 'B', messageTypes: ['T1', 'T2', 'T3', 'T4'], direction: 'OUT' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('T1, T2, T3 et 1 autre')).toBeInTheDocument();
+  });
+
+  it('affiche le bon badge pour chaque direction', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          interlocutors: [
+            { eic: 'B', messageTypes: ['T1'], direction: 'BIDI' },
+            { eic: 'C', messageTypes: ['T1'], direction: 'OUT' },
+            { eic: 'D', messageTypes: ['T1'], direction: 'IN' },
+          ],
+        })}
+      />,
+    );
+    expect(screen.getByText('⇄')).toBeInTheDocument();
+    expect(screen.getByText('OUT')).toBeInTheDocument();
+    expect(screen.getByText('IN')).toBeInTheDocument();
+  });
+
+  it('affiche EIC simple quand interlocuteur absent du graph', () => {
+    render(
+      <NodeDetails
+        node={baseNode({
+          interlocutors: [{ eic: 'EIC_ABSENT', messageTypes: ['T1'], direction: 'OUT' }],
+        })}
+      />,
+    );
+    expect(screen.getByText('EIC_ABSENT')).toBeInTheDocument();
   });
 });
