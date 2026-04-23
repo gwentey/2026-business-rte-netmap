@@ -7,6 +7,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.11 — Slice 4c.4 : migration Composants + ComponentOverrideModal + ComponentConfigModal (2026-04-23)
+
+Quatrième mini-slice 4c. Migre l'onglet Composants et ses 2 modales (override + config ECP) de Tailwind vers CSS Modules. Les 3 plus gros fichiers admin (9 colonnes table, modal override avec 8 fields, modal config avec dl/dt/dd).
+
+- `ComponentsAdminTable.{tsx,module.scss}` : toolbar avec search + checkbox "Seulement surchargés" + counter + bouton export JSON. Table 9 colonnes. Badge orange `⚠ Manquant [+]` cliquable ouvre OrganizationEditModal pré-rempli.
+- `ComponentOverrideModal.{tsx,module.scss}` : modal 28rem, 8 fields (displayName, type select, organization, country ISO-2, lat/lng grid, tagsCsv, notes), placeholders grisés = valeurs cascade actuelles.
+- `ComponentConfigModal.{tsx,module.scss}` : modal 48rem sticky header + scrollable body, source info box (label + env + date + badge Properties OK/missing), sections `.ecp.*` groupées avec `dl`/`dt`/`dd` grid 2 colonnes.
+
+Tests : 143 verts + 3 `.todo`, typecheck + build OK.
+
+---
+
 ### v3.0-alpha.10 — Slice 4c.3 : migration OrganizationsAdminTab + OrganizationEditModal (2026-04-23)
 
 Troisième mini-slice 4c. Migre l'onglet Organisations et son modal d'édition de Tailwind vers CSS Modules.

@@ -4,13 +4,17 @@ import { api } from '../../lib/api.js';
 import { ComponentOverrideModal } from './ComponentOverrideModal.js';
 import { ComponentConfigModal } from './ComponentConfigModal.js';
 import { OrganizationEditModal } from './OrganizationEditModal.js';
+import styles from './ComponentsAdminTable.module.scss';
 
 type Props = {
   autoOpenEic?: string | null;
   onAutoOpenHandled?: () => void;
 };
 
-export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props = {}): JSX.Element {
+export function ComponentsAdminTable({
+  autoOpenEic,
+  onAutoOpenHandled,
+}: Props = {}): JSX.Element {
   const [rows, setRows] = useState<AdminComponentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +22,6 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   const [onlyOverridden, setOnlyOverridden] = useState(false);
   const [editing, setEditing] = useState<AdminComponentRow | null>(null);
   const [configEic, setConfigEic] = useState<string | null>(null);
-  /** Slice 3d : organisation à pré-remplir dans OrganizationEditModal. */
   const [orgToCreate, setOrgToCreate] = useState<string | null>(null);
 
   const reload = async (): Promise<void> => {
@@ -34,7 +37,9 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
     }
   };
 
-  useEffect(() => { void reload(); }, []);
+  useEffect(() => {
+    void reload();
+  }, []);
 
   useEffect(() => {
     if (!autoOpenEic || rows.length === 0) return;
@@ -43,8 +48,6 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
       setEditing(match);
       setSearch(autoOpenEic);
     } else {
-      // EIC pas dans les imports — on pré-remplit le filtre pour montrer l'absence,
-      // et on ouvre une ligne synthétique pour permettre la surcharge directe.
       const synthetic: AdminComponentRow = {
         eic: autoOpenEic,
         current: {
@@ -70,11 +73,12 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
     if (onlyOverridden) result = result.filter((r) => r.override !== null);
     const q = search.trim().toLowerCase();
     if (q) {
-      result = result.filter((r) =>
-        r.eic.toLowerCase().includes(q) ||
-        r.current.displayName.toLowerCase().includes(q) ||
-        (r.current.organization ?? '').toLowerCase().includes(q) ||
-        (r.current.country ?? '').toLowerCase().includes(q),
+      result = result.filter(
+        (r) =>
+          r.eic.toLowerCase().includes(q) ||
+          r.current.displayName.toLowerCase().includes(q) ||
+          (r.current.organization ?? '').toLowerCase().includes(q) ||
+          (r.current.country ?? '').toLowerCase().includes(q),
       );
     }
     return result;
@@ -86,9 +90,6 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   };
 
   const handleExportJson = (): void => {
-    // Exporte toujours l'intégralité du dataset (rows), indépendamment du
-    // filtre de recherche ou du toggle "Seulement surchargés" — c'est
-    // l'action "Tout exporter".
     const payload = {
       version: 1,
       exportedAt: new Date().toISOString(),
@@ -122,16 +123,16 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
   };
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
+    <div className={styles.container}>
+      <div className={styles.toolbar}>
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="EIC, nom, organisation, pays…"
-          className="max-w-md flex-1 rounded border border-gray-300 px-2 py-1 text-sm"
+          className={styles.searchInput}
         />
-        <label className="flex items-center gap-2 text-sm">
+        <label className={styles.checkboxLabel}>
           <input
             type="checkbox"
             checked={onlyOverridden}
@@ -139,12 +140,14 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
           />
           Seulement surchargés
         </label>
-        <span className="text-sm text-gray-500">{filtered.length} / {rows.length} composants</span>
+        <span className={styles.counter}>
+          {filtered.length} / {rows.length} composants
+        </span>
         <button
           type="button"
           onClick={handleExportJson}
           disabled={rows.length === 0}
-          className="ml-auto rounded border border-gray-300 px-3 py-1 text-xs hover:bg-gray-50 disabled:opacity-50"
+          className={styles.exportButton}
           title="Télécharger l'intégralité du tableau (ignore les filtres actifs)"
         >
           ⬇ Tout exporter ({rows.length})
@@ -152,64 +155,66 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
       </div>
 
       {error ? (
-        <p className="mb-3 rounded bg-red-100 p-2 text-sm text-red-700" role="alert">{error}</p>
+        <p className={styles.alertError} role="alert">
+          {error}
+        </p>
       ) : null}
-      {loading ? <p className="text-sm text-gray-500">Chargement…</p> : null}
+      {loading ? <p className={styles.loading}>Chargement…</p> : null}
 
-      <table className="w-full table-auto border-collapse border border-gray-200 text-sm">
-        <thead className="bg-gray-50">
+      <table className={styles.table}>
+        <thead>
           <tr>
-            <th className="px-2 py-1 text-left">EIC</th>
-            <th className="px-2 py-1 text-left">Nom</th>
-            <th className="px-2 py-1 text-left">Type</th>
-            <th className="px-2 py-1 text-left">Organisation</th>
-            <th className="px-2 py-1 text-left">Pays</th>
-            <th className="px-2 py-1 text-left">Coord</th>
-            <th className="px-2 py-1 text-left">Imports</th>
-            <th className="px-2 py-1 text-left">Surchargé</th>
-            <th className="px-2 py-1 text-left">Action</th>
+            <th>EIC</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Organisation</th>
+            <th>Pays</th>
+            <th>Coord</th>
+            <th>Imports</th>
+            <th>Surchargé</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map((row) => (
-            <tr key={row.eic} className="border-t border-gray-200 hover:bg-gray-50">
-              <td className="px-2 py-1 font-mono text-xs">{row.eic}</td>
-              <td className="px-2 py-1 text-xs">{row.current.displayName}</td>
-              <td className="px-2 py-1 text-xs">{row.current.type}</td>
-              <td className="px-2 py-1 text-xs">{row.current.organization ?? '—'}</td>
-              <td className="px-2 py-1 text-xs">
+            <tr key={row.eic}>
+              <td className={styles.mono}>{row.eic}</td>
+              <td className={styles.small}>{row.current.displayName}</td>
+              <td className={styles.small}>{row.current.type}</td>
+              <td className={styles.small}>{row.current.organization ?? '—'}</td>
+              <td className={styles.small}>
                 {row.current.country ? (
                   row.current.country
                 ) : row.current.organization ? (
                   <button
                     type="button"
                     onClick={() => setOrgToCreate(row.current.organization)}
-                    className="inline-flex items-center gap-1 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-800 hover:bg-orange-200"
+                    className={styles.missingButton}
                     title={`Pays manquant — cliquer pour ajouter « ${row.current.organization} » à la mémoire interne`}
                   >
-                    ⚠ Manquant <span className="text-[9px]">[+]</span>
+                    ⚠ Manquant <span className={styles.missingHint}>[+]</span>
                   </button>
                 ) : (
-                  <span className="text-orange-600" title="Pays et organisation inconnus">
+                  <span className={styles.warning} title="Pays et organisation inconnus">
                     ⚠
                   </span>
                 )}
               </td>
-              <td className="px-2 py-1 text-xs">
+              <td className={styles.small}>
                 {row.current.isDefaultPosition ? (
-                  <span className="text-orange-600">⚠ défaut</span>
+                  <span className={styles.warningSmall}>⚠ défaut</span>
                 ) : (
                   `${row.current.lat.toFixed(3)}, ${row.current.lng.toFixed(3)}`
                 )}
               </td>
-              <td className="px-2 py-1 text-xs">{row.importsCount}</td>
-              <td className="px-2 py-1 text-xs">{row.override !== null ? '🏷' : '—'}</td>
-              <td className="px-2 py-1">
-                <div className="flex gap-2">
+              <td className={styles.small}>{row.importsCount}</td>
+              <td className={styles.small}>{row.override !== null ? '🏷' : '—'}</td>
+              <td>
+                <div className={styles.actions}>
                   <button
                     type="button"
                     onClick={() => setEditing(row)}
-                    className="text-blue-600 hover:text-blue-800 text-xs"
+                    className={styles.editLink}
                     aria-label={`Éditer ${row.eic}`}
                   >
                     🖊 Éditer
@@ -218,7 +223,7 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
                     <button
                       type="button"
                       onClick={() => setConfigEic(row.eic)}
-                      className="text-slate-700 hover:text-slate-900 text-xs"
+                      className={styles.configLink}
                       aria-label={`Voir la config ECP de ${row.eic}`}
                     >
                       ⚙ Config
@@ -230,7 +235,7 @@ export function ComponentsAdminTable({ autoOpenEic, onAutoOpenHandled }: Props =
           ))}
           {filtered.length === 0 && !loading ? (
             <tr>
-              <td colSpan={9} className="p-4 text-center text-sm text-gray-500">
+              <td colSpan={9} className={styles.emptyRow}>
                 Aucun composant.
               </td>
             </tr>
