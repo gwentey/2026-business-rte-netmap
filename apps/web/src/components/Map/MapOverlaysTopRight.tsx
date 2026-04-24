@@ -1,6 +1,5 @@
 import type { GraphResponse } from '@carto-ecp/shared';
 import { useAppStore } from '../../store/app-store.js';
-import { BaFilter } from './BaFilter.js';
 
 interface Props {
   graph: GraphResponse | null;
@@ -32,7 +31,7 @@ const ICONS = {
  * Bandeau d'overlays en haut à droite de la carte (ADR-040).
  * Trois cartes : toggle hiérarchie CD, filtre BA, raccourcis (centrer/export/info).
  */
-export function MapOverlaysTopRight({ graph }: Props): JSX.Element {
+export function MapOverlaysTopRight(_: Props): JSX.Element {
   const showHomeCdOverlay = useAppStore((s) => s.showHomeCdOverlay);
   const toggleHomeCdOverlay = useAppStore((s) => s.toggleHomeCdOverlay);
 
@@ -50,8 +49,6 @@ export function MapOverlaysTopRight({ graph }: Props): JSX.Element {
           Hiérarchie CD
         </label>
       </div>
-
-      <BaFilter graph={graph} />
 
       <div className="map-overlay map-overlay--compact">
         <div style={{ display: 'flex', gap: 6 }}>

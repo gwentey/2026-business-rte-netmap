@@ -17,23 +17,31 @@ vi.mock('../../lib/api.js', () => ({
   },
 }));
 
-describe('DangerZoneTab', () => {
+describe('DangerZoneTab (5 actions design carto-rte v2)', () => {
   beforeEach(() => {
     vi.mocked(api.purgeImportsAll).mockReset();
     vi.mocked(api.purgeOverridesAll).mockReset();
     vi.mocked(api.purgeAll).mockReset();
   });
 
-  it('renders 3 purge buttons', () => {
+  it('renders 5 action cards', () => {
     render(<DangerZoneTab />);
-    expect(screen.getByRole('button', { name: /Purger tous les imports/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Purger toutes les surcharges/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Reset total/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rejouer l'intégralité des imports/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Purger l'historique des snapshots/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Réinitialiser les overrides manuels/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Activer le mode maintenance/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Détruire la base de données/i })).toBeInTheDocument();
+  });
+
+  it('disables stub UI actions (replay-imports, maintenance) — endpoint à venir', () => {
+    render(<DangerZoneTab />);
+    expect(screen.getByRole('button', { name: /Rejouer l'intégralité des imports/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Activer le mode maintenance/i })).toBeDisabled();
   });
 
   it('opens confirm modal and requires typing PURGER for purge imports', async () => {
     render(<DangerZoneTab />);
-    const btn = screen.getAllByRole('button', { name: /Purger tous les imports/i })[0]!;
+    const btn = screen.getByRole('button', { name: /Purger l'historique des snapshots/i });
     await userEvent.click(btn);
     const confirmBtn = screen.getByRole('button', { name: /Confirmer/i });
     expect(confirmBtn).toBeDisabled();
@@ -47,20 +55,20 @@ describe('DangerZoneTab', () => {
     expect(confirmBtn).toBeEnabled();
   });
 
-  it('calls purgeImportsAll when confirming with correct keyword', async () => {
+  it('calls purgeImportsAll when confirming purge imports', async () => {
     vi.mocked(api.purgeImportsAll).mockResolvedValue({ deletedCount: 7 });
     render(<DangerZoneTab />);
-    await userEvent.click(screen.getAllByRole('button', { name: /Purger tous les imports/i })[0]!);
+    await userEvent.click(screen.getByRole('button', { name: /Purger l'historique des snapshots/i }));
     await userEvent.type(screen.getByLabelText(/Confirmation/i), 'PURGER');
     await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
     expect(api.purgeImportsAll).toHaveBeenCalled();
   });
 
-  it('calls purgeAll when confirming Reset total with keyword RESET', async () => {
+  it('calls purgeAll when confirming "Détruire la base de données"', async () => {
     vi.mocked(api.purgeAll).mockResolvedValue({ imports: 5, overrides: 3, entsoe: 1000 });
     render(<DangerZoneTab />);
-    await userEvent.click(screen.getAllByRole('button', { name: /Reset total/i })[0]!);
-    await userEvent.type(screen.getByLabelText(/Confirmation/i), 'RESET');
+    await userEvent.click(screen.getByRole('button', { name: /Détruire la base de données/i }));
+    await userEvent.type(screen.getByLabelText(/Confirmation/i), 'JE COMPRENDS · DÉTRUIRE');
     await userEvent.click(screen.getByRole('button', { name: /Confirmer/i }));
     expect(api.purgeAll).toHaveBeenCalled();
   });

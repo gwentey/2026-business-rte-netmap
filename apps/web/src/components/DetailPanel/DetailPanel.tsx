@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useAppStore } from '../../store/app-store.js';
 import { NodeDetails } from './NodeDetails.js';
 import { EdgeDetails } from './EdgeDetails.js';
+import { NODE_KIND_LABEL } from '../Map/node-icon.js';
 
 const CloseIcon = (): JSX.Element => (
   <svg
@@ -40,26 +41,28 @@ export function DetailPanel(): JSX.Element | null {
   let body: ReactNode = null;
 
   if (node !== undefined) {
-    kicker = node.kind.replace('_', ' ');
+    kicker = NODE_KIND_LABEL[node.kind] ?? node.kind;
     title = node.displayName;
     body = <NodeDetails node={node} />;
   } else if (edge !== undefined) {
-    kicker = edge.kind === 'PEERING' ? 'Peering' : `Flux ${edge.process ?? ''}`.trim();
+    kicker = edge.kind === 'PEERING' ? 'Peering CD ↔ CD' : 'Lien de processus';
     title = `${edge.fromEic} → ${edge.toEic}`;
     body = <EdgeDetails edge={edge} />;
   }
+
+  const setActiveTab = useAppStore.getState; // helper
 
   return (
     <aside className="detail-panel" aria-label="Détails de l'élément sélectionné">
       <div className="detail-panel__head">
         <div style={{ minWidth: 0 }}>
           <div className="detail-panel__kicker">{kicker}</div>
-          <div
+          <h2
             className="detail-panel__title mono"
-            style={{ wordBreak: 'break-all' }}
+            style={{ wordBreak: 'break-all', margin: 0 }}
           >
             {title}
-          </div>
+          </h2>
         </div>
         <button
           type="button"
@@ -72,6 +75,28 @@ export function DetailPanel(): JSX.Element | null {
       </div>
 
       <div className="detail-panel__body scroll">{body}</div>
+
+      <div className="detail-panel__foot">
+        <a
+          className="btn btn--outline btn--sm"
+          href={
+            node !== undefined
+              ? `/admin?tab=components&eic=${encodeURIComponent(node.eic)}`
+              : `/admin?tab=imports`
+          }
+        >
+          {node !== undefined ? 'Voir dans Composants' : 'Voir dans Imports'}
+        </a>
+        <button
+          type="button"
+          className="btn btn--primary btn--sm"
+          onClick={() => {
+            void setActiveTab; // hook reserved for history modal — backend endpoint à venir
+          }}
+        >
+          Ouvrir l'historique
+        </button>
+      </div>
     </aside>
   );
 }

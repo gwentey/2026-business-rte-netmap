@@ -1,23 +1,21 @@
 import { Link, NavLink } from 'react-router-dom';
 import { EnvSelector } from '../EnvSelector/EnvSelector.js';
 
-const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 'v3.0';
+const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 'v3.0.0';
 
 /**
- * AppHeader — chrome global 56px (ADR-040).
- * Brand + nav + EnvSelector + bloc utilisateur (version + avatar mock).
+ * AppHeader — chrome global 56px (ADR-040, design carto-rte v2).
  * Markup `.app-header` défini dans `styles/components.scss`.
  */
 export function AppHeader(): JSX.Element {
   return (
     <header className="app-header">
       <Link to="/" className="brand" aria-label="Carto ECP — accueil">
-        <span className="brand-logo">Rte</span>
-        <span>
-          <span className="brand-title">Carto ECP · RTE</span>
-          <br />
-          <span className="brand-tagline">Topologie réseau — vue opérationnelle</span>
-        </span>
+        <div className="brand-logo">Rte</div>
+        <div>
+          <div className="brand-title">Carto ECP · RTE</div>
+          <div className="brand-tagline">Topologie réseau — vue opérationnelle</div>
+        </div>
       </Link>
 
       <nav className="app-nav" aria-label="Navigation principale">

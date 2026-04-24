@@ -215,6 +215,23 @@ export function ImportsAdminTable(): JSX.Element {
         </table>
       </div>
 
+      {filtered.length > 0 && (
+        <div className="admin-pagination">
+          <span>
+            Affichage de <strong style={{ color: 'var(--ink-1)' }}>1–{filtered.length}</strong> sur{' '}
+            <strong style={{ color: 'var(--ink-1)' }}>{imports.length}</strong>
+          </span>
+          <div className="admin-pagination__btns">
+            <button type="button" className="btn btn--outline btn--sm" disabled>
+              ← Préc.
+            </button>
+            <button type="button" className="btn btn--outline btn--sm" disabled>
+              Suiv. →
+            </button>
+          </div>
+        </div>
+      )}
+
       {deletingItem !== null && (
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal">

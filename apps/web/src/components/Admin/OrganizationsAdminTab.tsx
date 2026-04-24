@@ -21,6 +21,21 @@ const EditIcon = (): JSX.Element => (
   </svg>
 );
 
+const TrashIcon = (): JSX.Element => (
+  <svg
+    width="12"
+    height="12"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    aria-hidden
+  >
+    <path d="M3 4h10M6.5 4V2.5h3V4M5 4l1 9h4l1-9" />
+  </svg>
+);
+
 export function OrganizationsAdminTab(): JSX.Element {
   const [rows, setRows] = useState<OrganizationEntryRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -253,12 +268,34 @@ export function OrganizationsAdminTab(): JSX.Element {
                 )}
                 <button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  className="icon-btn"
                   title="Modifier"
+                  aria-label={`Modifier ${row.displayName}`}
                   onClick={() => setEditing(row)}
                 >
                   <EditIcon />
-                  <span style={{ marginLeft: 4 }}>🖊 Éditer</span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  title="Supprimer"
+                  aria-label={`Supprimer ${row.displayName}`}
+                  onClick={async () => {
+                    if (
+                      window.confirm(
+                        `Supprimer « ${row.displayName} » de la mémoire interne ?`,
+                      )
+                    ) {
+                      try {
+                        await api.deleteOrganization(row.id);
+                        await reload();
+                      } catch (err) {
+                        setError((err as Error).message);
+                      }
+                    }
+                  }}
+                >
+                  <TrashIcon />
                 </button>
               </div>
             </div>

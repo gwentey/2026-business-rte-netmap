@@ -28,9 +28,15 @@ export function MapPage(): JSX.Element {
 
   const subHeader = (
     <SubHeader
-      breadcrumb={['Cartographie', activeEnv ?? '—', 'Snapshot actuel']}
+      breadcrumb={['Cartographie', 'Snapshot actuel']}
       right={
         <>
+          {activeEnv !== null && (
+            <span className="badge badge--teal">{activeEnv}</span>
+          )}
+          <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+            Topologie ECP · snapshot actuel
+          </span>
           <button
             type="button"
             className="btn btn--ghost btn--sm"
@@ -43,6 +49,14 @@ export function MapPage(): JSX.Element {
           >
             <RefreshIcon />
             Rafraîchir
+          </button>
+          <button
+            type="button"
+            className="btn btn--outline btn--sm"
+            disabled
+            title="Export PNG — endpoint backend à venir"
+          >
+            Exporter la carte
           </button>
           <a className="btn btn--primary btn--sm" href="/upload">
             + Charger un snapshot

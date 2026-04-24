@@ -46,7 +46,7 @@ function makeGraph(): GraphResponse {
   };
 }
 
-describe('BaFilter (ADR-040 — panneau intégré dans MapOverlaysTopRight)', () => {
+describe('BaFilter (select criticité — design carto-rte v2)', () => {
   beforeEach(() => {
     useAppStore.setState({ selectedBaCodes: [] });
     cleanup();
@@ -64,27 +64,27 @@ describe('BaFilter (ADR-040 — panneau intégré dans MapOverlaysTopRight)', ()
     expect(container.firstChild).toBeNull();
   });
 
-  it('liste toutes les BAs présentes triées par criticité (P1, P2, P3)', () => {
+  it('rend le label "Filtre BA" et un select avec 4 options', () => {
     render(<BaFilter graph={makeGraph()} />);
-    const checkboxes = screen.getAllByRole('checkbox');
-    expect(checkboxes).toHaveLength(3);
-    expect(checkboxes[0]!.getAttribute('aria-label')).toBe('Filtrer OCAPPI');
-    expect(checkboxes[1]!.getAttribute('aria-label')).toBe('Filtrer PLANET');
-    expect(checkboxes[2]!.getAttribute('aria-label')).toBe('Filtrer KIWI');
+    expect(screen.getByText('Filtre BA')).toBeInTheDocument();
+    const select = screen.getByRole('combobox', { name: /criticité/i });
+    expect(select).toBeInTheDocument();
+    const options = Array.from(select.querySelectorAll('option'));
+    expect(options.map((o) => o.value)).toEqual(['ALL', 'P1', 'P2', 'P3']);
   });
 
-  it('clique sur une BA met à jour le store et le compteur', () => {
+  it('sélectionner P1 ajoute toutes les BAs P1 au store', () => {
     render(<BaFilter graph={makeGraph()} />);
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Filtrer OCAPPI' }));
+    const select = screen.getByRole('combobox', { name: /criticité/i });
+    fireEvent.change(select, { target: { value: 'P1' } });
     expect(useAppStore.getState().selectedBaCodes).toEqual(['OCAPPI']);
-    expect(screen.getByText(/Filtre BA \(1\)/)).toBeInTheDocument();
   });
 
-  it('le bouton Réinitialiser efface le filtre actif', () => {
-    useAppStore.setState({ selectedBaCodes: ['OCAPPI', 'PLANET'] });
+  it('sélectionner ALL efface le filtre actif', () => {
+    useAppStore.setState({ selectedBaCodes: ['OCAPPI'] });
     render(<BaFilter graph={makeGraph()} />);
-    expect(screen.getByText(/Filtre BA \(2\)/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Réinitialiser/ }));
+    const select = screen.getByRole('combobox', { name: /criticité/i });
+    fireEvent.change(select, { target: { value: 'ALL' } });
     expect(useAppStore.getState().selectedBaCodes).toEqual([]);
   });
 });

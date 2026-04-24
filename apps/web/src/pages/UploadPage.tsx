@@ -4,6 +4,8 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAppStore } from '../store/app-store.js';
 import { SubHeader } from '../components/SubHeader/SubHeader.js';
 import { UploadBatchTable } from '../components/UploadBatchTable/UploadBatchTable.js';
+import { DuplicateDiff } from '../components/Upload/DuplicateDiff.js';
+import { LastBatchCard } from '../components/Upload/LastBatchCard.js';
 
 const MAX_UPLOAD = 50 * 1024 * 1024;
 const MAX_FILES_PER_BATCH = 20;
@@ -25,6 +27,7 @@ export function UploadPage(): JSX.Element {
   const addBatchFiles = useAppStore((s) => s.addBatchFiles);
   const submitBatch = useAppStore((s) => s.submitBatch);
   const clearBatch = useAppStore((s) => s.clearBatch);
+  const recentImports = useAppStore((s) => s.imports);
 
   const [envName, setEnvName] = useState(searchParams.get('env') ?? 'OPF');
   const [comment, setComment] = useState('');
@@ -177,18 +180,114 @@ export function UploadPage(): JSX.Element {
             </div>
           </div>
 
-          {summary.duplicates > 0 && (
-            <div className="banner banner--warn" style={{ marginBottom: 14 }}>
-              <div className="banner__ico">!</div>
-              <div>
-                <b style={{ color: 'var(--warn-strong)' }}>
-                  {summary.duplicates} doublon{summary.duplicates > 1 ? 's' : ''} détecté
-                  {summary.duplicates > 1 ? 's' : ''}.
-                </b>{' '}
-                Cochez <i>Remplacer</i> dans le tableau pour écraser le snapshot existant,
-                ou retirez le fichier.
+          {summary.inspecting > 0 && (
+            <div className="dropzone dropzone--hover" style={{ padding: 24, marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  justifyContent: 'center',
+                }}
+              >
+                <div
+                  className="dropzone__icon"
+                  style={{ margin: 0, width: 40, height: 40, fontSize: 18 }}
+                  aria-hidden
+                >
+                  ⏳
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ color: 'var(--ink-0)', fontWeight: 700 }}>
+                    Inspection en cours…{' '}
+                    <span className="mono" style={{ color: 'var(--cyan-2)' }}>
+                      {batch.length - summary.inspecting} / {batch.length}
+                    </span>
+                  </div>
+                  <div style={{ color: 'var(--ink-3)', fontSize: 12.5 }}>
+                    Lecture des manifestes, calcul des empreintes, vérification EIC.
+                  </div>
+                </div>
               </div>
             </div>
+          )}
+
+          {uploadInProgress && (
+            <div className="card" style={{ padding: '14px 18px', marginBottom: 14 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 10,
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-0)' }}>
+                    Import en cours ·{' '}
+                    <span className="mono" style={{ color: 'var(--cyan-2)' }}>
+                      {summary.processed} / {summary.total}
+                    </span>{' '}
+                    terminés
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 2 }}>
+                    Lot {envName || '—'}
+                    {comment ? ` · ${comment}` : ''} · envoi en cours
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn--danger-outline btn--sm"
+                  disabled
+                  title="Annulation côté backend à venir"
+                >
+                  Annuler
+                </button>
+              </div>
+              <div className="progress">
+                <div
+                  className="progress__fill"
+                  style={{
+                    width:
+                      summary.total > 0
+                        ? `${(summary.processed / summary.total) * 100}%`
+                        : '0%',
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {summary.duplicates > 0 && !uploadInProgress && (
+            <>
+              <div className="banner banner--warn" style={{ marginBottom: 14 }}>
+                <div className="banner__ico">!</div>
+                <div>
+                  <b style={{ color: 'var(--warn-strong)' }}>
+                    {summary.duplicates} doublon{summary.duplicates > 1 ? 's' : ''} détecté
+                    {summary.duplicates > 1 ? 's' : ''}.
+                  </b>{' '}
+                  Cochez <i>Remplacer</i> dans le tableau pour écraser le snapshot
+                  existant, ou retirez le fichier.
+                </div>
+              </div>
+              {(() => {
+                const dup = batch.find(
+                  (i) => i.duplicateOf !== null && i.duplicateOf !== undefined,
+                );
+                if (!dup || !dup.duplicateOf) return null;
+                return (
+                  <DuplicateDiff
+                    existingLabel={dup.duplicateOf.label}
+                    existingDate="snapshot précédent"
+                    incomingLabel={dup.label || dup.fileName}
+                    incomingDate={dup.sourceDumpTimestamp?.slice(0, 10) ?? 'maintenant'}
+                    incomingHashTail={dup.fileHash?.slice(-6)}
+                  />
+                );
+              })()}
+            </>
           )}
 
           <div {...getRootProps()} className={dropzoneClass}>
@@ -215,23 +314,14 @@ export function UploadPage(): JSX.Element {
                 Parcourir les fichiers…
               </button>
               <span className="dropzone__or">ou</span>
-              <label
+              <button
+                type="button"
                 className="btn btn--ghost"
-                style={{ cursor: 'pointer' }}
+                disabled
+                title="Endpoint backend à venir — copier-coller un chemin UNC réseau RTE"
               >
-                <input
-                  type="file"
-                  multiple
-                  accept=".zip,.properties"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const files = Array.from(e.currentTarget.files ?? []);
-                    if (files.length > 0) ingestFiles(files);
-                    e.currentTarget.value = '';
-                  }}
-                />
-                Sélecteur natif (fallback)
-              </label>
+                Coller un chemin réseau
+              </button>
             </div>
             <div className="dropzone__hint">
               Format attendu :{' '}
@@ -282,6 +372,13 @@ export function UploadPage(): JSX.Element {
                 <span className="mono">{Object.keys(propertiesFiles).join(', ')}</span>
               </div>
             </div>
+          )}
+
+          {batch.length === 0 && recentImports.length > 0 && (
+            <>
+              <div className="divider" />
+              <LastBatchCard imports={recentImports} />
+            </>
           )}
 
           <div className="divider" />

@@ -305,7 +305,8 @@ export const useAppStore = create<AppState>()(
       partialize: (s) => ({
         activeEnv: s.activeEnv,
         showHomeCdOverlay: s.showHomeCdOverlay,
-        selectedBaCodes: s.selectedBaCodes,
+        // selectedBaCodes intentionnellement non persisté : la carte s'ouvre
+        // toujours sans filtre BA actif (tous ECP + tous CD visibles par défaut).
       }),
     },
   ),

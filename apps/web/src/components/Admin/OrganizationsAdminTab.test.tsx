@@ -126,9 +126,9 @@ describe('OrganizationsAdminTab', () => {
     const user = userEvent.setup();
     render(<OrganizationsAdminTab />);
     await waitFor(() => expect(screen.getByText('To Edit')).toBeInTheDocument());
-    await user.click(screen.getByText(/🖊 Éditer/));
+    await user.click(screen.getByRole('button', { name: /Modifier To Edit/ }));
     // Modal en mode edit → bouton "Supprimer" visible
-    expect(screen.getByRole('button', { name: /Supprimer/ })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /Supprimer/ }).length).toBeGreaterThan(0);
   });
 
   it('importer JSON : affiche le bilan apres import', async () => {

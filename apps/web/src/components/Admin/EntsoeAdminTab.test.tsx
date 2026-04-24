@@ -29,18 +29,21 @@ describe('EntsoeAdminTab', () => {
     await waitFor(() => expect(screen.getByText(/Annuaire vide/i)).toBeInTheDocument());
   });
 
-  it('displays count and refreshedAt after status loads', async () => {
+  it('displays count after status loads', async () => {
     vi.mocked(api.getEntsoeStatus).mockResolvedValue({ count: 14929, refreshedAt: '2026-04-20T10:00:00.000Z' });
     render(<EntsoeAdminTab />);
-    await waitFor(() => expect(screen.getByText(/14929/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/14929/).length).toBeGreaterThan(0));
   });
 
-  it('calls uploadEntsoe on button click and reloads status', async () => {
+  it('toggles the upload card via "Lancer une synchro manuelle" and uploads a CSV', async () => {
     vi.mocked(api.getEntsoeStatus).mockResolvedValue({ count: 0, refreshedAt: null });
     vi.mocked(api.uploadEntsoe).mockResolvedValue({ count: 42, refreshedAt: '2026-04-20T10:00:00.000Z' });
 
     render(<EntsoeAdminTab />);
     await waitFor(() => expect(screen.getByText(/Annuaire vide/i)).toBeInTheDocument());
+
+    // Ouvre la carte upload
+    await userEvent.click(screen.getByRole('button', { name: /Lancer une synchro manuelle/i }));
 
     const fileInput = screen.getByLabelText(/Fichier CSV ENTSO-E/i);
     const testFile = new File(['EicCode;...'], 'eic.csv', { type: 'text/csv' });

@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { api } from '../../lib/api.js';
 
-type Action = 'purge-imports' | 'purge-overrides' | 'purge-all';
+type Action =
+  | 'replay-imports'
+  | 'purge-imports'
+  | 'reset-overrides'
+  | 'maintenance'
+  | 'purge-all';
 
 interface ActionConfig {
   label: string;
@@ -9,32 +14,55 @@ interface ActionConfig {
   description: string;
   keyword: string;
   variant: 'outline' | 'solid';
+  /** false = endpoint backend non encore disponible (UI stub). */
+  enabled: boolean;
 }
 
 const ACTION_CONFIG: Record<Action, ActionConfig> = {
-  'purge-imports': {
-    label: 'Purger tous les imports',
+  'replay-imports': {
+    label: "Rejouer l'intégralité des imports",
     icon: '⟲',
+    description:
+      "Purge la base puis rejoue tous les snapshots archivés dans l'ordre chronologique. Durée estimée : ~45 min. Rend la carte indisponible pendant l'opération.",
+    keyword: 'REJOUER',
+    variant: 'outline',
+    enabled: false,
+  },
+  'purge-imports': {
+    label: "Purger l'historique des snapshots",
+    icon: '✕',
     description:
       "Supprime TOUS les imports (tous envs), tous les composants et paths associés, et les zips stockés sur disque. Les overrides et l'annuaire ENTSO-E ne sont pas touchés.",
     keyword: 'PURGER',
     variant: 'outline',
+    enabled: true,
   },
-  'purge-overrides': {
-    label: 'Purger toutes les surcharges',
+  'reset-overrides': {
+    label: 'Réinitialiser les overrides manuels',
     icon: '⟳',
     description:
-      "Supprime TOUS les ComponentOverride. Les imports et l'annuaire ENTSO-E ne sont pas touchés.",
-    keyword: 'PURGER',
+      "Remet tous les composants surchargés (displayName, lat/lng, org, pays) à leur valeur importée d'origine. Supprime tous les overrides actuels.",
+    keyword: 'RÉINITIALISER',
     variant: 'outline',
+    enabled: true,
+  },
+  maintenance: {
+    label: 'Activer le mode maintenance',
+    icon: '⏸',
+    description:
+      "Met l'application en lecture seule. Bloque les imports et l'édition de composants pour tous les utilisateurs non-admin.",
+    keyword: 'ACTIVER',
+    variant: 'solid',
+    enabled: false,
   },
   'purge-all': {
-    label: 'Reset total — détruire la base',
+    label: 'Détruire la base de données',
     icon: '💣',
     description:
       "DÉTRUIT toutes les données applicatives : imports + composants + paths + overrides + entrées ENTSO-E. Le registry RTE (fichier JSON) n'est pas touché.",
-    keyword: 'RESET',
+    keyword: 'JE COMPRENDS · DÉTRUIRE',
     variant: 'solid',
+    enabled: true,
   },
 };
 
@@ -65,14 +93,17 @@ export function DangerZoneTab(): JSX.Element {
       if (pending === 'purge-imports') {
         const r = await api.purgeImportsAll();
         setResult(`${r.deletedCount} imports supprimés.`);
-      } else if (pending === 'purge-overrides') {
+      } else if (pending === 'reset-overrides') {
         const r = await api.purgeOverridesAll();
-        setResult(`${r.deletedCount} surcharges supprimées.`);
+        setResult(`${r.deletedCount} surcharges réinitialisées.`);
       } else if (pending === 'purge-all') {
         const r = await api.purgeAll();
         setResult(
           `Reset total : ${r.imports} imports + ${r.overrides} overrides + ${r.entsoe} entrées ENTSO-E.`,
         );
+      } else {
+        // Stubs UI : endpoint backend à venir
+        setResult(`Action « ${pendingCfg?.label} » — endpoint backend à venir.`);
       }
       closeConfirm();
     } catch (err) {
@@ -105,7 +136,15 @@ export function DangerZoneTab(): JSX.Element {
             </div>
             <div className="danger-card__body">
               <h3>{cfg.label}</h3>
-              <p>{cfg.description}</p>
+              <p>
+                {cfg.description}
+                {!cfg.enabled && (
+                  <span style={{ color: 'var(--ink-3)', fontStyle: 'italic' }}>
+                    {' '}
+                    (Endpoint backend à venir.)
+                  </span>
+                )}
+              </p>
             </div>
             <button
               type="button"
@@ -114,6 +153,8 @@ export function DangerZoneTab(): JSX.Element {
               }
               onClick={() => openConfirm(action)}
               aria-label={cfg.label}
+              disabled={!cfg.enabled}
+              title={cfg.enabled ? undefined : 'Endpoint backend à venir'}
             >
               {cfg.keyword}
             </button>

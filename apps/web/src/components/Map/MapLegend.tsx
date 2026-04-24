@@ -42,6 +42,16 @@ export function MapLegend({
       </div>
       <div className="map-legend__group">
         <span className="map-legend__title">Nœuds</span>
+        <span className="map-legend__item" title="Home CD = RTE_CD avec anneau cyan dashed">
+          <span
+            className="swatch"
+            style={{
+              background: NODE_KIND_COLOR.RTE_CD,
+              boxShadow: '0 0 0 1.5px rgba(0,189,237,0.4)',
+            }}
+          />
+          Home CD
+        </span>
         {KIND_ORDER.map((kind) => (
           <span key={kind} className="map-legend__item">
             <span className="swatch" style={{ background: NODE_KIND_COLOR[kind] }} />

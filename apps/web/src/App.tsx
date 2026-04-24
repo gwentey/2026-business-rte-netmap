@@ -8,10 +8,15 @@ import { useAppStore } from './store/app-store.js';
 
 export function App(): JSX.Element {
   const loadEnvs = useAppStore((s) => s.loadEnvs);
+  const clearBaFilter = useAppStore((s) => s.clearBaFilter);
 
   useEffect(() => {
+    // Purge les BA codes éventuellement persistés par d'anciennes versions
+    // (le filtre BA n'est plus exposé dans l'UI carte) → garantit que la
+    // carte affiche tous les ECP et CD par défaut.
+    clearBaFilter();
     void loadEnvs();
-  }, [loadEnvs]);
+  }, [loadEnvs, clearBaFilter]);
 
   return (
     <div className="app">
