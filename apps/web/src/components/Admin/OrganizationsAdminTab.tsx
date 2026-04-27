@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type {
   OrganizationEntryRow,
+  OrganizationGeocodeMissingResult,
   OrganizationImportResult,
 } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
 import { OrganizationEditModal } from './OrganizationEditModal.js';
+import { capitalFor } from '../../lib/country-capitals.js';
 
 const EditIcon = (): JSX.Element => (
   <svg
@@ -44,6 +46,9 @@ export function OrganizationsAdminTab(): JSX.Element {
   const [editing, setEditing] = useState<OrganizationEntryRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [importResult, setImportResult] = useState<OrganizationImportResult | null>(null);
+  const [geocodeResult, setGeocodeResult] =
+    useState<OrganizationGeocodeMissingResult | null>(null);
+  const [geocoding, setGeocoding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reload = async (): Promise<void> => {
@@ -77,6 +82,43 @@ export function OrganizationsAdminTab(): JSX.Element {
   }, [rows, search]);
 
   const editedCount = rows.filter((r) => r.userEdited).length;
+  const missingCoordsCount = rows.filter(
+    (r) => r.lat === null || r.lng === null,
+  ).length;
+
+  const handleGeocodeWithCapitals = async (): Promise<void> => {
+    if (geocoding) return;
+    const candidatesCount = rows.filter(
+      (r) => r.lat === null || r.lng === null,
+    ).length;
+    if (candidatesCount === 0) {
+      setGeocodeResult({
+        updated: 0,
+        noCountry: 0,
+        noCapital: 0,
+        alreadyGeolocated: rows.length,
+        skippedCountries: [],
+        errors: [],
+      });
+      return;
+    }
+    const confirmed = window.confirm(
+      `Pré-remplir lat/lng avec la capitale du pays pour ${candidatesCount} organisation(s) sans coordonnées ?\n\nLes orgas déjà géolocalisées ne seront pas modifiées.`,
+    );
+    if (!confirmed) return;
+
+    setGeocoding(true);
+    setError(null);
+    try {
+      const result = await api.geocodeMissingOrganizations();
+      setGeocodeResult(result);
+      await reload();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const handleExport = async (): Promise<void> => {
     try {
@@ -149,6 +191,21 @@ export function OrganizationsAdminTab(): JSX.Element {
         </button>
         <button
           type="button"
+          className="btn btn--outline"
+          onClick={() => {
+            void handleGeocodeWithCapitals();
+          }}
+          disabled={geocoding || missingCoordsCount === 0}
+          title={
+            missingCoordsCount === 0
+              ? 'Toutes les organisations sont déjà géolocalisées'
+              : `Géolocalise ${missingCoordsCount} organisation(s) avec la capitale de leur pays`
+          }
+        >
+          📍 Géolocaliser ({missingCoordsCount})
+        </button>
+        <button
+          type="button"
           className="btn btn--primary"
           onClick={() => setCreating(true)}
         >
@@ -201,9 +258,78 @@ export function OrganizationsAdminTab(): JSX.Element {
         </div>
       )}
 
+      {geocodeResult !== null && (
+        <div
+          className={
+            geocodeResult.errors.length > 0
+              ? 'banner banner--warn'
+              : 'banner banner--ok'
+          }
+          style={{ marginBottom: 12 }}
+        >
+          <div className="banner__ico">
+            {geocodeResult.errors.length > 0 ? '!' : '✓'}
+          </div>
+          <div style={{ flex: 1 }}>
+            <div>
+              Géolocalisation : <strong>{geocodeResult.updated}</strong> orga(s) mise(s)
+              à jour avec la capitale
+              {geocodeResult.noCountry > 0 && (
+                <>
+                  {' '}· <strong>{geocodeResult.noCountry}</strong> sans code pays
+                </>
+              )}
+              {geocodeResult.noCapital > 0 && (
+                <>
+                  {' '}· <strong>{geocodeResult.noCapital}</strong> pays inconnus
+                  {geocodeResult.skippedCountries.length > 0 && (
+                    <> ({geocodeResult.skippedCountries.join(', ')})</>
+                  )}
+                </>
+              )}
+              {geocodeResult.alreadyGeolocated > 0 && (
+                <>
+                  {' '}· <strong>{geocodeResult.alreadyGeolocated}</strong> déjà
+                  géolocalisée(s)
+                </>
+              )}
+              {geocodeResult.errors.length > 0 && (
+                <>
+                  {' '}· <strong>{geocodeResult.errors.length}</strong> erreur(s)
+                </>
+              )}
+            </div>
+            {geocodeResult.errors.length > 0 && (
+              <ul style={{ marginTop: 8, paddingLeft: 18, fontSize: 12 }}>
+                {geocodeResult.errors.slice(0, 10).map((err, i) => (
+                  <li key={i}>
+                    {err.organizationName} : {err.reason}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => setGeocodeResult(null)}
+            aria-label="Masquer"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       <p style={{ color: 'var(--ink-3)', fontSize: 12, marginBottom: 12 }}>
-        {filtered.length} / {rows.length} organisations · {editedCount} éditée(s) par
-        l'utilisateur
+        {filtered.length} / {rows.length} organisations · {editedCount} éditée(s) ·{' '}
+        <span
+          style={{
+            color:
+              missingCoordsCount > 0 ? 'var(--warn)' : 'var(--ok)',
+          }}
+        >
+          {missingCoordsCount} sans coords
+        </span>
       </p>
 
       <div className="tab-content" style={{ padding: 0 }}>
@@ -247,8 +373,44 @@ export function OrganizationsAdminTab(): JSX.Element {
                   <span style={{ color: 'var(--ink-4)' }}>—</span>
                 )}
               </div>
-              <div style={{ color: 'var(--ink-2)', fontSize: 12 }}>
-                {row.address ?? <span style={{ color: 'var(--ink-4)' }}>—</span>}
+              <div style={{ color: 'var(--ink-2)', fontSize: 12, minWidth: 0 }}>
+                {row.lat !== null && row.lng !== null ? (
+                  <>
+                    <div
+                      className="mono"
+                      style={{ color: 'var(--ink-1)', fontSize: 11 }}
+                      title={`Lat ${row.lat} · Lng ${row.lng}`}
+                    >
+                      {capitalFor(row.country)?.label ?? '📍'}
+                      {' '}
+                      <span style={{ color: 'var(--ink-3)' }}>
+                        ({row.lat.toFixed(3)}, {row.lng.toFixed(3)})
+                      </span>
+                    </div>
+                    {row.address !== null && row.address !== undefined && (
+                      <div
+                        style={{
+                          color: 'var(--ink-3)',
+                          fontSize: 11,
+                          marginTop: 2,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={row.address}
+                      >
+                        {row.address}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <span
+                    className="badge badge--warn"
+                    title="Organisation sans lat/lng — ses composants tombent sur le fallback Bruxelles"
+                  >
+                    Sans coords
+                  </span>
+                )}
               </div>
               <div>
                 {row.typeHint !== null && row.typeHint !== undefined ? (
@@ -257,7 +419,7 @@ export function OrganizationsAdminTab(): JSX.Element {
                   <span style={{ color: 'var(--ink-4)' }}>—</span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
                 {row.userEdited && (
                   <span
                     className="badge badge--cyan"

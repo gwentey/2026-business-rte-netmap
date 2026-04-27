@@ -6,6 +6,7 @@ import type {
   InspectResult,
   AdminComponentRow,
   OrganizationEntryRow,
+  OrganizationGeocodeMissingResult,
   OrganizationImportResult,
   OrganizationUpsertInput,
   OverrideUpsertInput,
@@ -203,5 +204,12 @@ export const api = {
       throw new Error(`${res.status} ${res.statusText}: ${body}`);
     }
     return res.blob();
+  },
+
+  async geocodeMissingOrganizations(): Promise<OrganizationGeocodeMissingResult> {
+    return request<OrganizationGeocodeMissingResult>(
+      '/api/admin/organizations/geocode-missing',
+      { method: 'POST' },
+    );
   },
 };

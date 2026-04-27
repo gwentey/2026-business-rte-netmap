@@ -474,6 +474,7 @@ button {
   text-transform: uppercase;
   border: 1px solid transparent;
   line-height: 1.6;
+  white-space: nowrap;
 
   &--teal {
     background: var(--teal-1);

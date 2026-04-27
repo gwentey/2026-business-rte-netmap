@@ -7,6 +7,131 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/) · Versioning 
 
 ## [Unreleased]
 
+### v3.0-alpha.22 — Fallback capitale pour toute organisation sans coords (2026-04-24)
+
+**Problème corrigé** : les composants ECP (endpoint / broker / CD) dont
+l'organisation n'avait ni coords propres (niveau 3-4 de la cascade
+`applyCascade`) ni pays couvert par `countryGeocode` (niveau 5 — 10 pays
+seulement : FR, DE, BE, IT, ES, CH, NL, IE, NO, DK) tombaient sur le
+**fallback final Bruxelles** (50.8503 / 4.3517), donc tous empilés au même
+point, invisibles sur la carte. La cascade n'est pas cassée — elle manquait
+juste de données.
+
+- **`packages/registry/eic-rte-overlay.json`** : `countryGeocode` remplacé et
+  **étendu à 39 pays** couvrant l'intégralité de la zone ENTSO-E
+  (AL, AT, BA, BE, BG, BY, CH, CY, CZ, DE, DK, EE, ES, FI, FR, GB, GR, HR,
+  HU, IE, IS, IT, LT, LU, LV, MD, ME, MK, MT, NL, NO, PL, PT, RO, RS, SE,
+  SI, SK, TR, UA) + `DEFAULT` (Bruxelles). Les anciens centres géographiques
+  (ex. FR 46.6/2.4 = Cher) sont remplacés par les **coordonnées des capitales
+  administratives** (FR 48.8566/2.3522 = Paris, DE 52.52/13.405 = Berlin,
+  etc.). Chaque entrée expose un `label` explicite (nom de la capitale).
+  Bump `version` → `"2026-04-24-capitals"`.
+- **`apps/web/src/lib/country-capitals.ts`** *(nouveau)* : map locale des
+  capitales (dupliquée de l'overlay, à garder en sync lors d'un bump de
+  version). Helper `capitalFor(country)` renvoie `{ lat, lng, label }` ou
+  `null`.
+- **`OrganizationEditModal.tsx`** : nouveau bouton `📍 Utiliser la capitale
+  (Paris)` visible dès qu'un code pays est saisi, pré-remplit lat/lng avec
+  les coords exactes de la capitale. Hint mis à jour (« fallback sur la
+  capitale du pays (via cascade registry) »).
+- **`OrganizationsAdminTab.tsx`** :
+  - Nouveau bouton toolbar `📍 Géolocaliser (N)` qui patche en batch toutes
+    les orgas sans coords (`lat === null || lng === null`) avec la capitale
+    de leur pays. Confirmation `window.confirm` avant exécution. Bannière
+    de résultat détaillée (updated / noCountry / noCapital / erreurs + liste
+    des pays non couverts).
+  - Compteur enrichi : `{N} sans coords` colorié en `var(--warn)` si > 0.
+  - Nouveau badge `badge--warn "Sans coords"` par ligne si orga sans
+    `lat`/`lng`, indiquant que ses composants tomberont sur Bruxelles par
+    défaut.
+- **Aucun changement backend** — `applyCascade`, `RegistryService`,
+  `OrganizationsController`, schéma Prisma inchangés. La fonctionnalité
+  fonctionne en s'appuyant sur les endpoints existants (`PATCH /api/admin/
+  organizations/:id`, `GET /api/admin/organizations/export`). L'export JSON
+  propage automatiquement les coords surchargées au prochain seed.
+- **Tests** : `pnpm typecheck` vert sur les 3 workspaces. 311/313 tests API
+  passent. Les 2 échecs restants (`registry.service.spec.ts:55` sur couleur
+  VP `#ec4899` vs overlay `#ec85bd`, et `graph.service.compute.spec.ts:206`
+  sur direction BIDI) pré-existent depuis la refonte palette alpha.20 et
+  l'audit alpha.20.1 — **hors scope** de ce patch.
+
+#### v3.0-alpha.22.1 — Bulk geocode via endpoint backend + badge repositionné (2026-04-24)
+
+**Retours terrain après alpha.22** (88 orgas, 60 succès, 24 erreurs 429).
+
+- **Problème 1 résolu — rate limit `429 Too Many Requests`** : le bulk
+  frontend en boucle `for...of api.updateOrganization()` hammerait le
+  throttler NestJS sur ~88 PATCH en rafale. **Solution** : nouvel endpoint
+  `POST /api/admin/organizations/geocode-missing` qui applique toute la
+  logique côté serveur en 1 seule requête (lecture + résolution via
+  `RegistryService.resolveByCountry` + update batch Prisma + agrégation du
+  résumé). Le client fait désormais un seul appel → plus aucun throttling.
+  - `apps/api/src/organizations/organizations.service.ts` : nouvelle méthode
+    `geocodeMissing(): Promise<GeocodeMissingResult>`. Injection de
+    `RegistryService` (module `@Global`). `userEdited=true` posé sur
+    chaque orga mise à jour.
+  - `apps/api/src/organizations/organizations.controller.ts` : route
+    `@Post('geocode-missing')`.
+  - `packages/shared/src/graph.ts` : type
+    `OrganizationGeocodeMissingResult`.
+  - `apps/web/src/lib/api.ts` : client
+    `api.geocodeMissingOrganizations()`.
+  - `apps/web/src/components/Admin/OrganizationsAdminTab.tsx` :
+    `handleGeocodeWithCapitals` simplifié (un seul appel au backend).
+  - `apps/api/src/organizations/organizations.service.spec.ts` : ajout du
+    mock `RegistryService` dans les providers du test (nouveau paramètre
+    constructor).
+- **Problème 2 résolu — badge `Sans coords` qui wrap sur 2 lignes** :
+  la colonne Actions (100px) était trop étroite pour héberger 2 badges
+  (`Sans coords` + `✓ userEdited`) + 2 icônes (édition + suppression).
+  Le badge est **déplacé dans la colonne Adresse** (plus logique
+  sémantiquement — « où est cette orga ? »). La colonne Adresse affiche
+  désormais :
+  - si `lat/lng` présents : le nom de la capitale via `capitalFor(country)`
+    + les coords formatées + l'adresse libre en sous-texte si définie
+  - si `lat/lng` absents : badge `badge--warn Sans coords` avec tooltip
+    explicatif
+  - CSS `.badge` complété avec `white-space: nowrap` pour empêcher tout
+    wrap résiduel dans les autres onglets.
+- **Problème 3 résolu — code pays `EL` (Grèce) non reconnu** : `EL` est
+  l'alias officiel EU de `GR` (ISO 3166-1) utilisé dans les docs
+  ENTSO-E. Ajouté dans `overlay.countryGeocode` (Athènes 37.9838/23.7275)
+  et dans la map frontend `COUNTRY_CAPITALS`.
+
+### v3.0-alpha.21 — Alignement strict onglet Admin > Imports sur le mock carto-rte (2026-04-24)
+
+**Écart résiduel sur l'onglet `Imports` corrigé.** Le mock référence
+`carto-rte/project/admin-page.jsx#TabImports` définit un ordre de colonnes
+(Date → Fichier → EIC → Type → Opérateur → État) et une toolbar à 4 contrôles
+(search + 2 selects + Export CSV outline) qui n'étaient que partiellement
+respectés. Rien de nouveau côté CSS (classes déjà livrées en alpha.20).
+
+- **`apps/web/src/pages/AdminPage.tsx`** :
+  - Breadcrumb `Console → Administration` (segment 1 aligné sur le mock).
+  - `formatSync` : format cible `DD/MM · HH:MM UTC` (point médian entre
+    date et heure, année retirée pour matcher le mock « 29/08 · 06:00 UTC »).
+- **`apps/web/src/components/Admin/ImportsAdminTable.tsx`** :
+  - **Toolbar** : placeholder `Rechercher un fichier, une EIC, un opérateur…`,
+    ajout d'un select `Type de dump` (Tous / Endpoint / CD / Broker), ajout
+    du bouton `Export CSV` (`btn btn--outline`) générant un CSV UTF-8
+    client-side avec BOM (pas d'endpoint backend). Bouton primary
+    `+ Importer des dumps` conservé en bout de toolbar.
+  - **Tableau** : réordonnancement en 11 colonnes —
+    `Date | Fichier | EIC | Type | Label | Effective date | Props | Stats |
+    Opérateur | État | (action)`. La colonne `Warn.` standalone est
+    fusionnée dans **État** via un composant `ImportStatusBadge`
+    (`warnings > 0` → `badge--warn` « Avertissement » ; sinon `badge--ok`
+    « Succès »). Nouvelle colonne **Opérateur** affichant `envName` en
+    `mono` + `var(--ink-2)`.
+  - **Styles cellules harmonisés sur la ref** : Date en `mono ink-2 nowrap`
+    (taille du `.tbl` conservée, plus de surcharge `fontSize: 11`),
+    Fichier en `mono ink-0` (fort), EIC en `mono cyan-1` (cohérent avec
+    les autres onglets), Stats en `fontSize: 11.5 ink-3`.
+  - **Filtre type** appliqué dans `useMemo(filtered)` + recherche étendue
+    à `envName`.
+- **Aucune modification CSS / backend.** Zéro nouveau composant DS, zéro
+  dépendance ajoutée, typecheck web vert.
+
 ### v3.0-alpha.20 — Refonte totale du design "carto-rte" (dark) (2026-04-24)
 
 **Refonte visuelle complète.** Migration de la skin DS RTE vers un design system

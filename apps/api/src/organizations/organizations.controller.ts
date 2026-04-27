@@ -90,4 +90,9 @@ export class OrganizationsController {
     const buffer = await this.organizations.exportJson();
     return new StreamableFile(buffer);
   }
+
+  @Post('geocode-missing')
+  async geocodeMissing() {
+    return this.organizations.geocodeMissing();
+  }
 }

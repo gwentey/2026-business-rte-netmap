@@ -26,6 +26,17 @@ function formatDateTime(iso: string): string {
   return d.toLocaleString('fr-FR', {
     day: '2-digit',
     month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDateTimeFull(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
@@ -66,12 +77,32 @@ function PropertiesBadge({ present }: { present: boolean }): JSX.Element {
   );
 }
 
+function ImportStatusBadge({ warnings }: { warnings: number }): JSX.Element {
+  if (warnings > 0)
+    return (
+      <span className="badge badge--warn" title={`${warnings} avertissement(s)`}>
+        Avertissement
+      </span>
+    );
+  return <span className="badge badge--ok">Succès</span>;
+}
+
+type DumpTypeFilter = '' | 'ENDPOINT' | 'COMPONENT_DIRECTORY' | 'BROKER';
+
+function csvEscape(value: string): string {
+  if (value.includes('"') || value.includes(';') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
 export function ImportsAdminTable(): JSX.Element {
   const envs = useAppStore((s) => s.envs);
   const activeEnv = useAppStore((s) => s.activeEnv);
   const loadEnvs = useAppStore((s) => s.loadEnvs);
 
   const [envFilter, setEnvFilter] = useState<string>(activeEnv ?? '');
+  const [typeFilter, setTypeFilter] = useState<DumpTypeFilter>('');
   const [search, setSearch] = useState('');
   const [imports, setImports] = useState<ImportDetail[]>([]);
   const [loading, setLoading] = useState(false);
@@ -101,14 +132,45 @@ export function ImportsAdminTable(): JSX.Element {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return imports;
-    return imports.filter(
-      (i) =>
+    return imports.filter((i) => {
+      if (typeFilter !== '' && i.dumpType !== typeFilter) return false;
+      if (q.length === 0) return true;
+      return (
         i.label.toLowerCase().includes(q) ||
         i.fileName.toLowerCase().includes(q) ||
-        (i.sourceComponentEic ?? '').toLowerCase().includes(q),
+        (i.sourceComponentEic ?? '').toLowerCase().includes(q) ||
+        i.envName.toLowerCase().includes(q)
+      );
+    });
+  }, [imports, search, typeFilter]);
+
+  const handleExportCsv = (): void => {
+    const header = ['Date', 'Fichier', 'EIC', 'Type', 'Label', 'Opérateur', 'Avertissements'];
+    const lines = filtered.map((i) =>
+      [
+        formatDateTime(i.uploadedAt),
+        i.fileName,
+        i.sourceComponentEic ?? '',
+        i.dumpType,
+        i.label,
+        i.envName,
+        String(i.warnings.length),
+      ]
+        .map(csvEscape)
+        .join(';'),
     );
-  }, [imports, search]);
+    const csv = `﻿${[header.join(';'), ...lines].join('\n')}\n`;
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    a.download = `imports-${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   const handleDeleteConfirmed = async (): Promise<void> => {
     if (confirmDeleteId === null) return;
@@ -135,9 +197,20 @@ export function ImportsAdminTable(): JSX.Element {
           className="input grow"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Rechercher (label, filename, EIC)…"
+          placeholder="Rechercher un fichier, une EIC, un opérateur…"
           aria-label="Recherche"
         />
+        <select
+          className="select"
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as DumpTypeFilter)}
+          aria-label="Type de dump"
+        >
+          <option value="">Tous les types</option>
+          <option value="ENDPOINT">Endpoint</option>
+          <option value="COMPONENT_DIRECTORY">Component Directory</option>
+          <option value="BROKER">Broker</option>
+        </select>
         <select
           className="select"
           value={envFilter}
@@ -151,6 +224,14 @@ export function ImportsAdminTable(): JSX.Element {
             </option>
           ))}
         </select>
+        <button
+          type="button"
+          className="btn btn--outline"
+          onClick={handleExportCsv}
+          disabled={filtered.length === 0}
+        >
+          Export CSV
+        </button>
         <Link
           to={`/upload${envFilter ? `?env=${encodeURIComponent(envFilter)}` : ''}`}
           className="btn btn--primary"
@@ -167,18 +248,28 @@ export function ImportsAdminTable(): JSX.Element {
       )}
 
       <div className="tab-content">
-        <table className="tbl">
+        <table className="tbl" style={{ tableLayout: 'fixed', width: '100%' }}>
+          <colgroup>
+            <col style={{ width: 96 }} />
+            <col style={{ width: 240 }} />
+            <col style={{ width: 172 }} />
+            <col style={{ width: 104 }} />
+            <col style={{ width: 156 }} />
+            <col style={{ width: 60 }} />
+            <col style={{ width: 76 }} />
+            <col style={{ width: 128 }} />
+            <col style={{ width: 44 }} />
+          </colgroup>
           <thead>
             <tr>
-              <th>Fichier</th>
+              <th>Date</th>
+              <th>Fichier · Label</th>
               <th>EIC</th>
-              <th>Label</th>
               <th>Type</th>
+              <th>Effective</th>
               <th>Props</th>
-              <th>Effective date</th>
-              <th>Uploaded</th>
-              <th>Stats</th>
-              <th>Warn.</th>
+              <th>Env</th>
+              <th>État</th>
               <th></th>
             </tr>
           </thead>
@@ -194,7 +285,7 @@ export function ImportsAdminTable(): JSX.Element {
             {filtered.length === 0 && !loading && (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={9}
                   style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
                 >
                   Aucun import pour ce filtre.
@@ -204,7 +295,7 @@ export function ImportsAdminTable(): JSX.Element {
             {loading && (
               <tr>
                 <td
-                  colSpan={10}
+                  colSpan={9}
                   style={{ textAlign: 'center', color: 'var(--ink-3)', padding: 24 }}
                 >
                   Chargement…
@@ -317,33 +408,61 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
     }
   };
 
-  const statsLabel = `${item.stats.componentsCount} comp · ${item.stats.pathsCount} paths`;
+  const statsLabel = `${item.stats.componentsCount} composants · ${item.stats.pathsCount} paths`;
+  const fileTooltip = `${item.fileName}\n${statsLabel}`;
 
   return (
     <tr>
-      <td className="mono" title={item.fileName}>
-        {item.fileName.length > 36 ? `${item.fileName.slice(0, 33)}…` : item.fileName}
+      <td
+        className="mono"
+        style={{ color: 'var(--ink-2)', whiteSpace: 'nowrap' }}
+        title={formatDateTimeFull(item.uploadedAt)}
+      >
+        {formatDateTime(item.uploadedAt)}
       </td>
-      <td className="mono" style={{ color: 'var(--cyan-1)' }}>
+      <td style={{ minWidth: 0, maxWidth: 0 }}>
+        <div
+          className="mono"
+          style={{
+            color: 'var(--ink-0)',
+            fontSize: 12.5,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+          title={fileTooltip}
+        >
+          {item.fileName}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+          <input
+            type="text"
+            value={labelValue}
+            onChange={(e) => {
+              setLabelValue(e.target.value);
+              saveLabel(e.target.value);
+            }}
+            className="inline-edit"
+            aria-label="Label"
+            placeholder="Cliquez pour nommer…"
+            style={{
+              color: 'var(--ink-3)',
+              fontWeight: 400,
+              fontSize: 11.5,
+              padding: '1px 6px',
+            }}
+          />
+          {saving && <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>…</span>}
+        </div>
+      </td>
+      <td
+        className="mono"
+        style={{ color: 'var(--cyan-1)', whiteSpace: 'nowrap' }}
+      >
         {item.sourceComponentEic ?? '—'}
       </td>
       <td>
-        <input
-          type="text"
-          value={labelValue}
-          onChange={(e) => {
-            setLabelValue(e.target.value);
-            saveLabel(e.target.value);
-          }}
-          className="inline-edit"
-        />
-        {saving && <span style={{ color: 'var(--ink-3)', marginLeft: 4 }}>…</span>}
-      </td>
-      <td>
         <TypeBadge dumpType={item.dumpType} />
-      </td>
-      <td>
-        <PropertiesBadge present={item.hasConfigurationProperties} />
       </td>
       <td>
         <input
@@ -353,24 +472,17 @@ function AdminImportRow({ item, onDelete, onReload }: RowProps): JSX.Element {
             void saveEffectiveDate(e.target.value);
           }}
           className="input"
-          style={{ height: 28, fontSize: 11.5, width: 170 }}
+          style={{ height: 28, fontSize: 11.5, width: '100%' }}
         />
       </td>
-      <td className="mono" style={{ fontSize: 11, color: 'var(--ink-2)' }}>
-        {formatDateTime(item.uploadedAt)}
-      </td>
-      <td style={{ fontSize: 11, color: 'var(--ink-3)' }}>{statsLabel}</td>
       <td>
-        {item.warnings.length > 0 ? (
-          <span
-            className="badge badge--warn"
-            title={item.warnings.map((w) => w.code).join(', ')}
-          >
-            {item.warnings.length}
-          </span>
-        ) : (
-          <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>0</span>
-        )}
+        <PropertiesBadge present={item.hasConfigurationProperties} />
+      </td>
+      <td className="mono" style={{ color: 'var(--ink-2)', whiteSpace: 'nowrap' }}>
+        {item.envName}
+      </td>
+      <td>
+        <ImportStatusBadge warnings={item.warnings.length} />
       </td>
       <td>
         <button

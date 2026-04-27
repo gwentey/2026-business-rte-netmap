@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { OrganizationEntryRow, OrganizationUpsertInput } from '@carto-ecp/shared';
 import { ORGANIZATION_TYPE_HINTS } from '@carto-ecp/shared';
 import { api } from '../../lib/api.js';
+import { capitalFor } from '../../lib/country-capitals.js';
 
 const CloseIcon = (): JSX.Element => (
   <svg
@@ -271,6 +272,44 @@ export function OrganizationEditModal({
               />
             </div>
 
+            {(() => {
+              const capital = capitalFor(form.country);
+              if (capital === null) return null;
+              const coordsFilled =
+                form.lat.trim() !== '' && form.lng.trim() !== '';
+              return (
+                <div
+                  style={{
+                    gridColumn: '1/-1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        lat: String(capital.lat),
+                        lng: String(capital.lng),
+                      })
+                    }
+                    title={`Pré-remplit lat/lng avec ${capital.label} (${capital.lat}, ${capital.lng})`}
+                  >
+                    📍 Utiliser la capitale ({capital.label})
+                  </button>
+                  {coordsFilled && (
+                    <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>
+                      (remplacera les coords actuelles)
+                    </span>
+                  )}
+                </div>
+              );
+            })()}
+
             <p
               style={{
                 gridColumn: '1/-1',
@@ -279,8 +318,9 @@ export function OrganizationEditModal({
                 margin: 0,
               }}
             >
-              Coords facultatives — utilisées pour placer les composants de l'organisation.
-              Vides → fallback sur le centre du pays.
+              Coords facultatives — utilisées pour placer les composants de
+              l'organisation. Vides → fallback sur la capitale du pays (via
+              cascade registry).
             </p>
 
             <div className="field" style={{ gridColumn: '1/-1' }}>

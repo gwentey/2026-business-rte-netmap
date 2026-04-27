@@ -2,7 +2,15 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RegistryService } from '../registry/registry.service.js';
 import { OrganizationsService } from './organizations.service.js';
+
+const registryMock = {
+  resolveByCountry: (country: string | null | undefined) => {
+    if (country === 'FR') return { lat: 48.8566, lng: 2.3522 };
+    return null;
+  },
+};
 
 describe('OrganizationsService', () => {
   let service: OrganizationsService;
@@ -10,7 +18,11 @@ describe('OrganizationsService', () => {
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [OrganizationsService, PrismaService],
+      providers: [
+        OrganizationsService,
+        PrismaService,
+        { provide: RegistryService, useValue: registryMock },
+      ],
     }).compile();
     await moduleRef.init();
     service = moduleRef.get(OrganizationsService);

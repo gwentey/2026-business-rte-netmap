@@ -304,6 +304,15 @@ export type OrganizationImportResult = {
   errors: Array<{ organizationName: string; reason: string }>;
 };
 
+export type OrganizationGeocodeMissingResult = {
+  updated: number;
+  noCountry: number;
+  noCapital: number;
+  alreadyGeolocated: number;
+  skippedCountries: string[];
+  errors: Array<{ organizationName: string; reason: string }>;
+};
+
 export type EntsoeStatus = { count: number; refreshedAt: string | null };
 export type PurgeResult = { deletedCount: number };
 export type ResetAllResult = { imports: number; overrides: number; entsoe: number };

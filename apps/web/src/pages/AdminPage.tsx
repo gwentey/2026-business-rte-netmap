@@ -22,12 +22,9 @@ function formatSync(iso: string | null): string {
   if (iso === null) return '—';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }) + ' UTC';
+  const datePart = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+  const timePart = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${datePart} · ${timePart} UTC`;
 }
 
 export function AdminPage(): JSX.Element {
@@ -58,7 +55,7 @@ export function AdminPage(): JSX.Element {
   return (
     <>
       <SubHeader
-        breadcrumb={['Console', TAB_LABELS[activeTab]]}
+        breadcrumb={['Administration', TAB_LABELS[activeTab]]}
         right={
           <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>
             Dernière synchro ENTSO-E :{' '}

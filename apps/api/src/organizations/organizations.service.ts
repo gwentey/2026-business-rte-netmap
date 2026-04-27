@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { OrganizationEntry } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { RegistryService } from '../registry/registry.service.js';
 import { normalizeOrgName } from './normalize-org-name.js';
 
 /** Forme de lookup utilisée par la cascade graph (lecture seulement). */
@@ -41,9 +42,21 @@ export type SeedEntry = {
   notes?: string | null;
 };
 
+export type GeocodeMissingResult = {
+  updated: number;
+  noCountry: number;
+  noCapital: number;
+  alreadyGeolocated: number;
+  skippedCountries: string[];
+  errors: Array<{ organizationName: string; reason: string }>;
+};
+
 @Injectable()
 export class OrganizationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly registry: RegistryService,
+  ) {}
 
   async listAll(): Promise<OrganizationEntry[]> {
     return this.prisma.organizationEntry.findMany({
@@ -241,6 +254,64 @@ export class OrganizationsService {
         result.inserted++;
       }
     }
+    return result;
+  }
+
+  /**
+   * Pré-remplit lat/lng de toutes les organisations sans coords avec la
+   * capitale de leur pays (via overlay.countryGeocode résolu par
+   * RegistryService.resolveByCountry). En 1 seule requête pour éviter le
+   * throttler. Marque userEdited=true sur chaque orga patchée.
+   */
+  async geocodeMissing(): Promise<GeocodeMissingResult> {
+    const candidates = await this.prisma.organizationEntry.findMany({
+      where: {
+        OR: [{ lat: null }, { lng: null }],
+      },
+    });
+    const totalAll = await this.prisma.organizationEntry.count();
+    const alreadyGeolocated = totalAll - candidates.length;
+
+    const result: GeocodeMissingResult = {
+      updated: 0,
+      noCountry: 0,
+      noCapital: 0,
+      alreadyGeolocated,
+      skippedCountries: [],
+      errors: [],
+    };
+    const skipped = new Set<string>();
+
+    for (const row of candidates) {
+      const country = row.country?.trim() ?? '';
+      if (country.length === 0) {
+        result.noCountry += 1;
+        continue;
+      }
+      const geo = this.registry.resolveByCountry(country.toUpperCase());
+      if (geo === null) {
+        result.noCapital += 1;
+        skipped.add(country.toUpperCase());
+        continue;
+      }
+      try {
+        await this.prisma.organizationEntry.update({
+          where: { id: row.id },
+          data: {
+            lat: geo.lat,
+            lng: geo.lng,
+            userEdited: true,
+          },
+        });
+        result.updated += 1;
+      } catch (err) {
+        result.errors.push({
+          organizationName: row.displayName,
+          reason: (err as Error).message,
+        });
+      }
+    }
+    result.skippedCountries = Array.from(skipped).sort();
     return result;
   }
 

@@ -10,10 +10,10 @@ const APP_VERSION = (import.meta.env.VITE_APP_VERSION as string | undefined) ?? 
 export function AppHeader(): JSX.Element {
   return (
     <header className="app-header">
-      <Link to="/" className="brand" aria-label="Carto ECP — accueil">
+      <Link to="/" className="brand" aria-label="NETMAP — accueil">
         <div className="brand-logo">Rte</div>
         <div>
-          <div className="brand-title">Carto ECP · RTE</div>
+          <div className="brand-title">NETMAP · RTE</div>
           <div className="brand-tagline">Topologie réseau — vue opérationnelle</div>
         </div>
       </Link>

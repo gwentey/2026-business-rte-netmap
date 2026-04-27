@@ -1,0 +1,49 @@
+{
+  "company": "RTE",
+  "website": "https://www.rte-france.com/",
+  "tagline": "Pour qu'à chaque seconde le courant passe",
+  "business_overview": "RTE is the French electricity transmission system operator responsible for managing, maintaining, and developing the high and very high-voltage power grid. As a regulated public service provider, it ensures a continuous 24/7 electricity supply across mainland France while leading the national transition toward a decarbonized energy system through infrastructure innovation and European cooperation.",
+  "brand": {
+    "fonts": [
+      "Nunitosans"
+    ],
+    "colors": [
+      {
+        "name": "dark",
+        "hex": "#10181d"
+      },
+      {
+        "name": "cyan",
+        "hex": "#00bded"
+      },
+      {
+        "name": "teal",
+        "hex": "#0c3949"
+      },
+      {
+        "name": "white",
+        "hex": "#ffffff"
+      }
+    ],
+    "values": [
+      "Mission de service public",
+      "Neutralité",
+      "Innovation",
+      "Solidarité",
+      "Responsabilité environnementale"
+    ],
+    "aesthetic": [
+      "clean industrialism",
+      "technological transparency",
+      "modern institutionalism",
+      "geometric precision",
+      "human-centered infrastructure"
+    ],
+    "tone_of_voice": [
+      "Authoritative",
+      "Professional",
+      "Committed",
+      "Technical"
+    ]
+  }
+}
